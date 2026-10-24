@@ -1,0 +1,8 @@
+# SOPS rules: only files named *.sops.yaml are encrypted, and only their
+# data/stringData fields, so metadata stays readable in Git diffs.
+# Replace the age recipient with YOUR public key (the "# public key:" line
+# printed by `age-keygen`). The private key is never committed.
+creation_rules:
+  - path_regex: .*\.sops\.yaml$
+    encrypted_regex: ^(data|stringData)$
+    age: REPLACE_WITH_YOUR_AGE_PUBLIC_KEY

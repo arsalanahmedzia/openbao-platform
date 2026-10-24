@@ -1,0 +1,16 @@
+# Never commit private keys or local secrets
+*.agekey
+age.key
+keys.txt
+*.pem
+.env
+*.env
+
+# Unencrypted secret drafts (encrypt to *.sops.yaml before committing)
+*.secret.yaml
+*.dec.yaml
+
+# Local tooling
+.DS_Store
+.idea/
+.vscode/

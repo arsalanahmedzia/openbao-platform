@@ -1,0 +1,28 @@
+# Multi-node kind cluster: 1 control plane + 3 workers.
+# Three workers let OpenBao and PostgreSQL spread one replica per node,
+# so a node failure can be demonstrated (docker stop <worker>).
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: openbao-platform
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    extraPortMappings:
+      # Bound to localhost only: the UI is reached through an SSH tunnel,
+      # nothing is exposed on the host's public interface.
+      - containerPort: 80
+        hostPort: 80
+        listenAddress: "127.0.0.1"
+        protocol: TCP
+      - containerPort: 443
+        hostPort: 443
+        listenAddress: "127.0.0.1"
+        protocol: TCP
+  - role: worker
+  - role: worker
+  - role: worker

@@ -1,1 +1,64 @@
-# openbao-platform
+# OpenBao Platform
+
+Production-oriented Kubernetes platform with OpenBao as the secrets management system, a highly available PostgreSQL backend, External Secrets Operator for bidirectional secret synchronization, and Flux for GitOps.
+
+> Status: work in progress
+
+## Overview
+
+_TODO: one paragraph + architecture diagram._
+
+## Quick start
+
+Demo environment: a GitHub Codespace (4 cores, 16 GB) running a 4-node kind cluster,
+see [`docs/environment.md`](docs/environment.md).
+
+```bash
+# in a Codespace created from this repo (tools install automatically);
+# secrets SOPS_AGE_KEY, FLUX_GITHUB_TOKEN, GITHUB_USER set as Codespaces secrets
+bash scripts/bootstrap.sh                            # kind + SOPS key + Flux
+flux get kustomizations --watch
+```
+
+_TODO: OpenBao init/unseal and verification steps._
+
+## Components and versions
+
+| Component | Purpose | Version |
+| --- | --- | --- |
+| kind | Local multi-node Kubernetes cluster | TODO |
+| Flux | GitOps engine | TODO |
+| SOPS + age | Encrypted bootstrap secrets in Git | TODO |
+| cert-manager | TLS certificates (self-signed CA) | TODO |
+| ingress-nginx | HTTPS entry point | TODO |
+| CloudNativePG | HA PostgreSQL with backups | TODO |
+| OpenBao | Secrets management (HA, PostgreSQL backend) | TODO |
+| External Secrets Operator | Secret sync OpenBao <-> Kubernetes | TODO |
+
+## Architecture and design decisions
+
+_TODO: summary of each ADR, see [`docs/adr/`](docs/adr/)._
+
+## Production-ready vs simplified for the demo
+
+_TODO_
+
+## Secret synchronization demo
+
+_TODO: pull (ExternalSecret) and push (PushSecret), with evidence._
+
+## Backup and restore
+
+_TODO: see [`docs/runbooks/`](docs/runbooks/)._
+
+## Operations: monitoring, alerting, troubleshooting
+
+_TODO: see `docs/operations.md`._
+
+## Limitations and next steps
+
+_TODO_
+
+## Time spent
+
+See [`docs/time-log.md`](docs/time-log.md).
