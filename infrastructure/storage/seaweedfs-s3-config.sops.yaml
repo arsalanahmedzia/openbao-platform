@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: seaweedfs-s3-config
+    namespace: storage
+type: Opaque
+stringData:
+    s3.json: ENC[AES256_GCM,data:7MxhqJ2qz9XlHry3BxnPkSl5ZrUo143wIeSR68uspHU79CvIn0zKFmVr2zLRwXFFmQAzCn5bWq+DawXMfKMnCecufD6DF+h/VQS9d7TER6h4yfMchxoUMM4jpgzLhOCfut4SdrwlRnaxWoB5fWurvkNoQq02TLKx9Zggl2QY7e/qtaE+FGBwnEEpHlLGjxBf/N99zlD6szqse1cvjtdA6mI+GVVpc6HECh9Ati7oNzvzRw==,iv:RIUCa1YfE7fXGvFZt5kpabBYyUPgOpPDe6EAW0ERj4U=,tag:1JK+Usb0Q+XcCfc/u0l7tw==,type:str]
+    ACCESS_KEY_ID: ENC[AES256_GCM,data:moGsxjs+OVE3fSBPkhrbKZeQCSs=,iv:QA9WmM0NRcqsh7jRc1+AZJ9k0QhEk1tJrCxTnAS2v+4=,tag:+LOy+VH59PA6JgL6CBNLsw==,type:str]
+    ACCESS_SECRET_KEY: ENC[AES256_GCM,data:HekXWvvtdgRpspnUWMCs1TdoXfh3kCc/E030ChnMrxec85VOm3khGA==,iv:04MP5WMW+gsfjMGDlqAHI8mq/MeFtlQR5kC8Yf6LSwQ=,tag:EtcNyl09O9V8Lyb6HTvKbQ==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBQUGJvaGVoZHNJUE9hMWxE
+            aU8wcnU1aUdYZkg1OXBFUHI2NnQ4OHQya1NBClkrdE91c0w3MEtOd1pvV1d5S3dY
+            QURvSjFOWUxVZjFvbmd1a0E4eWxVYVUKLS0tIG01a0RJLy9UcTlPYUlIYThnNzRG
+            VnA0Z28vdEN5YkFYV21HdURzMTFoM1EKKttiokE9pjuZjo8FOMJIpJeEtt66cD10
+            lfvO1mNDAlZ46u/QgFS1Mcjg2kTa2UIZPDDJX+sUXVoEjaOBuAOP0w==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age162kwlzp6kleh6txpqkyxrqv7xwph06rhttxszjm5v4wu0a2l7elqswykja
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-25T12:34:17Z"
+    mac: ENC[AES256_GCM,data:r5AssbyCAeFQHIfL/r5CFuEQADd0iW5r/Ko/g59za8gSwaCa92veRfR1tHeKbl5wsw4K8QUxYG0i6/5YoN2Hzv7mBXuQ8y6Op7l4/UcheBw5mnIcl4SBZ94ZivRPWXkyoCwz90p5ZIBNzq0Cy3KWebAhB12UvzWAKRCtSByS7CA=,iv:KDNqgfvvlCnrQM8YJIMmBi3BkxJigWF/QxZ/iBt0jXs=,tag:alB0DLFenG2aTTQnDAo8vw==,type:str]
+    version: 3.13.3
