@@ -1,0 +1,6 @@
+NAMESPACE       	NAME               	REVISION	SUSPENDED	READY	MESSAGE                                                                                                    
+cert-manager    	cert-manager       	v1.21.3 	False    	True 	Helm install succeeded for release cert-manager/cert-manager.v1 with chart cert-manager@v1.21.3           	
+cnpg-system     	cloudnative-pg     	0.29.1  	False    	True 	Helm upgrade succeeded for release cnpg-system/cloudnative-pg.v3 with chart cloudnative-pg@0.29.1         	
+cnpg-system     	plugin-barman-cloud	0.8.1   	False    	True 	Helm install succeeded for release cnpg-system/plugin-barman-cloud.v1 with chart plugin-barman-cloud@0.8.1	
+external-secrets	external-secrets   	2.14.0  	False    	True 	Helm install succeeded for release external-secrets/external-secrets.v1 with chart external-secrets@2.14.0	
+traefik         	traefik            	42.1.3  	False    	True 	Helm install succeeded for release traefik/traefik.v1 with chart traefik@42.1.3                           	

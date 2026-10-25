@@ -1,0 +1,3 @@
+NAME                   READY   AGE
+demo-ca                True    14m
+selfsigned-bootstrap   True    14m
