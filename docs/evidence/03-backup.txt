@@ -1,0 +1,36 @@
+# Backups of pg-openbao, captured 2026-10-25T12:51:38Z
+
+$ kubectl -n databases get objectstore,backup,scheduledbackup
+NAME                                         AGE
+objectstore.barmancloud.cnpg.io/pg-backups   4m10s
+
+NAME                                           AGE     CLUSTER      METHOD   PHASE       ERROR
+backup.postgresql.cnpg.io/pg-openbao-initial   4m10s   pg-openbao   plugin   completed   
+
+NAME                                                  AGE     CLUSTER      LAST BACKUP
+scheduledbackup.postgresql.cnpg.io/pg-openbao-daily   4m10s   pg-openbao   
+
+$ kubectl -n databases get backup pg-openbao-initial -o jsonpath={.status.phase} method={.status.method} started={.status.startedAt} stopped={.status.stoppedAt} backupId={.status.backupId}{"\n"}
+completed method=plugin started=2026-10-25T12:49:01Z stopped=2026-10-25T12:49:13Z backupId=20261025T124901
+
+# Bucket contents, listed from a MANUAL temporary pod s3-list-test (deleted afterwards)
+$ aws --endpoint-url http://seaweedfs.storage.svc:8333 s3 ls s3://pg-backups/ --recursive --human-readable --summarize
+2026-10-25 12:49:16    1.4 KiB pg-openbao/base/20261025T124901/backup.info
+2026-10-25 12:49:16    4.1 MiB pg-openbao/base/20261025T124901/data.tar.gz
+2026-10-25 12:48:36    2.6 MiB pg-openbao/wals/0000000100000000/000000010000000000000001.gz
+2026-10-25 12:49:02   29.4 KiB pg-openbao/wals/0000000100000000/000000010000000000000002.gz
+2026-10-25 12:49:15  208 Bytes pg-openbao/wals/0000000100000000/000000010000000000000003.00000028.backup.gz
+2026-10-25 12:49:14   16.1 KiB pg-openbao/wals/0000000100000000/000000010000000000000003.gz
+2026-10-25 12:49:20   16.1 KiB pg-openbao/wals/0000000100000000/000000010000000000000004.gz
+2026-10-25 12:49:22  201 Bytes pg-openbao/wals/0000000100000000/000000010000000000000005.00000028.backup.gz
+2026-10-25 12:49:21   16.1 KiB pg-openbao/wals/0000000100000000/000000010000000000000005.gz
+2026-10-25 12:50:33  117.2 KiB pg-openbao/wals/0000000100000000/000000010000000000000006.gz
+2026-10-25 12:50:45  202 Bytes pg-openbao/wals/0000000100000000/000000010000000000000007.00000028.backup.gz
+2026-10-25 12:50:44   16.1 KiB pg-openbao/wals/0000000100000000/000000010000000000000007.gz
+
+Total Objects: 12
+   Total Size: 6.8 MiB
+
+$ kubectl -n databases delete pod s3-list-test
+pod "s3-list-test" deleted from databases namespace
+

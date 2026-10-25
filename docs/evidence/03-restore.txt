@@ -1,0 +1,121 @@
+# Point-in-time restore test, captured 2026-10-25T12:53:06Z. Source primary: pg-openbao-2
+
+$ kubectl -n databases exec pg-openbao-2 -c postgres -- psql -d openbao -c "INSERT INTO ha_demo (note) VALUES ('row A (before target)'); SELECT now() AT TIME ZONE 'UTC' AS row_a_time_utc;"
+INSERT 0 1
+       row_a_time_utc       
+----------------------------
+ 2026-10-25 12:53:06.204384
+(1 row)
+
+
+$ kubectl -n databases exec pg-openbao-2 -c postgres -- psql -d openbao -c "SELECT now() AT TIME ZONE 'UTC' AS target_time_utc;"
+      target_time_utc       
+----------------------------
+ 2026-10-25 12:53:36.372644
+(1 row)
+
+
+$ kubectl -n databases exec pg-openbao-2 -c postgres -- psql -d openbao -c "INSERT INTO ha_demo (note) VALUES ('row B (after target)'); SELECT now() AT TIME ZONE 'UTC' AS row_b_time_utc;"
+INSERT 0 1
+       row_b_time_utc       
+----------------------------
+ 2026-10-25 12:54:06.530486
+(1 row)
+
+
+$ kubectl -n databases exec pg-openbao-2 -c postgres -- psql -d openbao -c "SELECT pg_switch_wal();"
+ pg_switch_wal 
+---------------
+ 0/900A650
+(1 row)
+
+
+$ kubectl -n databases exec pg-openbao-2 -c postgres -- psql -d openbao -c "SELECT id, note, created_at AT TIME ZONE 'UTC' AS created_utc FROM ha_demo ORDER BY id;"
+ id |         note          |        created_utc         
+----+-----------------------+----------------------------
+  1 | row 1                 | 2026-10-25 12:51:54.905695
+  2 | row 2                 | 2026-10-25 12:51:54.905695
+  3 | row 3                 | 2026-10-25 12:51:54.905695
+ 34 | row 4 after failover  | 2026-10-25 12:52:43.542627
+ 35 | row A (before target) | 2026-10-25 12:53:06.204384
+ 36 | row B (after target)  | 2026-10-25 12:54:06.530486
+(6 rows)
+
+
+# WAL archiving status of the source after pg_switch_wal()
+Continuous Backup status (Barman Cloud Plugin)
+ObjectStore / Server name:      pg-backups/pg-openbao
+First Point of Recoverability:  2026-10-25 12:49:13 UTC
+Last Successful Backup:         2026-10-25 12:49:13 UTC
+Last Failed Backup:             -
+Working WAL archiving:          OK
+WALs waiting to be archived:    0
+Last Archived WAL:              000000020000000000000009   @   2026-10-25T12:54:08.155986Z
+
+$ kubectl apply -f docs/runbooks/restore-example.yaml   # MANUAL, test cluster, deleted below (targetTime 2026-10-25T12:53:36Z)
+
+$ kubectl -n databases get cluster pg-restore
+NAME         AGE   INSTANCES   READY   STATUS                     PRIMARY
+pg-restore   84s   1           1       Cluster in healthy state   pg-restore-1
+
+# Note: the WAL replay runs in the operator's pg-restore-1-full-recovery Job, which the
+# operator deletes after a successful restore, so its log was not captured. Proof is
+# the data below (row A present, row B absent) and the new timeline 3.
+
+$ kubectl -n databases exec pg-restore-1 -c postgres -- psql -d openbao -c "SELECT pg_is_in_recovery() AS is_replica, timeline_id FROM pg_control_checkpoint();"
+ is_replica | timeline_id 
+------------+-------------
+ f          |           3
+(1 row)
+
+
+$ kubectl -n databases exec pg-restore-1 -c postgres -- psql -d openbao -c "SELECT id, note, created_at AT TIME ZONE 'UTC' AS created_utc FROM ha_demo ORDER BY id;"
+ id |         note          |        created_utc         
+----+-----------------------+----------------------------
+  1 | row 1                 | 2026-10-25 12:51:54.905695
+  2 | row 2                 | 2026-10-25 12:51:54.905695
+  3 | row 3                 | 2026-10-25 12:51:54.905695
+ 34 | row 4 after failover  | 2026-10-25 12:52:43.542627
+ 35 | row A (before target) | 2026-10-25 12:53:06.204384
+(5 rows)
+
+
+$ kubectl -n databases exec pg-restore-1 -c postgres -- psql -d openbao -c "SELECT count(*) FILTER (WHERE note LIKE 'row A%') AS has_row_a, count(*) FILTER (WHERE note LIKE 'row B%') AS has_row_b FROM ha_demo;"
+ has_row_a | has_row_b 
+-----------+-----------
+         1 |         0
+(1 row)
+
+
+$ kubectl delete -f docs/runbooks/restore-example.yaml   # remove the MANUAL test cluster
+cluster.postgresql.cnpg.io "pg-restore" deleted from databases namespace
+
+$ kubectl -n databases get cluster,pods,pvc
+NAME                                    AGE     INSTANCES   READY   STATUS                     PRIMARY
+cluster.postgresql.cnpg.io/pg-openbao   9m27s   3           3       Cluster in healthy state   pg-openbao-2
+
+NAME               READY   STATUS        RESTARTS   AGE
+pod/pg-openbao-1   2/2     Running       0          4m36s
+pod/pg-openbao-2   2/2     Running       0          7m22s
+pod/pg-openbao-3   2/2     Running       0          6m7s
+pod/pg-restore-1   1/1     Terminating   0          63s
+
+NAME                                 STATUS        VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+persistentvolumeclaim/pg-openbao-1   Bound         pvc-f98ed248-2576-4631-be13-60d44c69511d   5Gi        RWO            standard       <unset>                 9m26s
+persistentvolumeclaim/pg-openbao-2   Bound         pvc-ee568602-e068-4be7-b44d-18482e187873   5Gi        RWO            standard       <unset>                 8m13s
+persistentvolumeclaim/pg-openbao-3   Bound         pvc-2885b3c5-7b87-43e2-94e9-0ac938618488   5Gi        RWO            standard       <unset>                 6m58s
+persistentvolumeclaim/pg-restore-1   Terminating   pvc-d61e732a-afa6-480a-a731-81b49c1f11b4   5Gi        RWO            standard       <unset>                 115s
+
+$ kubectl -n databases get cluster,pods,pvc   # after termination finished
+NAME                                    AGE     INSTANCES   READY   STATUS                     PRIMARY
+cluster.postgresql.cnpg.io/pg-openbao   9m32s   3           3       Cluster in healthy state   pg-openbao-2
+
+NAME               READY   STATUS    RESTARTS   AGE
+pod/pg-openbao-1   2/2     Running   0          4m41s
+pod/pg-openbao-2   2/2     Running   0          7m27s
+pod/pg-openbao-3   2/2     Running   0          6m12s
+
+NAME                                 STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+persistentvolumeclaim/pg-openbao-1   Bound    pvc-f98ed248-2576-4631-be13-60d44c69511d   5Gi        RWO            standard       <unset>                 9m31s
+persistentvolumeclaim/pg-openbao-2   Bound    pvc-ee568602-e068-4be7-b44d-18482e187873   5Gi        RWO            standard       <unset>                 8m18s
+persistentvolumeclaim/pg-openbao-3   Bound    pvc-2885b3c5-7b87-43e2-94e9-0ac938618488   5Gi        RWO            standard       <unset>                 7m3s

@@ -1,0 +1,71 @@
+# Failover test: delete the primary pod, captured 2026-10-25T12:52:12Z
+
+$ kubectl -n databases get pods -o wide
+NAME           READY   STATUS    RESTARTS   AGE     IP            NODE                       NOMINATED NODE   READINESS GATES
+pg-openbao-1   2/2     Running   0          3m53s   10.244.2.10   openbao-platform-worker2   <none>           <none>
+pg-openbao-2   2/2     Running   0          2m39s   10.244.3.9    openbao-platform-worker3   <none>           <none>
+pg-openbao-3   2/2     Running   0          84s     10.244.1.10   openbao-platform-worker    <none>           <none>
+
+primary before: pg-openbao-1   pg-openbao-rw endpoint: 10.244.2.10
+
+$ kubectl -n databases delete pod pg-openbao-1   # at 12:52:12
+pod "pg-openbao-1" deleted from databases namespace
+
+new primary: pg-openbao-2 after 7s (at 12:52:19)
+cluster healthy again with 3/3 after 18s (at 12:52:30)   pg-openbao-rw endpoint: 10.244.3.9
+
+$ kubectl cnpg status pg-openbao -n databases   (sections: summary, replication, instances)
+Cluster Summary
+Name                     databases/pg-openbao
+System ID:               7700586406076633116
+PostgreSQL Image:        ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie
+Primary instance:        pg-openbao-2
+Primary promotion time:  2026-10-25 12:52:19 +0000 UTC (25s)
+Status:                  Cluster in healthy state 
+Instances:               3
+Ready instances:         3
+Size:                    128M
+Current Write LSN:       0/9000FE8 (Timeline: 2 - WAL File: 000000020000000000000009)
+Streaming Replication status
+Replication Slots Enabled
+Name          Sent LSN   Write LSN  Flush LSN  Replay LSN  Write Lag  Flush Lag  Replay Lag  State      Sync State  Sync Priority  Replication Slot
+----          --------   ---------  ---------  ----------  ---------  ---------  ----------  -----      ----------  -------------  ----------------
+pg-openbao-1  0/9000FE8  0/9000FE8  0/9000FE8  0/9000FE8   00:00:00   00:00:00   00:00:00    streaming  async       0              active
+pg-openbao-3  0/9000FE8  0/9000FE8  0/9000FE8  0/9000FE8   00:00:00   00:00:00   00:00:00    streaming  async       0              active
+
+Instances status
+Name          Current LSN  Replication role  Status  QoS        Manager Version  Node
+----          -----------  ----------------  ------  ---        ---------------  ----
+pg-openbao-2  0/9000FE8    Primary           OK      Burstable  1.30.1           openbao-platform-worker3
+pg-openbao-1  0/9000FE8    Standby (async)   OK      Burstable  1.30.1           openbao-platform-worker2
+pg-openbao-3  0/9000FE8    Standby (async)   OK      Burstable  1.30.1           openbao-platform-worker
+
+
+$ kubectl -n databases exec pg-openbao-2 -c postgres -- psql -d openbao -c "SELECT pg_is_in_recovery() AS is_replica; INSERT INTO ha_demo (note) VALUES ('row 4 after failover');"
+ is_replica 
+------------
+ f
+(1 row)
+
+INSERT 0 1
+
+$ kubectl -n databases exec pg-openbao-1 -c postgres -- psql -d openbao -c "SELECT pg_is_in_recovery() AS is_replica; SELECT id, note FROM ha_demo ORDER BY id;"
+ is_replica 
+------------
+ t
+(1 row)
+
+ id |         note         
+----+----------------------
+  1 | row 1
+  2 | row 2
+  3 | row 3
+ 34 | row 4 after failover
+(4 rows)
+
+
+$ kubectl -n databases get pods -o wide
+NAME           READY   STATUS    RESTARTS   AGE     IP            NODE                       NOMINATED NODE   READINESS GATES
+pg-openbao-1   2/2     Running   0          26s     10.244.2.12   openbao-platform-worker2   <none>           <none>
+pg-openbao-2   2/2     Running   0          3m12s   10.244.3.9    openbao-platform-worker3   <none>           <none>
+pg-openbao-3   2/2     Running   0          117s    10.244.1.10   openbao-platform-worker    <none>           <none>

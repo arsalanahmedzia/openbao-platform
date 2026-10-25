@@ -1,0 +1,33 @@
+# Replication test, captured 2026-10-25T12:51:54Z. Primary: pg-openbao-1, replica: pg-openbao-2
+
+$ kubectl -n databases exec pg-openbao-1 -c postgres -- psql -d openbao -c "SELECT pg_is_in_recovery() AS is_replica, inet_server_addr();"
+ is_replica | inet_server_addr 
+------------+------------------
+ f          | 
+(1 row)
+
+
+$ kubectl -n databases exec pg-openbao-1 -c postgres -- psql -d openbao -c "CREATE TABLE ha_demo (id serial PRIMARY KEY, note text, created_at timestamptz DEFAULT now()); INSERT INTO ha_demo (note) VALUES ('row 1'), ('row 2'), ('row 3');"
+CREATE TABLE
+INSERT 0 3
+
+$ kubectl -n databases exec pg-openbao-2 -c postgres -- psql -d openbao -c "SELECT pg_is_in_recovery() AS is_replica, inet_server_addr();"
+ is_replica | inet_server_addr 
+------------+------------------
+ t          | 
+(1 row)
+
+
+$ kubectl -n databases exec pg-openbao-2 -c postgres -- psql -d openbao -c "SELECT id, note FROM ha_demo ORDER BY id;"
+ id | note  
+----+-------
+  1 | row 1
+  2 | row 2
+  3 | row 3
+(3 rows)
+
+
+$ kubectl -n databases exec pg-openbao-2 -c postgres -- psql -d openbao -c "INSERT INTO ha_demo (note) VALUES ('must fail');"
+ERROR:  cannot execute INSERT in a read-only transaction
+command terminated with exit code 1
+

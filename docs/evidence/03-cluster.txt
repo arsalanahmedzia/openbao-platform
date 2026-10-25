@@ -1,0 +1,72 @@
+# PostgreSQL cluster pg-openbao, captured 2026-10-25T12:51:34Z
+
+$ flux get kustomizations
+NAME             	REVISION          	SUSPENDED	READY	MESSAGE                              
+apps-database    	main@sha1:29010bbf	False    	True 	Applied revision: main@sha1:29010bbf	
+flux-system      	main@sha1:29010bbf	False    	True 	Applied revision: main@sha1:29010bbf	
+infra-configs    	main@sha1:29010bbf	False    	True 	Applied revision: main@sha1:29010bbf	
+infra-controllers	main@sha1:29010bbf	False    	True 	Applied revision: main@sha1:29010bbf	
+infra-storage    	main@sha1:29010bbf	False    	True 	Applied revision: main@sha1:29010bbf	
+
+$ kubectl -n databases get cluster,pods -o wide
+NAME                                    AGE    INSTANCES   READY   STATUS                     PRIMARY
+cluster.postgresql.cnpg.io/pg-openbao   4m6s   3           3       Cluster in healthy state   pg-openbao-1
+
+NAME               READY   STATUS    RESTARTS   AGE     IP            NODE                       NOMINATED NODE   READINESS GATES
+pod/pg-openbao-1   2/2     Running   0          3m15s   10.244.2.10   openbao-platform-worker2   <none>           <none>
+pod/pg-openbao-2   2/2     Running   0          2m1s    10.244.3.9    openbao-platform-worker3   <none>           <none>
+pod/pg-openbao-3   2/2     Running   0          46s     10.244.1.10   openbao-platform-worker    <none>           <none>
+
+$ kubectl cnpg status pg-openbao -n databases
+Cluster Summary
+Name                     databases/pg-openbao
+System ID:               7700586406076633116
+PostgreSQL Image:        ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie
+Primary instance:        pg-openbao-1
+Primary promotion time:  2026-10-25 12:48:35 +0000 UTC (3m0s)
+Status:                  Cluster in healthy state 
+Instances:               3
+Ready instances:         3
+Size:                    160M
+Current Write LSN:       0/8000060 (Timeline: 1 - WAL File: 000000010000000000000008)
+
+Continuous Backup status (Barman Cloud Plugin)
+ObjectStore / Server name:      pg-backups/pg-openbao
+First Point of Recoverability:  2026-10-25 12:49:13 UTC
+Last Successful Backup:         2026-10-25 12:49:13 UTC
+Last Failed Backup:             -
+Working WAL archiving:          OK
+WALs waiting to be archived:    0
+Last Archived WAL:              000000010000000000000007.00000028.backup   @   2026-10-25T12:50:45.449311Z
+Last Failed WAL:                -
+
+Streaming Replication status
+Replication Slots Enabled
+Name          Sent LSN   Write LSN  Flush LSN  Replay LSN  Write Lag  Flush Lag  Replay Lag  State      Sync State  Sync Priority  Replication Slot
+----          --------   ---------  ---------  ----------  ---------  ---------  ----------  -----      ----------  -------------  ----------------
+pg-openbao-2  0/8000060  0/8000060  0/8000060  0/8000060   00:00:00   00:00:00   00:00:00    streaming  async       0              active
+pg-openbao-3  0/8000060  0/8000060  0/8000060  0/8000060   00:00:00   00:00:00   00:00:00    streaming  async       0              active
+
+Instances status
+Name          Current LSN  Replication role  Status  QoS        Manager Version  Node
+----          -----------  ----------------  ------  ---        ---------------  ----
+pg-openbao-1  0/8000060    Primary           OK      Burstable  1.30.1           openbao-platform-worker2
+pg-openbao-2  0/8000060    Standby (async)   OK      Burstable  1.30.1           openbao-platform-worker3
+pg-openbao-3  0/8000060    Standby (async)   OK      Burstable  1.30.1           openbao-platform-worker
+
+Plugins status
+Name                            Version  Status  Reported Operator Capabilities
+----                            -------  ------  ------------------------------
+barman-cloud.cloudnative-pg.io  0.15.1   N/A     Reconciler Hooks, Lifecycle Service, TYPE_INSTANCE_SIDECAR_INJECTION
+
+
+$ kubectl -n databases get svc
+NAME            TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+pg-openbao-r    ClusterIP   10.96.63.148    <none>        5432/TCP   4m7s
+pg-openbao-ro   ClusterIP   10.96.205.203   <none>        5432/TCP   4m7s
+pg-openbao-rw   ClusterIP   10.96.210.176   <none>        5432/TCP   4m7s
+
+$ kubectl -n databases get secret pg-openbao-app
+NAME             TYPE                       DATA   AGE
+pg-openbao-app   kubernetes.io/basic-auth   11     4m7s
+
