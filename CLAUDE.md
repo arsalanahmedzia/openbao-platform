@@ -25,8 +25,9 @@ GitHub Codespace (4 cores, 16 GB). kind cluster `openbao-platform`: 1 control pl
   if you test something manually, say so and remove it afterwards.
 - Pin chart and image versions; do not guess versions or API fields, check the
   official docs or `kubectl explain` and say when unsure.
-- Explain each step in plain words before doing it, with a networking analogy where
-  it helps. After each stage, show the verification commands and what good output looks like.
+- Explain each step in plain words before doing it, in full detail (what each command
+  and flag does, why, what good output looks like). Do not use analogies to other fields;
+  do not assume prior knowledge of the user's background. After each stage, show the verification commands and what good output looks like.
 - Ask before running anything destructive or anything that costs money.
 - Save useful command output to docs/evidence/ and propose a short ADR for each
   design decision (problem, options, choice, trade-off).
