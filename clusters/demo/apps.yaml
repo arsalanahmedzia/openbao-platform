@@ -1,0 +1,26 @@
+# Application layers, applied after the infrastructure layers (dependsOn).
+#   apps-database: HA PostgreSQL (CloudNativePG) for OpenBao, with backups to
+#   the in-cluster S3 bucket pg-backups. Needs infra-storage (bucket) first.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: apps-database
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: infra-storage
+  interval: 10m
+  retryInterval: 1m
+  # Three nodes pull the PostgreSQL image (~1.1 GB) and two replicas clone the
+  # primary before the Cluster is Ready.
+  timeout: 15m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./apps/database
+  prune: true
+  wait: true
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
