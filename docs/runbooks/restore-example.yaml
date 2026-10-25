@@ -1,0 +1,49 @@
+# Point-in-time restore of pg-openbao into a NEW cluster pg-restore.
+# NOT in a Flux path on purpose: applied by hand during a restore only, see
+# docs/runbooks/postgres-backup-restore.md. Set targetTime before applying.
+#
+# Reads the base backup + WAL of pg-openbao from s3://pg-backups/pg-openbao/
+# and replays WAL up to targetTime. It does NOT archive WAL itself (no
+# "plugins" entry), so it can never write into the source cluster's backups.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg-restore
+  namespace: databases
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie
+
+  storage:
+    size: 5Gi
+    storageClass: standard
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+  postgresql:
+    parameters:
+      shared_buffers: "128MB"
+
+  bootstrap:
+    recovery:
+      source: pg-openbao-backup
+      # RFC3339, UTC. Value used in the restore test of 2026-10-25
+      # (between row A at 12:53:06 and row B at 12:54:06).
+      recoveryTarget:
+        targetTime: "2026-10-25T12:53:36Z"
+      # New generated password for user openbao (Secret pg-restore-app).
+      database: openbao
+      owner: openbao
+
+  externalClusters:
+    - name: pg-openbao-backup
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: pg-backups
+          serverName: pg-openbao
