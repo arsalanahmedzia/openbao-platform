@@ -30,6 +30,7 @@ sudo install -m 0755 /tmp/kind "$BIN/kind"
 
 echo "==> Flux CLI"
 curl -fsSL https://fluxcd.io/install.sh | sudo bash
+sudo chmod 755 "$BIN/flux"   # the installer can leave the binary non-executable for other users
 
 echo "==> SOPS"
 SOPS_VERSION=$(latest getsops/sops)

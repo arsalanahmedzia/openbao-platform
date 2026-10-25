@@ -38,12 +38,34 @@ for tool in docker kind kubectl flux; do
   command -v "$tool" >/dev/null || { echo "missing tool: $tool (run scripts/install-tools.sh)"; exit 1; }
 done
 
+# Codespaces quirk: the host's legacy iptables FORWARD policy is DROP and only
+# knows the default docker0 bridge, so the kind nodes (on their own bridge) get
+# no outbound traffic and cannot pull images. We allow forwarding for the kind
+# bridge, and make sure the nodes can resolve DNS names.
+fix_kind_network() {
+  local bridge dns node
+  bridge="br-$(docker network inspect kind -f '{{.Id}}' | cut -c1-12)"
+  if command -v iptables-legacy >/dev/null && sudo iptables-legacy -S FORWARD | grep -q -- '-P FORWARD DROP'; then
+    sudo iptables-legacy -C FORWARD -i "$bridge" -j ACCEPT 2>/dev/null || sudo iptables-legacy -I FORWARD -i "$bridge" -j ACCEPT
+    sudo iptables-legacy -C FORWARD -o "$bridge" -j ACCEPT 2>/dev/null || sudo iptables-legacy -I FORWARD -o "$bridge" -j ACCEPT
+    echo "allowed forwarding for kind bridge $bridge"
+  fi
+  # Use the host's own resolver if the node cannot resolve names by itself.
+  dns="$(awk '/^nameserver/ && $2 !~ /^127\./ {print $2; exit}' /etc/resolv.conf)"
+  dns="${dns:-8.8.8.8}"
+  for node in $(kind get nodes --name "$CLUSTER_NAME"); do
+    docker exec "$node" getent hosts ghcr.io >/dev/null 2>&1 \
+      || docker exec "$node" sh -c "echo 'nameserver $dns' > /etc/resolv.conf"
+  done
+}
+
 echo "==> 1/4 kind cluster"
 if kind get clusters | grep -qx "$CLUSTER_NAME"; then
   echo "cluster $CLUSTER_NAME already exists, reusing it"
 else
   kind create cluster --config "$SCRIPT_DIR/kind-config.yaml"
 fi
+fix_kind_network
 kubectl wait --for=condition=Ready nodes --all --timeout=180s
 
 echo "==> 2/4 Flux pre-flight checks"

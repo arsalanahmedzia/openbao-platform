@@ -1,0 +1,43 @@
+# TLS chain for the demo (self-signed, as allowed by the task):
+#
+#   selfsigned-bootstrap (ClusterIssuer)  signs only the root certificate
+#        |
+#   demo-root-ca (Certificate, isCA)      the "root CA"; its key is stored in the
+#        |                                secret cert-manager/demo-root-ca
+#   demo-ca (ClusterIssuer)               signs every service certificate in the cluster
+#
+# Clients only need to trust demo-root-ca once. Production would use a real or
+# internal PKI (for example Vault/OpenBao PKI or a corporate CA) instead.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-bootstrap
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: demo-root-ca
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: demo-root-ca
+  secretName: demo-root-ca
+  duration: 8760h      # 1 year
+  renewBefore: 720h    # renew 30 days before expiry
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: selfsigned-bootstrap
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: demo-ca
+spec:
+  ca:
+    secretName: demo-root-ca

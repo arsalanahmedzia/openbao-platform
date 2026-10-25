@@ -61,6 +61,16 @@ If the Codespace runs out of quota or resources, the same scripts run on an EC2
 t3.xlarge (Ubuntu 24.04). Terminal access then goes through **AWS Systems Manager
 Session Manager** in the browser: no SSH port opened, no key pair on a local machine.
 
+## Known Codespaces quirk: kind nodes without network
+
+On the Codespace VM the legacy iptables `FORWARD` policy is `DROP` and only knows the
+default `docker0` bridge. The kind bridge (`br-...`) is covered only by the nftables
+rules, so traffic from the kind nodes is dropped and image pulls fail with
+`lookup ghcr.io ... i/o timeout` (pods stuck in `ImagePullBackOff`).
+`scripts/bootstrap.sh` (`fix_kind_network`) adds `ACCEPT` rules for the kind bridge
+and, if a node cannot resolve names, points its `/etc/resolv.conf` at the host resolver.
+The iptables rules are not persistent: they are re-applied whenever `bootstrap.sh` runs.
+
 ## Demo simplification
 
 All kind "nodes" are containers on one host, so a node failure is simulated with

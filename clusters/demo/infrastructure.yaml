@@ -1,0 +1,46 @@
+# Flux entry point for everything that is not Flux itself.
+# Two layers, applied in order (dependsOn):
+#   1. infra-controllers: installs operators and their CRDs (cert-manager, Traefik,
+#      CloudNativePG, External Secrets). These add new object types to the cluster.
+#   2. infra-configs: objects that USE those types (issuers, certificates, ...).
+#      It cannot start before layer 1 is healthy, because e.g. a ClusterIssuer
+#      does not exist as a type until cert-manager is installed.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: infra-controllers
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 1m
+  timeout: 15m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./infrastructure/controllers
+  prune: true
+  wait: true
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: infra-configs
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: infra-controllers
+  interval: 10m
+  retryInterval: 1m
+  timeout: 10m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./infrastructure/configs
+  prune: true
+  wait: true
+  # Flux decrypts *.sops.yaml files with the private age key that bootstrap.sh
+  # stored in the cluster as the secret flux-system/sops-age.
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age

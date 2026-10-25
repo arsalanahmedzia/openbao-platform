@@ -1,0 +1,64 @@
+# CloudNativePG operator: runs highly available PostgreSQL clusters.
+# It adds the object type "Cluster" (a PostgreSQL cluster), plus Backup and others.
+# The Barman Cloud plugin adds backups / WAL archiving to object storage (S3).
+# The plugin must live in the same namespace as the operator (cnpg-system) and
+# needs cert-manager for its internal TLS.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cnpg-system
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: cloudnative-pg
+  namespace: cnpg-system
+spec:
+  interval: 30m
+  timeout: 10m
+  chart:
+    spec:
+      chart: cloudnative-pg
+      version: "0.29.1"   # pinned by scripts/pin-versions.sh
+      sourceRef:
+        kind: HelmRepository
+        name: cnpg
+        namespace: flux-system
+  install:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: plugin-barman-cloud
+  namespace: cnpg-system
+spec:
+  interval: 30m
+  timeout: 10m
+  dependsOn:
+    - name: cert-manager
+      namespace: cert-manager
+    - name: cloudnative-pg
+      namespace: cnpg-system
+  chart:
+    spec:
+      chart: plugin-barman-cloud
+      version: "0.8.1"   # pinned by scripts/pin-versions.sh
+      sourceRef:
+        kind: HelmRepository
+        name: cnpg
+        namespace: flux-system
+  install:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3

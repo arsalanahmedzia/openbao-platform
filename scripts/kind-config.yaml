@@ -13,8 +13,8 @@ nodes:
           kubeletExtraArgs:
             node-labels: "ingress-ready=true"
     extraPortMappings:
-      # Bound to localhost only: the UI is reached through an SSH tunnel,
-      # nothing is exposed on the host's public interface.
+      # Bound to localhost only: in a Codespace the UI is reached through the
+      # authenticated port forwarding, nothing is exposed publicly.
       - containerPort: 80
         hostPort: 80
         listenAddress: "127.0.0.1"

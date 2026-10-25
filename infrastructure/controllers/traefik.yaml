@@ -1,0 +1,54 @@
+# Traefik: HTTPS entry point ("reverse proxy / L7 load balancer") of the cluster.
+# kind has no cloud load balancer, so Traefik binds the node's ports 80/443
+# directly (hostPort) on the control-plane node, which kind maps to the Codespace
+# host (see scripts/kind-config.yaml). Demo simplification: one replica, one node.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: traefik
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: traefik
+  namespace: traefik
+spec:
+  interval: 30m
+  timeout: 10m
+  chart:
+    spec:
+      chart: traefik
+      version: "42.1.3"   # pinned by scripts/pin-versions.sh
+      sourceRef:
+        kind: HelmRepository
+        name: traefik
+        namespace: flux-system
+  install:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  values:
+    deployment:
+      replicas: 1
+    # Run on the node that kind maps to ports 80/443 (label ingress-ready=true).
+    nodeSelector:
+      ingress-ready: "true"
+    tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+    ports:
+      web:
+        hostPort: 80
+      websecure:
+        hostPort: 443
+    service:
+      type: ClusterIP
+    providers:
+      kubernetesIngress:
+        publishedService:
+          enabled: false
