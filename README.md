@@ -32,7 +32,7 @@ _TODO: OpenBao init/unseal and verification steps._
 | cert-manager | TLS certificates (self-signed CA) | TODO |
 | ingress-nginx | HTTPS entry point | TODO |
 | SeaweedFS | In-cluster S3 for PostgreSQL backups | 4.48 (image) |
-| CloudNativePG | HA PostgreSQL with backups | TODO |
+| CloudNativePG | HA PostgreSQL with backups | operator 1.30.1 (chart 0.29.1), PostgreSQL 18.6, plugin-barman-cloud 0.15.1 (chart 0.8.1) |
 | OpenBao | Secrets management (HA, PostgreSQL backend) | TODO |
 | External Secrets Operator | Secret sync OpenBao <-> Kubernetes | TODO |
 
@@ -42,6 +42,7 @@ _TODO: summary of each ADR, see [`docs/adr/`](docs/adr/)._
 
 - [ADR 0001](docs/adr/0001-pinned-versions.md): pin exact chart and image versions.
 - [ADR 0002](docs/adr/0002-in-cluster-s3.md): in-cluster S3 with SeaweedFS for PostgreSQL backups.
+- [ADR 0003](docs/adr/0003-cloudnativepg-ha.md): HA PostgreSQL with CloudNativePG, backups through the Barman Cloud plugin.
 
 ## Production-ready vs simplified for the demo
 
