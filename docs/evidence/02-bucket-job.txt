@@ -1,0 +1,14 @@
+# Bucket Job, captured 2026-10-25T12:37:49Z
+
+$ kubectl -n storage get job create-bucket-pg-backups
+NAME                       STATUS     COMPLETIONS   DURATION   AGE
+create-bucket-pg-backups   Complete   1/1           43s        69s
+
+$ kubectl -n storage logs job/create-bucket-pg-backups
+waiting for http://seaweedfs.storage.svc.cluster.local:8333 (1/60)
+{
+    "Location": "/pg-backups"
+}
+bucket pg-backups created
+2026-10-25 12:37:16 pg-backups
+

@@ -1,0 +1,31 @@
+# Storage layer (SeaweedFS), captured 2026-10-25T12:37:48Z
+
+$ flux get kustomizations
+NAME             	REVISION          	SUSPENDED	READY	MESSAGE                              
+flux-system      	main@sha1:d275f4b9	False    	True 	Applied revision: main@sha1:d275f4b9	
+infra-configs    	main@sha1:d275f4b9	False    	True 	Applied revision: main@sha1:d275f4b9	
+infra-controllers	main@sha1:d275f4b9	False    	True 	Applied revision: main@sha1:d275f4b9	
+infra-storage    	main@sha1:d275f4b9	False    	True 	Applied revision: main@sha1:d275f4b9	
+
+$ kubectl -n storage get pods,pvc,svc -o wide
+NAME                                 READY   STATUS      RESTARTS   AGE   IP           NODE                       NOMINATED NODE   READINESS GATES
+pod/create-bucket-pg-backups-2tgcm   0/1     Completed   0          69s   10.244.2.6   openbao-platform-worker2   <none>           <none>
+pod/seaweedfs-8597bb5c4d-cjsnw       1/1     Running     0          69s   10.244.1.7   openbao-platform-worker    <none>           <none>
+
+NAME                                   STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE   VOLUMEMODE
+persistentvolumeclaim/seaweedfs-data   Bound    pvc-43e43c18-8679-413d-bc77-c9cfd3f14ab9   5Gi        RWO            standard       <unset>                 69s   Filesystem
+
+NAME                TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE   SELECTOR
+service/seaweedfs   ClusterIP   10.96.233.28   <none>        8333/TCP   69s   app.kubernetes.io/name=seaweedfs
+
+$ kubectl -n storage get deploy seaweedfs -o jsonpath={.spec.template.spec.containers[0].image}{"\n"}
+chrislusf/seaweedfs:4.48
+
+$ kubectl get secret -n storage seaweedfs-s3-config
+NAME                  TYPE     DATA   AGE
+seaweedfs-s3-config   Opaque   3      69s
+
+$ kubectl get secret -n databases s3-credentials
+NAME             TYPE     DATA   AGE
+s3-credentials   Opaque   2      69s
+

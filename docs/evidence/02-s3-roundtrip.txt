@@ -1,0 +1,22 @@
+# S3 round trip from namespace databases with Secret databases/s3-credentials
+# (manual, temporary test pod s3-roundtrip-test, deleted after the test), captured 2026-10-25T12:38:11Z
+
+$ kubectl -n databases logs s3-roundtrip-test
+upload: ../tmp/in.txt to s3://pg-backups/roundtrip-test/in.txt
+2026-10-25 12:38:06         36 in.txt
+download: s3://pg-backups/roundtrip-test/in.txt to ../tmp/out.txt
+c21c8ddb0bbbaf0c6f2e4f8d7bd2c9ec  /tmp/in.txt
+c21c8ddb0bbbaf0c6f2e4f8d7bd2c9ec  /tmp/out.txt
+ROUNDTRIP_OK
+delete: s3://pg-backups/roundtrip-test/in.txt
+objects left in bucket: 0
+
+$ kubectl -n databases get pod s3-roundtrip-test
+NAME                READY   STATUS      RESTARTS   AGE
+s3-roundtrip-test   0/1     Completed   0          7s
+
+$ kubectl -n databases delete pod s3-roundtrip-test
+pod "s3-roundtrip-test" deleted from databases namespace
+
+$ kubectl -n databases get pods
+No resources found in databases namespace.
