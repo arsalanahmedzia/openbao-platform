@@ -1,0 +1,54 @@
+# HA PostgreSQL for OpenBao: 1 primary + 2 replicas, one per worker node.
+# The operator creates the pods, one PVC per instance, the Services
+# (pg-openbao-rw = primary, pg-openbao-ro = replicas) and the Secret
+# pg-openbao-app with a generated password for user "openbao".
+# WAL is archived continuously to the ObjectStore pg-backups (see ADR 0003).
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg-openbao
+  namespace: databases
+spec:
+  instances: 3
+  # Default image of operator 1.30.1, pinned so an operator upgrade does not
+  # change the PostgreSQL version by itself.
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie
+
+  # Never two instances on the same node; "required" leaves a pod Pending
+  # rather than sharing a node.
+  affinity:
+    enablePodAntiAffinity: true
+    podAntiAffinityType: required
+    topologyKey: kubernetes.io/hostname
+
+  storage:
+    size: 5Gi
+    storageClass: standard
+
+  # Demo sizing for a 16 GB Codespace.
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+  postgresql:
+    parameters:
+      shared_buffers: "128MB"
+      max_connections: "100"
+      # Switch to a new WAL file at least every 5 minutes so it gets archived:
+      # bounds data loss (RPO) on an idle database.
+      archive_timeout: "5min"
+
+  bootstrap:
+    initdb:
+      database: openbao
+      owner: openbao
+      # No "secret": the operator generates the password (Secret pg-openbao-app).
+
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: pg-backups

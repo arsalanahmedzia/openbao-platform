@@ -1,0 +1,35 @@
+# Where PostgreSQL backups and WAL go: the in-cluster S3 bucket pg-backups
+# (SeaweedFS, see ADR 0002). Used by the Barman Cloud plugin for archiving
+# (Cluster pg-openbao) and for restores (bootstrap.recovery).
+# Each cluster writes under s3://pg-backups/<serverName>/ (default: cluster name).
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: pg-backups
+  namespace: databases
+spec:
+  retentionPolicy: "7d"
+  configuration:
+    destinationPath: s3://pg-backups/
+    # Plain HTTP inside the cluster (ADR 0002). With a custom endpoint the S3
+    # client uses path-style URLs (http://host:8333/pg-backups/...).
+    endpointURL: http://seaweedfs.storage.svc:8333
+    s3Credentials:
+      accessKeyId:
+        name: s3-credentials
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: s3-credentials
+        key: ACCESS_SECRET_KEY
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
+  # The plugin runs as an extra container in every PostgreSQL pod.
+  instanceSidecarConfiguration:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        memory: 256Mi

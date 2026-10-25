@@ -1,0 +1,30 @@
+# Base backups of pg-openbao through the Barman Cloud plugin (ObjectStore
+# pg-backups). WAL is archived continuously in addition (Cluster plugins).
+# Schedule format has 6 fields, seconds first: 02:00:00 UTC every day.
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: pg-openbao-daily
+  namespace: databases
+spec:
+  schedule: "0 0 2 * * *"
+  immediate: false
+  backupOwnerReference: self
+  cluster:
+    name: pg-openbao
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+---
+# One immediate base backup, so a restore point exists right after creation.
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: pg-openbao-initial
+  namespace: databases
+spec:
+  cluster:
+    name: pg-openbao
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
