@@ -31,6 +31,7 @@ _TODO: OpenBao init/unseal and verification steps._
 | SOPS + age | Encrypted bootstrap secrets in Git | TODO |
 | cert-manager | TLS certificates (self-signed CA) | TODO |
 | ingress-nginx | HTTPS entry point | TODO |
+| SeaweedFS | In-cluster S3 for PostgreSQL backups | 4.48 (image) |
 | CloudNativePG | HA PostgreSQL with backups | TODO |
 | OpenBao | Secrets management (HA, PostgreSQL backend) | TODO |
 | External Secrets Operator | Secret sync OpenBao <-> Kubernetes | TODO |
@@ -38,6 +39,9 @@ _TODO: OpenBao init/unseal and verification steps._
 ## Architecture and design decisions
 
 _TODO: summary of each ADR, see [`docs/adr/`](docs/adr/)._
+
+- [ADR 0001](docs/adr/0001-pinned-versions.md): pin exact chart and image versions.
+- [ADR 0002](docs/adr/0002-in-cluster-s3.md): in-cluster S3 with SeaweedFS for PostgreSQL backups.
 
 ## Production-ready vs simplified for the demo
 
