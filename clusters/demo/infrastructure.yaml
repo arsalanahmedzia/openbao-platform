@@ -1,10 +1,12 @@
 # Flux entry point for everything that is not Flux itself.
-# Two layers, applied in order (dependsOn):
+# Three layers, applied in order (dependsOn):
 #   1. infra-controllers: installs operators and their CRDs (cert-manager, Traefik,
 #      CloudNativePG, External Secrets). These add new object types to the cluster.
 #   2. infra-configs: objects that USE those types (issuers, certificates, ...).
 #      It cannot start before layer 1 is healthy, because e.g. a ClusterIssuer
 #      does not exist as a type until cert-manager is installed.
+#   3. infra-storage: in-cluster S3 (SeaweedFS) and the bucket for PostgreSQL
+#      backups. Ready only when the bucket Job has completed.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -40,6 +42,28 @@ spec:
   wait: true
   # Flux decrypts *.sops.yaml files with the private age key that bootstrap.sh
   # stored in the cluster as the secret flux-system/sops-age.
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: infra-storage
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: infra-configs
+  interval: 10m
+  retryInterval: 1m
+  timeout: 10m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./infrastructure/storage
+  prune: true
+  wait: true
   decryption:
     provider: sops
     secretRef:

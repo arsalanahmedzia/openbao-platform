@@ -1,0 +1,67 @@
+# Creates the S3 bucket pg-backups (PostgreSQL backups). Idempotent: exits 0 if
+# the bucket already exists. Waits until the S3 endpoint answers, because it is
+# applied together with SeaweedFS. Method tested locally with these image tags.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-bucket-pg-backups
+  namespace: storage
+  annotations:
+    # Job pod templates are immutable: Flux deletes and recreates the Job when
+    # it changes in Git (safe, the script is idempotent).
+    kustomize.toolkit.fluxcd.io/force: enabled
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: create-bucket
+          image: amazon/aws-cli:2.37.13
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -eu
+              i=0
+              until aws --endpoint-url "$S3_ENDPOINT" --cli-connect-timeout 5 --cli-read-timeout 10 \
+                  s3api list-buckets >/dev/null 2>&1; do
+                i=$((i+1))
+                if [ "$i" -ge 60 ]; then
+                  echo "S3 endpoint $S3_ENDPOINT not ready after 60 tries, last error:"
+                  aws --endpoint-url "$S3_ENDPOINT" s3api list-buckets
+                  exit 1
+                fi
+                echo "waiting for $S3_ENDPOINT ($i/60)"
+                sleep 5
+              done
+              if aws --endpoint-url "$S3_ENDPOINT" s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
+                echo "bucket $BUCKET already exists"
+              else
+                aws --endpoint-url "$S3_ENDPOINT" s3api create-bucket --bucket "$BUCKET"
+                echo "bucket $BUCKET created"
+              fi
+              aws --endpoint-url "$S3_ENDPOINT" s3 ls
+          env:
+            - name: S3_ENDPOINT
+              value: http://seaweedfs.storage.svc.cluster.local:8333
+            - name: BUCKET
+              value: pg-backups
+            - name: AWS_DEFAULT_REGION
+              value: us-east-1   # required by the AWS CLI, ignored by SeaweedFS
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: seaweedfs-s3-config
+                  key: ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: seaweedfs-s3-config
+                  key: ACCESS_SECRET_KEY
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi

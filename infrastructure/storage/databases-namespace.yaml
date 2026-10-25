@@ -1,0 +1,8 @@
+# Namespace for the CloudNativePG PostgreSQL cluster (next stage).
+# Created here because the Secret s3-credentials (backup credentials for
+# PostgreSQL) is placed in it by this layer, and a Secret needs its namespace
+# to exist first.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: databases
