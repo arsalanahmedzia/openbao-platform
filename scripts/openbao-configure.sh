@@ -4,12 +4,14 @@
 # same content). Uses the root token for the last time; see ADR 0004.
 #   - KV v2 secrets engine at secret/
 #   - Kubernetes auth method (in-cluster, OpenBao's own SA reviews tokens)
-#   - policies eso-read and eso-write
+#   - policies eso-read, eso-write, demo-write (text in openbao/policies/)
 #   - role external-secrets for SA external-secrets/external-secrets
+#   - role demo-writer for SA eso-demo/demo-writer (refresh test, ADR 0005)
 #   - test secret secret/demo/hello, then a login AS the ESO service account
 # Tokens go to the pod through stdin, never printed, never on a command line.
 #   bash scripts/openbao-configure.sh
 set -euo pipefail
+cd "$(dirname "$0")/.."
 
 NS=openbao
 SELECTOR=app.kubernetes.io/name=openbao,component=server
@@ -63,21 +65,9 @@ fi
 root write auth/kubernetes/config kubernetes_host=https://kubernetes.default.svc:443 </dev/null
 
 echo "==> 3. Policies"
-root policy write eso-read - <<'EOF'
-# Read every KV v2 secret (data) and list/read their metadata.
-path "secret/data/*" {
-  capabilities = ["read", "list"]
-}
-path "secret/metadata/*" {
-  capabilities = ["read", "list"]
-}
-EOF
-root policy write eso-write - <<'EOF'
-# Write (PushSecret) only below secret/pushed/.
-path "secret/data/pushed/*" {
-  capabilities = ["create", "update"]
-}
-EOF
+for policy in eso-read eso-write demo-write; do
+  root policy write "$policy" - < "openbao/policies/$policy.hcl"
+done
 
 echo "==> 4. Role external-secrets"
 root write auth/kubernetes/role/external-secrets \
@@ -87,6 +77,13 @@ root write auth/kubernetes/role/external-secrets \
   token_ttl=15m token_max_ttl=1h </dev/null
 root read auth/kubernetes/role/external-secrets </dev/null |
   grep -E '^(bound_service_account_names|bound_service_account_namespaces|token_policies|token_ttl|token_max_ttl) '
+
+echo "==> 4b. Role demo-writer (refresh test; the SA comes from Git, apps/external-secrets)"
+root write auth/kubernetes/role/demo-writer \
+  bound_service_account_names=demo-writer \
+  bound_service_account_namespaces=eso-demo \
+  token_policies=demo-write \
+  token_ttl=5m token_max_ttl=5m </dev/null
 
 echo "==> 5. Test secret secret/demo/hello"
 root kv put -mount=secret demo/hello message=hello-from-openbao </dev/null
