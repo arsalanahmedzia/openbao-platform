@@ -1,0 +1,42 @@
+# Hardening stage: evidence (one section per item, added as each item passes)
+
+################################################################################
+# A1 Backup schedule (R06)   2026-10-26
+# Commands: bash scripts/pg-backup-check.sh ; bash scripts/test-gate.sh
+################################################################################
+
+==> ScheduledBackup (times in UTC)
+schedule=0 0 12 * * * lastCheck=2026-10-26T14:54:17Z lastSchedule= nextSchedule=
+
+# The ScheduledBackup was created at 14:54 UTC today (cluster rebuilt); its
+# first slot (old: 02:00, new: 12:00 UTC) is tomorrow, so no scheduled backup
+# exists yet. lastSchedule/nextSchedule are only written after the first
+# scheduled backup (CloudNativePG 1.30, scheduledbackup_controller.go); a
+# missed slot is run once when the operator runs again.
+
+==> All backups (SCHEDULED-BY empty = taken by hand or by Git)
+NAME                        PHASE       STOPPED                SCHEDULED-BY
+pg-openbao-initial          completed   2026-10-26T14:55:59Z   <none>
+pg-openbao-20261026153949   completed   2026-10-26T15:39:56Z   <none>
+pg-openbao-20261026223142   completed   2026-10-26T22:31:49Z   <none>
+
+==> Manual base backup
+backup/pg-openbao-20261026223557 created
+pg-openbao-20261026223557 phase=completed started=2026-10-26T22:35:58Z stopped=2026-10-26T22:36:02Z
+last successful base backup now: pg-openbao-20261026223557 stopped=2026-10-26T22:36:02Z age=0h0m
+
+==> Test gate (after the change)
+PASS  all Flux layers Ready (waits up to 10 min)
+PASS  3 OpenBao pods Ready (unsealed)
+PASS  exactly one active OpenBao pod
+PASS  PostgreSQL cluster healthy
+PASS  3 PostgreSQL instances ready
+PASS  ClusterSecretStore openbao Ready
+PASS  ExternalSecret hello Ready
+PASS  pulled value is hello-from-openbao
+PASS  PushSecret push-demo Ready
+GATE PASSED
+
+# Still to observe: the first scheduled backup at 12:00 UTC on 2026-10-27
+# (or on the next start of the Codespace after that time), shown as a row
+# with SCHEDULED-BY pg-openbao-daily.
