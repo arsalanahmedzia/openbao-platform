@@ -6,3 +6,4 @@ resources:
   - traefik.yaml
   - cnpg.yaml
   - external-secrets.yaml
+  - external-secrets-networkpolicy.yaml
