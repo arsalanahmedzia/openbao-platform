@@ -5,3 +5,5 @@ resources:
   - demo-writer-sa.yaml
   - clustersecretstore.yaml
   - externalsecret-hello.yaml
+  - push-demo-source.yaml
+  - pushsecret.yaml

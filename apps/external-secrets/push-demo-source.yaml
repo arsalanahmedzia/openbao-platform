@@ -1,0 +1,10 @@
+# Source for the PushSecret demo. NOT a real secret: a demo value that may be
+# shown, kept unencrypted on purpose (real secrets only in *.sops.yaml).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: push-demo
+  namespace: eso-demo
+type: Opaque
+stringData:
+  message: pushed-from-kubernetes
