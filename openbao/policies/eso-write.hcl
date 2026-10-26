@@ -1,10 +1,14 @@
 # External Secrets (PushSecret, push): only below secret/pushed/.
-# ESO writes the marker custom_metadata managed-by=external-secrets to the
-# metadata path before the data, and with deletionPolicy Delete it deletes
-# both (providers/v1/vault/client_push.go, ESO v2.14.0). See ADR 0005.
+# For each push ESO reads the data path (does it exist?), reads the metadata
+# (managed-by marker), writes the marker custom_metadata
+# managed-by=external-secrets to the metadata path, then writes the data; with
+# deletionPolicy Delete it deletes both (providers/v1/vault/client_push.go,
+# ESO v2.14.0). "read" is needed here although eso-read allows secret/data/*:
+# OpenBao uses only the most specific matching path pattern, and
+# secret/data/pushed/* is more specific than secret/data/*. See ADR 0005.
 path "secret/data/pushed/*" {
-  capabilities = ["create", "update", "delete"]
+  capabilities = ["create", "read", "update", "delete"]
 }
 path "secret/metadata/pushed/*" {
-  capabilities = ["create", "update", "delete"]
+  capabilities = ["create", "read", "update", "delete"]
 }
