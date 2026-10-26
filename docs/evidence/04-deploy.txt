@@ -1,0 +1,53 @@
+# OpenBao stage, step 2: Flux layer apps-openbao applied, pods sealed before init
+# Command: bash scripts/openbao-deploy-check.sh   (2026-10-26)
+
+==> Flux layers
+NAME                    REVISION                SUSPENDED       READY   MESSAGE
+apps-database           main@sha1:833c7ef2      False           True    Applied revision: main@sha1:833c7ef2
+apps-openbao            main@sha1:833c7ef2      False           True    Applied revision: main@sha1:833c7ef2
+flux-system             main@sha1:833c7ef2      False           True    Applied revision: main@sha1:833c7ef2
+infra-configs           main@sha1:833c7ef2      False           True    Applied revision: main@sha1:833c7ef2
+infra-controllers       main@sha1:833c7ef2      False           True    Applied revision: main@sha1:833c7ef2
+infra-storage           main@sha1:833c7ef2      False           True    Applied revision: main@sha1:833c7ef2
+
+==> HelmRelease, Certificate, Ingress
+NAME    REVISION        SUSPENDED       READY   MESSAGE
+openbao 0.30.4          False           True    Helm install succeeded for release openbao/openbao.v1 with chart openbao@0.30.4
+NAME                                      READY   SECRET        AGE
+certificate.cert-manager.io/openbao-tls   True    openbao-tls   11s
+
+NAME                                CLASS     HOSTS                ADDRESS   PORTS     AGE
+ingress.networking.k8s.io/openbao   traefik   openbao.demo.local             80, 443   8s
+
+==> OpenBao pods (Running, not Ready: sealed), one per worker
+NAME        READY   STATUS    RESTARTS   AGE   IP            NODE                       NOMINATED NODE   READINESS GATES
+openbao-0   0/1     Running   0          14s   10.244.4.11   openbao-platform-worker2   <none>           <none>
+openbao-1   0/1     Running   0          14s   10.244.1.12   openbao-platform-worker3   <none>           <none>
+openbao-2   0/1     Running   0          14s   10.244.2.11   openbao-platform-worker    <none>           <none>
+
+==> Seal status per pod (bao status)
+--- openbao-0
+Initialized        false
+Sealed             true
+Storage Type       postgresql
+HA Enabled         true
+--- openbao-1
+Initialized        false
+Sealed             true
+Storage Type       postgresql
+HA Enabled         true
+--- openbao-2
+Initialized        false
+Sealed             true
+Storage Type       postgresql
+HA Enabled         true
+
+==> Errors in the OpenBao logs: none
+
+==> PostgreSQL: tables created by OpenBao in database openbao (kubectl cnpg psql, \dt)
+               List of tables
+ Schema |       Name       | Type  |  Owner
+--------+------------------+-------+---------
+ public | openbao_ha_locks | table | openbao
+ public | openbao_kv_store | table | openbao
+(2 rows)
