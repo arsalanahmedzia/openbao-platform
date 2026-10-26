@@ -39,3 +39,5 @@ kubectl wait --for=condition=Ready nodes --all --timeout=300s
 
 echo
 echo "Cluster is back. Check Flux with: flux get kustomizations"
+echo "OpenBao pods restart SEALED. Once they are Running, unseal them with:"
+echo "  bash scripts/openbao-unseal.sh"
