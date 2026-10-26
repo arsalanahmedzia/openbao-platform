@@ -7,3 +7,4 @@ resources:
   - externalsecret-hello.yaml
   - push-demo-source.yaml
   - pushsecret.yaml
+  - networkpolicy.yaml

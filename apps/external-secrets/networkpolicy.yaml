@@ -1,0 +1,13 @@
+# Incoming traffic to namespace eso-demo (hardening B2, risk R10, ADR 0006).
+# The namespace has no pods today (Secrets, a ServiceAccount and ESO objects
+# only); ESO writes the Secrets through the Kubernetes API, not into pods here.
+# Default deny so any pod added later starts closed and needs an explicit rule.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: eso-demo
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
