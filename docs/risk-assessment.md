@@ -34,11 +34,11 @@ Rows = impact, columns = likelihood. Each cell shows its score band
 | --- | --- | --- | --- | --- | --- |
 | **5 Severe** | 🟢 | 🟡 R02, R07, R08, R09 | 🔴 **R01, R04, R05** | 🔴 | 🔴 |
 | **4 Major** | 🟢 R15 | 🟡 R13, R18, R19 | 🟡 R12 | 🔴 | 🔴 |
-| **3 Moderate** | 🟢 | 🟢 R14, R20, R21, R22 | 🟡 R10, R17 | 🟡 R06, R11 | 🔴 **R03** |
-| **2 Minor** | 🟢 | 🟢 R24 | 🟢 R16, R23 | 🟡 | 🟡 |
+| **3 Moderate** | 🟢 | 🟢 R14, R20, R21, R22 | 🟡 R10, R17 | 🟡 R11 | 🔴 **R03** |
+| **2 Minor** | 🟢 | 🟢 R06, R24 | 🟢 R16, R23 | 🟡 | 🟡 |
 | **1 Negligible** | 🟢 R25 | 🟢 | 🟢 | 🟢 | 🟢 |
 
-🔴 High (15): R01, R03, R04, R05. 🟡 Medium (8-12): R02, R06, R07, R08, R09,
+🔴 High (15): R01, R03, R04, R05. 🟡 Medium (8-12): R02, R07, R08, R09,
 R10, R11, R12, R13, R17, R18, R19. 🟢 Low (1-6): the rest.
 
 ## Risk register
@@ -50,7 +50,7 @@ R10, R11, R12, R13, R17, R18, R19. 🟢 Low (1-6): the rest.
 | R03 | Every pod or Codespace restart leaves OpenBao sealed until someone runs `openbao-unseal.sh`; meanwhile the store and `apps-external-secrets` are not Ready and secrets are not refreshed | Availability | 5 | 3 | 🔴 15 | `resume.sh` prints the reminder; unseal script is idempotent; existing Kubernetes Secrets stay | Production: auto-unseal; until then alert on `openbao-sealed=true` |
 | R04 | All "nodes" are containers on one Codespace VM: host failure, Codespace stop or deletion takes out every replica at once; the HA design only protects against pod/container failure | Availability / data loss | 3 | 5 | 🔴 15 | Codespace idle stop is a clean stop; `resume.sh` restores; environment documented as a demo | Production: real nodes in at least 3 failure zones; treat the Codespace as disposable and never as the only copy of anything |
 | R05 | Backups live in the same failure domain: SeaweedFS is 1 pod on a local-path volume inside the same cluster; losing the cluster or that node loses all base backups and WAL | Data loss | 3 | 5 | 🔴 15 | Daily base backup, continuous WAL archiving, PITR tested (ADR 0003) | Off-cluster object storage (another region/account), with object lock/versioning; regular restore test |
-| R06 | `ScheduledBackup` runs at 02:00 UTC, when the Codespace is usually stopped, so the daily backup may never run; nobody is alerted | Data loss | 4 | 3 | 🟡 12 | WAL archiving runs whenever the cluster runs; manual `kubectl cnpg backup` before risky changes (runbook) | Schedule within working hours for the demo; production: monitor "last successful backup" age and alert |
+| R06 | Daily base backup does not run at its slot while the Codespace is stopped. Corrected after reading the CloudNativePG 1.30 source (`scheduledbackup_controller.go`): a missed slot is run once as soon as the operator runs again, so the backup is late, not lost; nothing writes to the database while the cluster is stopped. Remaining risk: no alert if scheduling breaks for another reason. Originally rated L4 I3 (12) on the wrong assumption that missed backups never run | Data loss | 2 | 2 | 🟢 4 | Catch-up of a missed slot (source code); WAL archiving whenever the cluster runs; schedule moved to 12:00 UTC (hardening A1, `docs/evidence/06-hardening.txt`) | Production: alert on the age of the last successful backup |
 | R07 | Flux `prune: true` on every layer: removing or renaming `apps/database/cluster.yaml` or a layer path deletes the PostgreSQL Cluster (and its volumes) or OpenBao objects | Data loss / GitOps | 2 | 5 | 🟡 10 | Small reviewed commits; WAL backups allow a restore into a new cluster | Annotate stateful objects with `kustomize.toolkit.fluxcd.io/prune: disabled` (Cluster, PVC-owning objects, Namespaces); branch protection with review |
 | R08 | Write access to the Git repository equals cluster admin (Flux applies whatever is on `main`); no branch protection or signed-commit verification. `docs/environment.md` says `FLUX_GITHUB_TOKEN` is a fine-grained token limited to this repo, but setup notes show the `gh` CLI token (scopes `repo`, `codespace:secrets`) being stored as that secret | Security / GitOps | 2 | 5 | 🟡 10 | Private repo, single maintainer | Use a fine-grained, repo-scoped, expiring token (and confirm which token is stored); branch protection + required review on `main`; Flux commit signature verification (`spec.verify` on the GitRepository) |
 | R09 | ESO's controller ClusterRole can read/write every Secret and **create tokens for any service account** (`rbac.serviceAccountTokenCreate: true`, no `resourceNames`); a compromised ESO pod can impersonate any service account and read e.g. `cert-manager/demo-root-ca` (CA private key) or `openbao/openbao-server-tls` | Security | 2 | 5 | 🟡 10 | ESO runs from a pinned official chart; no other workloads in the cluster | Set `rbac.serviceAccountTokenCreate: false` and grant token creation only for `external-secrets` (Role with `resourceNames`); scope ESO's Secret access to the namespaces it serves; keep the ESO image patched |
@@ -97,8 +97,8 @@ is the first thing production must change.
 
 - **Accepted for the demo** (documented in ADRs): R03, R04, R05, R14, R16, R22,
   R24, R25. They follow from running on one Codespace without cloud services.
-- **Should be fixed even in the demo** (cheap): R01 (revoke root token), R06
-  (move the backup schedule), R07 (prune protection on the Cluster), R08
+- **Should be fixed even in the demo** (cheap): R01 (revoke root token),
+  R07 (prune protection on the Cluster), R08
   (confirm the token type, branch protection), R09 (narrow ESO token
   creation).
 - **Required before production**: everything above plus R10, R11, R12, R13,
@@ -108,8 +108,8 @@ is the first thing production must change.
 
 - Whether `flux bootstrap github` created a read-only or read-write deploy key
   was not checked in GitHub (default is read-only, as far as known).
-- Whether CloudNativePG runs a `ScheduledBackup` that was missed while the
-  cluster was stopped was not tested (R06 assumes it does not catch up).
+- CloudNativePG catches up a missed `ScheduledBackup` slot once when the
+  operator runs again: read in the 1.30 source, not yet observed in this cluster (R06).
 - Which token is stored in `FLUX_GITHUB_TOKEN` was not checked (R08): the
   setup notes and `docs/environment.md` disagree.
 - Whether OpenBao 2.7.1 reloads listener certificates on `SIGHUP` was not
