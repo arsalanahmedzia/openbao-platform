@@ -5,8 +5,9 @@
 #            external-secrets -> openbao-active:8200
 #   blocked: unlabelled pod in external-secrets -> 8200, default -> 8200,
 #            default -> a standby pod's 8201
-#   real:    HTTPS through Traefik; ESO login + read ON A STANDBY pod (the
-#            standby forwards to the active pod over 8201); store still Valid
+#   real:    HTTPS through Traefik; ESO login ON A STANDBY pod (a login writes a
+#            token, so the standby must forward it to the active pod over 8201;
+#            reads could be served by the standby itself); store still Valid
 # Probe pods are temporary (kubectl run --rm). Tokens stay in variables and go
 # to the pod via stdin; only the demo value is shown.
 #   bash scripts/netpol-test-openbao.sh
@@ -52,11 +53,12 @@ curl -sS --resolve openbao.demo.local:443:127.0.0.1 --cacert "$TMP/ca.crt" \
   https://openbao.demo.local/v1/sys/health
 
 echo
-echo "==> Real path: ESO login and read on STANDBY $STANDBY (forwarded to the active pod over 8201)"
+echo "==> Real path: ESO login on STANDBY $STANDBY (a write: forwarded to the active pod over 8201)"
 JWT=$(kubectl -n external-secrets create token external-secrets --duration=10m)
 ESO_TOKEN=$(printf '%s' "$JWT" |
   kubectl -n "$NS" exec -i "$STANDBY" -- bao write -field=token auth/kubernetes/login role=external-secrets jwt=-)
 unset JWT
+[[ -n "$ESO_TOKEN" ]] && echo "login on standby: ok (token created by the active pod)"
 printf '%s\n' "$ESO_TOKEN" |
   kubectl -n "$NS" exec -i "$STANDBY" -- sh -c 'read -r BAO_TOKEN; export BAO_TOKEN; echo "secret/demo/hello via standby: $(bao kv get -mount=secret -field=message demo/hello)"; bao token revoke -self >/dev/null'
 unset ESO_TOKEN
