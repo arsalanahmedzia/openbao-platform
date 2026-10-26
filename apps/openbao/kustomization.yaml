@@ -4,4 +4,6 @@ resources:
   - namespace.yaml
   - openbao-db.sops.yaml
   - certificate.yaml
+  - server-certificate.yaml
+  - serverstransport.yaml
   - helmrelease.yaml

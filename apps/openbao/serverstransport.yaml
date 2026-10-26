@@ -1,0 +1,15 @@
+# How Traefik connects to the OpenBao pods now that they speak HTTPS:
+# trust the demo CA (ca.crt in openbao-server-tls) and check the certificate
+# for the name openbao-active.openbao.svc (Traefik connects to pod IPs, which
+# are not in the certificate). Used by the Service openbao-active through the
+# annotation traefik.ingress.kubernetes.io/service.serverstransport
+# (value <namespace>-<name>@kubernetescrd), set in helmrelease.yaml.
+apiVersion: traefik.io/v1alpha1
+kind: ServersTransport
+metadata:
+  name: openbao-backend
+  namespace: openbao
+spec:
+  serverName: openbao-active.openbao.svc
+  rootCAs:
+    - secret: openbao-server-tls

@@ -33,8 +33,10 @@ spec:
       retries: 3
   values:
     global:
-      # Plain HTTP inside the cluster; HTTPS ends at Traefik (ADR 0004).
-      tlsDisable: true
+      # HTTPS on the listener too (ADR 0005): the chart then uses https for
+      # BAO_ADDR, the probes and the Service port name (Traefik sees a port
+      # named "https" and connects with TLS).
+      tlsDisable: false
     # Agent injector not used: External Secrets syncs secrets instead.
     injector:
       enabled: false
@@ -64,6 +66,24 @@ spec:
         - envName: BAO_PG_CONNECTION_URL
           secretName: openbao-db
           secretKey: BAO_PG_CONNECTION_URL
+      # Listener certificate (server-certificate.yaml) at /openbao/tls.
+      volumes:
+        - name: tls
+          secret:
+            secretName: openbao-server-tls
+      volumeMounts:
+        - name: tls
+          mountPath: /openbao/tls
+          readOnly: true
+      # The chart sets BAO_ADDR=https://127.0.0.1:8200 but no CA: without this
+      # the bao CLI inside the pods (our scripts) would reject the certificate.
+      extraEnvironmentVars:
+        BAO_CACERT: /openbao/tls/ca.crt
+      service:
+        active:
+          annotations:
+            # Traefik -> pods: trust the demo CA, check name openbao-active.openbao.svc
+            traefik.ingress.kubernetes.io/service.serverstransport: openbao-openbao-backend@kubernetescrd
       # Data lives in PostgreSQL, no volume per pod.
       dataStorage:
         enabled: false
@@ -90,9 +110,10 @@ spec:
           ui = true
 
           listener "tcp" {
-            tls_disable     = 1
             address         = "[::]:8200"
             cluster_address = "[::]:8201"
+            tls_cert_file   = "/openbao/tls/tls.crt"
+            tls_key_file    = "/openbao/tls/tls.key"
           }
 
           # connection_url is not set here: it comes from BAO_PG_CONNECTION_URL.

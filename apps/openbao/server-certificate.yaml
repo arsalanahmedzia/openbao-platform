@@ -1,0 +1,33 @@
+# TLS certificate for the OpenBao listener itself (HTTPS inside the cluster),
+# signed by the demo CA. cert-manager writes tls.crt, tls.key and ca.crt to the
+# Secret openbao-server-tls, mounted into the pods at /openbao/tls.
+# Names: the Services clients use (External Secrets: openbao-active) and
+# 127.0.0.1/localhost for the bao CLI inside each pod (BAO_ADDR).
+# OpenBao reads the files at start: after a renewal, restart the pods
+# one by one (runbook). See ADR 0005.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: openbao-server-tls
+  namespace: openbao
+spec:
+  secretName: openbao-server-tls
+  dnsNames:
+    - openbao-active.openbao.svc
+    - openbao-active.openbao.svc.cluster.local
+    - openbao.openbao.svc
+    - openbao.openbao.svc.cluster.local
+    - openbao-standby.openbao.svc
+    - openbao-standby.openbao.svc.cluster.local
+    - localhost
+  ipAddresses:
+    - 127.0.0.1
+  duration: 2160h      # 90 days
+  renewBefore: 360h    # renew 15 days before expiry
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: demo-ca
+    kind: ClusterIssuer
+    group: cert-manager.io
