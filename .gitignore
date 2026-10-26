@@ -10,6 +10,9 @@ keys.txt
 *.secret.yaml
 *.dec.yaml
 
+# OpenBao unseal keys and root token (scripts write it to ~, this is a safety net)
+openbao-init.json
+
 # Local tooling
 .DS_Store
 .idea/
