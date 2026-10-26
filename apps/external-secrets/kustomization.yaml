@@ -4,3 +4,4 @@ resources:
   - namespace.yaml
   - demo-writer-sa.yaml
   - clustersecretstore.yaml
+  - externalsecret-hello.yaml
