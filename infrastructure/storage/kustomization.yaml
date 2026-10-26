@@ -7,3 +7,4 @@ resources:
   - s3-credentials.sops.yaml
   - seaweedfs.yaml
   - create-bucket-job.yaml
+  - networkpolicy.yaml
