@@ -24,8 +24,16 @@ last_completed() {
 echo
 echo "==> ScheduledBackup (times in UTC)"
 kubectl -n "$NS" get scheduledbackup pg-openbao-daily \
-  -o jsonpath='schedule={.spec.schedule} lastSchedule={.status.lastScheduleTime} nextSchedule={.status.nextScheduleTime}{"\n"}'
+  -o jsonpath='schedule={.spec.schedule} lastCheck={.status.lastCheckTime} lastSchedule={.status.lastScheduleTime} nextSchedule={.status.nextScheduleTime}{"\n"}'
 echo "last successful base backup: $(last_completed)"
+echo
+echo "==> All backups (SCHEDULED-BY empty = taken by hand or by Git)"
+kubectl -n "$NS" get backup --sort-by=.metadata.creationTimestamp \
+  -o custom-columns=NAME:.metadata.name,PHASE:.status.phase,STOPPED:.status.stoppedAt,SCHEDULED-BY:.metadata.labels.cnpg\\.io/scheduled-backup
+echo
+echo "==> Events of the ScheduledBackup"
+kubectl -n "$NS" get events --field-selector involvedObject.name=pg-openbao-daily \
+  -o custom-columns=TIME:.lastTimestamp,REASON:.reason,MESSAGE:.message || true
 
 echo
 echo "==> Manual base backup"
