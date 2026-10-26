@@ -5,3 +5,4 @@ resources:
   - objectstore.yaml
   - cluster.yaml
   - backups.yaml
+  - networkpolicy.yaml
