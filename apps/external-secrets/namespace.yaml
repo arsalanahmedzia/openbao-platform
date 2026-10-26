@@ -1,0 +1,7 @@
+# Demo namespace for External Secrets: the pulled Secret, the pushed Secret
+# and the demo-writer service account live here. The ClusterSecretStore only
+# serves this namespace (spec.conditions).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: eso-demo
