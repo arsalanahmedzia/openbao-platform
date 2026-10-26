@@ -81,3 +81,51 @@ gh login (used by the scripts for Codespaces secrets)
 Result: docs/environment.md corrected (the token is the gh OAuth token, not a
 fine-grained repo token) and an owner checklist added. Nothing changed in the
 cluster, so no test gate was needed.
+
+################################################################################
+# A4 OpenBao audit device (R11)   2026-10-26
+# Commands: bash scripts/openbao-audit-check.sh ; bash scripts/test-gate.sh
+# Audit block declared in the server config (apps/openbao/helmrelease.yaml);
+# OpenBao 2.7.1 disables API creation of audit devices by default.
+################################################################################
+
+target StatefulSet revision: openbao-f9df864
+--- restarting openbao-1 ... openbao-1: unsealed and Ready
+--- restarting openbao-2 ... openbao-2: unsealed and Ready
+--- restarting openbao-0 ... openbao-0: unsealed and Ready
+GET https://openbao.demo.local/v1/sys/health -> HTTP 200
+
+==> Audit devices (as root, read-only list)
+Path       Type    Description                          Replication    Options
+----       ----    -----------                          -----------    -------
+stdout/    file    Audit log to the pod log (stdout)    replicated     file_path=stdout
+
+==> One read of secret/demo/hello as the ESO login (on openbao-2)
+value returned to the client: hello-from-openbao
+
+==> Audit entry for that read in the log of openbao-2 (newest response; hashes cut to 24 characters)
+{
+  "time": "2026-10-26T23:00:30.623036482Z",
+  "type": "response",
+  "who": "kubernetes-external-secrets-external-secrets",
+  "policies": ["default", "eso-read", "eso-write"],
+  "operation": "read",
+  "path": "secret/data/demo/hello",
+  "client_token": "hmac-sha256:c26a6c39639c...",
+  "returned_message": "hmac-sha256:582bf6c8d752..."
+}
+
+==> Is the plain value anywhere in the recent log? (expect 0)
+0
+
+==> Test gate (after the change)
+PASS  all Flux layers Ready (waits up to 10 min)
+PASS  3 OpenBao pods Ready (unsealed)
+PASS  exactly one active OpenBao pod
+PASS  PostgreSQL cluster healthy
+PASS  3 PostgreSQL instances ready
+PASS  ClusterSecretStore openbao Ready
+PASS  ExternalSecret hello Ready
+PASS  pulled value is hello-from-openbao
+PASS  PushSecret push-demo Ready
+GATE PASSED
