@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Hardening B2d: after `git push`, applies the NetworkPolicies of namespace
 # external-secrets and proves them:
-#   real:    `kubectl apply --dry-run=server` of the ExternalSecret and the
+#   real:    `kubectl create --dry-run=server` of renamed copies of the ExternalSecret and the
 #            ClusterSecretStore runs ESO's validating webhooks (failurePolicy
 #            Fail) without saving anything: succeeds only if the API server
 #            reaches the webhook
@@ -31,9 +31,10 @@ probe() {
 }
 
 echo
-echo "==> API server -> ESO webhook (server-side dry run, nothing is saved)"
+echo "==> API server -> ESO webhook (server-side dry run of a renamed copy: nothing is saved,"
+echo "    the live objects owned by Flux are not touched)"
 for f in apps/external-secrets/externalsecret-hello.yaml apps/external-secrets/clustersecretstore.yaml; do
-  if kubectl apply --dry-run=server -f "$f"; then echo "PASS  webhook reached for $f"
+  if sed "0,/^  name: /s//  name: netpol-dryrun-/" "$f" | kubectl create --dry-run=server -f -; then echo "PASS  webhook reached for $f"
   else echo "FAIL  webhook not reached for $f"; FAILS=$((FAILS + 1)); fi
 done
 
