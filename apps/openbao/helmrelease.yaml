@@ -54,6 +54,10 @@ spec:
       podManagementPolicy: Parallel
       # Chart default: updateStrategyType OnDelete. A changed config only takes
       # effect when a pod is deleted by hand (standbys first, then the active).
+      # configAnnotation puts a checksum of the config into the pod template, so
+      # every config change creates a new StatefulSet revision and
+      # scripts/openbao-tls-rollout.sh restarts exactly the outdated pods.
+      configAnnotation: true
       resources:
         requests:
           cpu: 100m
@@ -126,3 +130,16 @@ spec:
           # Labels each pod openbao-active / openbao-sealed / ... so the
           # Service openbao-active always points at the active pod.
           service_registration "kubernetes" {}
+
+          # Audit log (ADR 0006): one JSON line per request and response, every
+          # secret value and token replaced by an HMAC-SHA256 hash. Declarative
+          # (OpenBao 2.x: enabling audit devices through the API is off by
+          # default, unsafe_allow_api_audit_creation = false). Written to stdout,
+          # i.e. the pod log. If no audit device can write, OpenBao refuses
+          # requests.
+          audit "file" "stdout" {
+            description = "Audit log to the pod log (stdout)"
+            options {
+              file_path = "stdout"
+            }
+          }
