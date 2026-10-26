@@ -13,6 +13,12 @@ OUT=docs/evidence/05-external-secrets.txt
 NS=openbao
 SELECTOR=app.kubernetes.io/name=openbao,component=server
 
+# After a git push Flux rolls the new revision through the layers one by one
+# (dependsOn); capture only once every layer has applied it and is Ready.
+echo "==> Waiting for all Flux layers to be Ready (up to 10 min)"
+flux reconcile source git flux-system
+kubectl -n flux-system wait kustomization --all --for=condition=Ready --timeout=10m
+
 {
 echo "# External Secrets stage: evidence, captured $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "# Command: bash scripts/eso-evidence.sh"
