@@ -1,0 +1,32 @@
+# External Secrets stage, step 2: OpenBao listener switched to HTTPS (cert from demo-ca)
+# Command: bash scripts/openbao-tls-rollout.sh   (2026-10-26)
+# Note: run right after a Codespace restart, so all pods were sealed (none
+# labelled active) and all three were restarted in the "standbys" loop.
+
+certificate.cert-manager.io/openbao-server-tls condition met
+target StatefulSet revision: openbao-5d4d6c9bcd
+
+==> Rolling restart: standbys first, then the active pod
+--- restarting openbao-0
+openbao-0: unsealed and Ready
+--- restarting openbao-1
+openbao-1: unsealed and Ready
+--- restarting openbao-2
+openbao-2: unsealed and Ready
+--- openbao-0 already on openbao-5d4d6c9bcd
+
+==> Result
+NAME        READY   STATUS    RESTARTS   AGE   IP           NODE                       NOMINATED NODE   READINESS GATES   OPENBAO-ACTIVE   OPENBAO-SEALED
+openbao-0   1/1     Running   0          49s   10.244.4.8   openbao-platform-worker2   <none>           <none>            true             false
+openbao-1   1/1     Running   0          28s   10.244.1.9   openbao-platform-worker3   <none>           <none>            false            false
+openbao-2   1/1     Running   0          11s   10.244.2.8   openbao-platform-worker    <none>           <none>            false            false
+Service openbao-active port name: https
+
+==> TLS check inside the cluster: the name ESO will use, verified with the demo CA
+$ bao status -address=https://openbao-active.openbao.svc:8200
+Sealed          false
+HA Enabled      true
+HA Mode         active
+
+==> HTTPS through Traefik (now Traefik -> OpenBao is HTTPS too)
+GET https://openbao.demo.local/v1/sys/health -> HTTP 200
