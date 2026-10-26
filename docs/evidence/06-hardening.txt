@@ -325,3 +325,29 @@ PASS  webhook reached for apps/external-secrets/clustersecretstore.yaml
 PASS  default -> 10.244.2.5:10250 expected blocked, got blocked
 PASS  default -> 10.244.4.2:8080 expected blocked, got blocked
 RESULT: external-secrets policies work as intended
+
+################################################################################
+# B2e NetworkPolicies: namespace eso-demo   2026-10-26
+# Commands: bash scripts/netpol-test-eso-demo.sh ; bash scripts/test-gate.sh
+# Policy: apps/external-secrets/networkpolicy.yaml (revision 5338464)
+################################################################################
+
+NAME                   POD-SELECTOR   AGE
+default-deny-ingress   <none>         2s
+
+==> Temporary web server pod in eso-demo (deleted by the script afterwards)
+==> Connectivity (server 10.244.4.26)
+PASS  default -> eso-demo/netpol-server:8080 expected blocked, got blocked
+PASS  eso-demo -> eso-demo/netpol-server:8080 expected blocked, got blocked
+
+==> Real path: ExternalSecret refresh in eso-demo
+Kubernetes Secret now: hello-changed-234140   (after about 15 s)
+Kubernetes Secret now: hello-from-openbao   (after about 29 s)
+
+RESULT: eso-demo policy works as intended
+
+==> Test gate (afterwards): GATE PASSED (10 checks)
+
+# B2 summary: default-deny ingress plus tested allow rules in storage,
+# databases, openbao, external-secrets, eso-demo. Egress deny for openbao
+# (stretch goal) skipped: owner decision.
