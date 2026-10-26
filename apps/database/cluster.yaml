@@ -1,7 +1,7 @@
 # HA PostgreSQL for OpenBao: 1 primary + 2 replicas, one per worker node.
 # The operator creates the pods, one PVC per instance, the Services
-# (pg-openbao-rw = primary, pg-openbao-ro = replicas) and the Secret
-# pg-openbao-app with a generated password for user "openbao".
+# (pg-openbao-rw = primary, pg-openbao-ro = replicas). The password of user
+# "openbao" comes from the SOPS Secret pg-openbao-openbao (see ADR 0004).
 # WAL is archived continuously to the ObjectStore pg-backups (see ADR 0003).
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
@@ -45,7 +45,13 @@ spec:
     initdb:
       database: openbao
       owner: openbao
-      # No "secret": the operator generates the password (Secret pg-openbao-app).
+      # Password of "openbao" from our SOPS Secret instead of the generated
+      # pg-openbao-app, so the same password can also be given to OpenBao in
+      # its own namespace. initdb itself only runs at creation, but the
+      # instance manager on the primary keeps applying the password from this
+      # Secret to the role (also after a restart or failover).
+      secret:
+        name: pg-openbao-openbao
 
   plugins:
     - name: barman-cloud.cloudnative-pg.io
