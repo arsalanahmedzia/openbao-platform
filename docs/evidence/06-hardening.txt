@@ -40,3 +40,17 @@ GATE PASSED
 # Still to observe: the first scheduled backup at 12:00 UTC on 2026-10-27
 # (or on the next start of the Codespace after that time), shown as a row
 # with SCHEDULED-BY pg-openbao-daily.
+
+################################################################################
+# A2 Prune protection (R07)   2026-10-26
+################################################################################
+
+Decision: no prune protection; R07 accepted and documented (owner decision).
+Nothing was changed in the cluster, so no test gate was needed.
+
+Verified for the record: kustomize-controller v1.9.6 (the installed version,
+clusters/demo/flux-system/gotk-components.yaml) documents the label or
+annotation `kustomize.toolkit.fluxcd.io/prune: disabled` to exclude an object
+from garbage collection, both when it disappears from Git and when its Flux
+Kustomization is deleted. Deleting a Namespace still deletes everything in it,
+so protecting the PostgreSQL Cluster alone would not protect its data.
