@@ -1,6 +1,6 @@
 # ADR 0004: OpenBao in HA mode on PostgreSQL, manual Shamir unseal
 
-- Status: accepted
+- Status: accepted (TLS inside the cluster and the ESO policies changed by ADR 0005)
 - Date: 2026-10-26
 
 ## Problem
@@ -47,6 +47,7 @@ be in Git.
 **TLS**
 1. End-to-end TLS (OpenBao listener with its own certificate).
 2. **TLS terminated at Traefik**, plain HTTP inside the cluster.
+   (Changed by ADR 0005: the OpenBao listener now uses TLS too.)
 
 ## Choice
 
@@ -92,7 +93,8 @@ be in Git.
   `openbao-active`, which `service_registration "kubernetes"` keeps on the
   active pod.
 - **Configuration inside OpenBao** (KV v2 at `secret/`, Kubernetes auth,
-  policies `eso-read` / `eso-write`, role `external-secrets`) by
+  policies `eso-read` / `eso-write`, role `external-secrets`; `eso-write` was
+  widened for PushSecret in ADR 0005, policy text now in `openbao/policies/`) by
   `scripts/openbao-configure.sh`, run once with the root token. Kubernetes auth
   uses OpenBao's own service account to review tokens; the chart binds it to
   `system:auth-delegator`.
@@ -112,7 +114,7 @@ unseal. A base backup of `pg-openbao` completed with OpenBao writing to it.
   person holds all 5 shares, which defeats the point of splitting the key.
   Production: give shares to different people (or use PGP-encrypted shares),
   or use auto-unseal with recovery keys.
-- **Plain HTTP inside the cluster**: anyone who can capture pod network traffic
+- (Resolved by ADR 0005: listener on TLS.) **Plain HTTP inside the cluster**: anyone who can capture pod network traffic
   can read tokens and secrets between Traefik and OpenBao (and between ESO and
   OpenBao). Production: TLS on the OpenBao listener (cert-manager certificate,
   `tlsDisable: false`) and a NetworkPolicy that only lets Traefik and ESO in.
