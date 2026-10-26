@@ -1,0 +1,48 @@
+# OpenBao stage, step 5: configuration inside OpenBao (root token via stdin, not shown)
+# Command: bash scripts/openbao-configure.sh   (2026-10-26)
+
+==> Checks (nothing is changed yet)
+ok (active pod openbao-0, ESO service account external-secrets/external-secrets)
+==> 1. KV v2 at secret/
+Success! Enabled the kv secrets engine at: secret/
+==> 2. Kubernetes auth
+Success! Enabled kubernetes auth method at: kubernetes/
+Success! Data written to: auth/kubernetes/config
+==> 3. Policies
+Success! Uploaded policy: eso-read
+Success! Uploaded policy: eso-write
+==> 4. Role external-secrets
+Success! Data written to: auth/kubernetes/role/external-secrets
+bound_service_account_names                 [external-secrets]
+bound_service_account_namespaces            [external-secrets]
+token_max_ttl                               1h
+token_policies                              [eso-read eso-write]
+token_ttl                                   15m
+==> 5. Test secret secret/demo/hello
+===== Secret Path =====
+secret/data/demo/hello
+
+======= Metadata =======
+Key                Value
+---                -----
+created_time       2026-10-26T15:35:45.828305023Z
+custom_metadata    <nil>
+deletion_time      n/a
+destroyed          false
+version            1
+(kv get repeats the metadata block, then:)
+===== Data =====
+Key        Value
+---        -----
+message    hello-from-openbao
+==> 6. Login as external-secrets/external-secrets through Kubernetes auth (no root token)
+login ok; policies of this token:
+["default","eso-read","eso-write"]
+read secret/demo/hello:
+hello-from-openbao
+write secret/pushed/check (allowed):
+allowed (expected)
+write secret/demo/denied (must be denied):
+denied (expected)
+
+Configuration done. The root token is not needed any more (see runbook: revoke it).
