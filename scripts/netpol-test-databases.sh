@@ -12,12 +12,13 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 IMAGE=busybox:1.37.0
-NODE_CIDR_PREFIX=172.18.   # must match the ipBlock in apps/database/networkpolicy.yaml
-
-echo "==> Node IPs must be inside 172.18.0.0/16 (ipBlock for the API server)"
+# Must match the ipBlock in apps/database/networkpolicy.yaml: 172.16.0.0/12,
+# i.e. first octet 172 and second octet 16 to 31.
+echo "==> Node IPs must be inside 172.16.0.0/12 (ipBlock for the API server)"
 kubectl get nodes -o custom-columns=NAME:.metadata.name,IP:.status.addresses[0].address
 for ip in $(kubectl get nodes -o jsonpath='{.items[*].status.addresses[0].address}'); do
-  [[ "$ip" == "$NODE_CIDR_PREFIX"* ]] || { echo "node IP $ip is outside 172.18.0.0/16: fix the ipBlock first"; exit 1; }
+  IFS=. read -r o1 o2 _ _ <<<"$ip"
+  (( o1 == 172 && o2 >= 16 && o2 <= 31 )) || { echo "node IP $ip is outside 172.16.0.0/12: fix the ipBlock first"; exit 1; }
 done
 
 echo
