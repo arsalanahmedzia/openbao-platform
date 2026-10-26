@@ -1,0 +1,62 @@
+# OpenBao failover test, 2026-10-26T15:40:25Z
+
+==> Before: active pod is openbao-0
+NAME        READY   STATUS    RESTARTS   AGE   IP            NODE                       NOMINATED NODE   READINESS GATES   OPENBAO-ACTIVE   OPENBAO-SEALED
+openbao-0   1/1     Running   0          20m   10.244.4.11   openbao-platform-worker2   <none>           <none>            true             false
+openbao-1   1/1     Running   0          20m   10.244.1.12   openbao-platform-worker3   <none>           <none>            false            false
+openbao-2   1/1     Running   0          20m   10.244.2.11   openbao-platform-worker    <none>           <none>            false            false
+
+==> Read secret/demo/hello as external-secrets (via openbao-0)
+hello-from-openbao
+
+==> Deleting the active pod openbao-0
+pod "openbao-0" deleted from openbao namespace
+
+==> Waiting for a standby to take over
+new active pod: openbao-1 (after about 7 s)
+
+==> Read secret/demo/hello again (via openbao-1)
+hello-from-openbao
+
+==> Replacement pod openbao-0: waiting until Running, it must be SEALED
+command terminated with exit code 2
+Initialized        true
+Sealed             true
+HA Enabled         true
+NAME        READY   STATUS    RESTARTS   AGE   IP            NODE                       NOMINATED NODE   READINESS GATES   OPENBAO-ACTIVE   OPENBAO-SEALED
+openbao-0   0/1     Running   0          9s    10.244.4.12   openbao-platform-worker2   <none>           <none>            false            true
+openbao-1   1/1     Running   0          20m   10.244.1.12   openbao-platform-worker3   <none>           <none>            true             false
+openbao-2   1/1     Running   0          20m   10.244.2.11   openbao-platform-worker    <none>           <none>            false            false
+
+==> Unseal the replacement pod
+keys from: /home/vscode/openbao-init.json
+openbao-0: unsealed
+openbao-1: already unsealed
+openbao-2: already unsealed
+
+==> Waiting for all pods to be Ready (readiness = unsealed)
+pod/openbao-0 condition met
+pod/openbao-1 condition met
+pod/openbao-2 condition met
+
+--- openbao-0
+Initialized            true
+Sealed                 false
+HA Enabled             true
+HA Mode                standby
+--- openbao-1
+Initialized     true
+Sealed          false
+HA Enabled      true
+HA Mode         active
+--- openbao-2
+Initialized            true
+Sealed                 false
+HA Enabled             true
+HA Mode                standby
+
+==> After: openbao-1 active, openbao-0 back as standby
+NAME        READY   STATUS    RESTARTS   AGE   IP            NODE                       NOMINATED NODE   READINESS GATES   OPENBAO-ACTIVE   OPENBAO-SEALED
+openbao-0   1/1     Running   0          13s   10.244.4.12   openbao-platform-worker2   <none>           <none>            false            false
+openbao-1   1/1     Running   0          20m   10.244.1.12   openbao-platform-worker3   <none>           <none>            true             false
+openbao-2   1/1     Running   0          20m   10.244.2.11   openbao-platform-worker    <none>           <none>            false            false
