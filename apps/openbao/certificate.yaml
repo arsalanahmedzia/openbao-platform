@@ -1,0 +1,22 @@
+# HTTPS certificate for the OpenBao Ingress, signed by the demo CA (see
+# infrastructure/configs/cert-manager-issuers.yaml). cert-manager writes it to
+# the Secret openbao-tls, which Traefik serves for openbao.demo.local.
+# TLS ends at Traefik; inside the cluster OpenBao listens on plain HTTP (ADR 0004).
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: openbao-tls
+  namespace: openbao
+spec:
+  secretName: openbao-tls
+  dnsNames:
+    - openbao.demo.local
+  duration: 2160h      # 90 days
+  renewBefore: 360h    # renew 15 days before expiry
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: demo-ca
+    kind: ClusterIssuer
+    group: cert-manager.io

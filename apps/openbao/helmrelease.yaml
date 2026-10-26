@@ -1,0 +1,107 @@
+# OpenBao in HA mode: 3 server pods (one active, two standby) that keep all
+# data in PostgreSQL (Cluster pg-openbao, database openbao). The active pod
+# holds a lock row in the table openbao_ha_locks; if it dies, a standby takes
+# the lock and becomes active. Value names checked in chart 0.30.4 values.yaml.
+#
+# Pods start SEALED and must be initialised/unsealed by scripts
+# (openbao-init.sh, openbao-unseal.sh). A sealed pod is not Ready, so Helm
+# must not wait for Ready pods (disableWait), otherwise the install would
+# time out before anyone can unseal. See ADR 0004.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: openbao
+  namespace: openbao
+spec:
+  interval: 30m
+  timeout: 10m
+  chart:
+    spec:
+      chart: openbao
+      version: "0.30.4"   # app v2.7.1
+      sourceRef:
+        kind: HelmRepository
+        name: openbao
+        namespace: flux-system
+  install:
+    disableWait: true
+    remediation:
+      retries: 3
+  upgrade:
+    disableWait: true
+    remediation:
+      retries: 3
+  values:
+    global:
+      # Plain HTTP inside the cluster; HTTPS ends at Traefik (ADR 0004).
+      tlsDisable: true
+    # Agent injector not used: External Secrets syncs secrets instead.
+    injector:
+      enabled: false
+    # The UI is served by the server itself (ui = true) through the Ingress;
+    # this would only add an extra Service.
+    ui:
+      enabled: false
+    server:
+      image:
+        registry: quay.io
+        repository: openbao/openbao
+        tag: "2.7.1"
+      # Start all 3 pods at once. The default (OrderedReady) would not create
+      # pod 1 before pod 0 is Ready, i.e. unsealed.
+      podManagementPolicy: Parallel
+      # Chart default: updateStrategyType OnDelete. A changed config only takes
+      # effect when a pod is deleted by hand (standbys first, then the active).
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          memory: 256Mi
+      # Connection string with the password, from the SOPS Secret openbao-db.
+      # OpenBao reads BAO_PG_CONNECTION_URL instead of connection_url.
+      extraSecretEnvironmentVars:
+        - envName: BAO_PG_CONNECTION_URL
+          secretName: openbao-db
+          secretKey: BAO_PG_CONNECTION_URL
+      # Data lives in PostgreSQL, no volume per pod.
+      dataStorage:
+        enabled: false
+      # server.affinity keeps the chart default: required pod anti-affinity on
+      # kubernetes.io/hostname, so at most one OpenBao pod per node.
+      ingress:
+        enabled: true
+        ingressClassName: traefik
+        # Route to the Service openbao-active (only the pod labelled active).
+        activeService: true
+        hosts:
+          - host: openbao.demo.local
+            paths: []
+        tls:
+          - secretName: openbao-tls
+            hosts:
+              - openbao.demo.local
+      ha:
+        enabled: true
+        replicas: 3
+        raft:
+          enabled: false
+        config: |
+          ui = true
+
+          listener "tcp" {
+            tls_disable     = 1
+            address         = "[::]:8200"
+            cluster_address = "[::]:8201"
+          }
+
+          # connection_url is not set here: it comes from BAO_PG_CONNECTION_URL.
+          storage "postgresql" {
+            ha_enabled = "true"
+            table      = "openbao_kv_store"
+            ha_table   = "openbao_ha_locks"
+          }
+
+          # Labels each pod openbao-active / openbao-sealed / ... so the
+          # Service openbao-active always points at the active pod.
+          service_registration "kubernetes" {}

@@ -1,6 +1,8 @@
 # Application layers, applied after the infrastructure layers (dependsOn).
 #   apps-database: HA PostgreSQL (CloudNativePG) for OpenBao, with backups to
 #   the in-cluster S3 bucket pg-backups. Needs infra-storage (bucket) first.
+#   apps-openbao: OpenBao HA (3 pods) on pg-openbao, HTTPS through Traefik.
+#   Pods start sealed; init/unseal are done by scripts, not by Flux (ADR 0004).
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -19,6 +21,31 @@ spec:
     name: flux-system
   path: ./apps/database
   prune: true
+  wait: true
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: apps-openbao
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: apps-database
+    - name: infra-configs
+  interval: 10m
+  retryInterval: 1m
+  timeout: 10m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./apps/openbao
+  prune: true
+  # Waits only for the objects in apps/openbao (HelmRelease, Certificate, ...),
+  # not for the OpenBao pods, which stay unready until they are unsealed.
   wait: true
   decryption:
     provider: sops
