@@ -316,3 +316,12 @@ apps-external-secrets: applied revision main@sha1:e31b112 (through the webhook)
 RESULT: external-secrets policies work as intended
 
 ==> Test gate (afterwards): GATE PASSED (10 checks; PushSecret synced 3 s before)
+
+# B2d re-run with the changed test (revision c41fcae): renamed copies, no warning
+externalsecret.external-secrets.io/netpol-dryrun-hello created (server dry run)
+PASS  webhook reached for apps/external-secrets/externalsecret-hello.yaml
+clustersecretstore.external-secrets.io/netpol-dryrun-openbao created (server dry run)
+PASS  webhook reached for apps/external-secrets/clustersecretstore.yaml
+PASS  default -> 10.244.2.5:10250 expected blocked, got blocked
+PASS  default -> 10.244.4.2:8080 expected blocked, got blocked
+RESULT: external-secrets policies work as intended
