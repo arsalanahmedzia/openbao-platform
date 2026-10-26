@@ -1,0 +1,25 @@
+# External Secrets stage, step 3: policy update (root token via stdin, not shown)
+# Command: bash scripts/openbao-policy-update.sh   (2026-10-26)
+
+==> Policies (as root, on openbao-0)
+Success! Uploaded policy: eso-read
+Success! Uploaded policy: eso-write
+Success! Uploaded policy: demo-write
+==> Role demo-writer
+Success! Data written to: auth/kubernetes/role/demo-writer
+--- eso-write as stored in OpenBao:
+# External Secrets (PushSecret, push): only below secret/pushed/.
+# ESO writes the marker custom_metadata managed-by=external-secrets to the
+# metadata path before the data, and with deletionPolicy Delete it deletes
+# both (providers/v1/vault/client_push.go, ESO v2.14.0). See ADR 0005.
+path "secret/data/pushed/*" {
+  capabilities = ["create", "update", "delete"]
+}
+path "secret/metadata/pushed/*" {
+  capabilities = ["create", "update", "delete"]
+}
+
+==> Check as the ESO login (no root): managed-by marker on secret/pushed/policy-check
+write metadata secret/metadata/pushed/policy-check: allowed (expected)
+delete metadata secret/metadata/pushed/policy-check: allowed (expected)
+write metadata secret/metadata/demo/hello: denied (expected)
