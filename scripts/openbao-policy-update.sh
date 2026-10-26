@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # External Secrets stage, step 3: applies the policy files in openbao/policies/
 # (eso-read, eso-write, demo-write) and the role demo-writer, then proves the
-# new PushSecret rights AS the ESO login: write and delete the managed-by
-# marker on secret/metadata/pushed/policy-check.
+# PushSecret rights AS the ESO login by doing what a push does on
+# secret/pushed/policy-check: read, write marker, write data, read back, delete.
 # Uses the root token (from OPENBAO_ROOT_TOKEN or ~/openbao-init.json) through
 # stdin only, never printed. openbao-configure.sh does the same from scratch.
 #   bash scripts/openbao-policy-update.sh
@@ -45,15 +45,26 @@ bao_as "$ROOT_TOKEN" policy read eso-write </dev/null
 unset ROOT_TOKEN
 
 echo
-echo "==> Check as the ESO login (no root): managed-by marker on secret/pushed/policy-check"
+echo "==> Check as the ESO login (no root): the steps of a PushSecret on secret/pushed/policy-check"
 JWT=$(kubectl -n external-secrets create token external-secrets --duration=10m)
 ESO_TOKEN=$(printf '%s' "$JWT" |
   kubectl -n "$NS" exec -i "$POD" -- bao write -field=token auth/kubernetes/login role=external-secrets jwt=-)
 unset JWT
+# A missing secret answers "No value found" (allowed); a policy problem answers "permission denied".
+if bao_as "$ESO_TOKEN" kv get -mount=secret pushed/policy-check </dev/null 2>&1 | grep -q 'permission denied'; then
+  echo "read data secret/data/pushed/policy-check: DENIED - PushSecret cannot check for existing values"; exit 1
+fi
+echo "read data secret/data/pushed/policy-check: allowed (expected)"
 bao_as "$ESO_TOKEN" kv metadata put -mount=secret -custom-metadata=managed-by=external-secrets pushed/policy-check </dev/null >/dev/null &&
   echo "write metadata secret/metadata/pushed/policy-check: allowed (expected)"
+bao_as "$ESO_TOKEN" kv put -mount=secret pushed/policy-check ok=true </dev/null >/dev/null &&
+  echo "write data secret/data/pushed/policy-check: allowed (expected)"
+echo "read back field ok: $(bao_as "$ESO_TOKEN" kv get -mount=secret -field=ok pushed/policy-check </dev/null)"
+bao_as "$ESO_TOKEN" kv metadata get -mount=secret pushed/policy-check </dev/null | grep '^custom_metadata '
 bao_as "$ESO_TOKEN" kv metadata delete -mount=secret pushed/policy-check </dev/null >/dev/null &&
-  echo "delete metadata secret/metadata/pushed/policy-check: allowed (expected)"
+  echo "delete secret/metadata/pushed/policy-check (all versions): allowed (expected)"
+# Leftover from openbao-configure.sh (write test); no output if it is already gone.
+bao_as "$ESO_TOKEN" kv metadata delete -mount=secret pushed/check </dev/null >/dev/null 2>&1 || true
 if bao_as "$ESO_TOKEN" kv metadata put -mount=secret -custom-metadata=x=y demo/hello </dev/null >/dev/null 2>&1; then
   echo "write metadata secret/metadata/demo/hello: ALLOWED - policy is too wide!"; exit 1
 else
