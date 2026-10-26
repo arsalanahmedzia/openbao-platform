@@ -15,6 +15,7 @@ helm repo add jetstack         https://charts.jetstack.io                 --forc
 helm repo add traefik          https://traefik.github.io/charts           --force-update >/dev/null
 helm repo add cnpg             https://cloudnative-pg.github.io/charts    --force-update >/dev/null
 helm repo add external-secrets https://charts.external-secrets.io         --force-update >/dev/null
+helm repo add openbao          https://openbao.github.io/openbao-helm      --force-update >/dev/null
 helm repo update >/dev/null
 
 # Newest stable version of a chart, e.g. latest jetstack/cert-manager
@@ -41,6 +42,7 @@ pin infrastructure/controllers/traefik.yaml          __TRAEFIK_VERSION__        
 pin infrastructure/controllers/cnpg.yaml             __CNPG_VERSION__           cnpg/cloudnative-pg
 pin infrastructure/controllers/cnpg.yaml             __BARMAN_PLUGIN_VERSION__  cnpg/plugin-barman-cloud
 pin infrastructure/controllers/external-secrets.yaml __ESO_VERSION__            external-secrets/external-secrets
+pin apps/openbao/helmrelease.yaml                    __OPENBAO_VERSION__        openbao/openbao
 
 echo
 echo "Done. Review with: git diff"
