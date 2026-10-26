@@ -114,21 +114,3 @@ would be managed in production (for example the OpenTofu/Terraform provider or a
 `git diff --cached` shows no keys, tokens, passwords or connection URLs with passwords; only
 `*.sops.yaml` files hold secrets and they are encrypted (`ENC[`); `git status` shows no
 `openbao-init.json`.
-
-
-gh secret list --user --app codespaces
-
-gh auth token | gh secret set FLUX_GITHUB_TOKEN --user --app codespaces --repos arsalanahmedzia/openbao-platform
-
-   docker info --format 'containers={{.Containers}} images={{.Images}}'
-   for v in FLUX_GITHUB_TOKEN GITHUB_USER SOPS_AGE_KEY; do [ -n "${!v:-}" ] && echo "$v: set" || echo "$v: MISSING"; done
-
-   df -h /
-sudo du -xh --max-depth=1 / | sort -h | tail
-
-env -u GITHUB_TOKEN gh auth login -h github.com -p https -s repo,codespace:secrets -w
-
-gh auth token | gh secret set FLUX_GITHUB_TOKEN --user --app codespaces --repos arsalanahmedzia/openbao-platform
-
-export FLUX_GITHUB_TOKEN=$(gh auth token)
-bash scripts/bootstrap.sh
