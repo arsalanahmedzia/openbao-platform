@@ -168,3 +168,30 @@ RESULT: NetworkPolicies are enforced (deny and allow both work)
 ==> Cleanup: deleting namespace netpol-test
 
 ==> Test gate (afterwards, revision ffc7336f): GATE PASSED (all 9 checks)
+
+################################################################################
+# B2a NetworkPolicies: namespace storage   2026-10-26
+# Commands: bash scripts/netpol-test-storage.sh ; bash scripts/test-gate.sh
+# Policies: infrastructure/storage/networkpolicy.yaml (revision 0cc1ce8)
+################################################################################
+
+NAME                   POD-SELECTOR                       AGE
+allow-s3               app.kubernetes.io/name=seaweedfs   2s
+default-deny-ingress   <none>                             2s
+
+==> Connectivity (temporary busybox probe pods, deleted after use)
+PASS  databases -> seaweedfs:8333 expected open, got open (HTTP/1.1 403)
+PASS  default -> seaweedfs:8333 expected blocked, got blocked (timeout)
+
+==> SeaweedFS still Ready (kubelet probes not blocked)
+NAME                         READY   STATUS    RESTARTS       AGE
+seaweedfs-8597bb5c4d-rsb5d   1/1     Running   1 (121m ago)   8h
+# (the restart is from the Codespace restart before this change)
+
+==> Real path: base backup through the Barman plugin
+backup/pg-openbao-20261026231156 created
+pg-openbao-20261026231156 phase=completed started=2026-10-26T23:11:56Z stopped=2026-10-26T23:12:06Z
+
+RESULT: storage policies work as intended
+
+==> Test gate (afterwards): GATE PASSED (all 9 checks; Working WAL archiving: OK)
