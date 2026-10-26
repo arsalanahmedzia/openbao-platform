@@ -281,3 +281,38 @@ openbao   110m   Valid    ReadWrite      True
 RESULT: openbao policies work as intended
 
 ==> Test gate (afterwards): GATE PASSED (10 checks; PushSecret synced 4 s before)
+
+################################################################################
+# B2d NetworkPolicies: namespace external-secrets   2026-10-26
+# Commands: bash scripts/netpol-test-external-secrets.sh ; bash scripts/test-gate.sh
+# Policies: infrastructure/controllers/external-secrets-networkpolicy.yaml (revision e31b112)
+################################################################################
+
+NAME                           POD-SELECTOR                                      AGE
+allow-webhook-from-apiserver   app.kubernetes.io/name=external-secrets-webhook   3s
+default-deny-ingress           <none>                                            3s
+
+==> API server -> ESO webhook (kubectl apply --dry-run=server; nothing saved)
+externalsecret.external-secrets.io/hello configured (server dry run)
+PASS  webhook reached for apps/external-secrets/externalsecret-hello.yaml
+clustersecretstore.external-secrets.io/openbao configured (server dry run)
+PASS  webhook reached for apps/external-secrets/clustersecretstore.yaml
+# kubectl warned about a missing last-applied-configuration annotation; in a
+# dry run nothing is saved. The script now uses `kubectl create
+# --dry-run=server` on renamed copies, which does not touch Flux's objects.
+
+==> Connectivity from namespace default (temporary probe pods)
+PASS  default -> 10.244.2.5:10250 expected blocked, got blocked
+PASS  default -> 10.244.4.2:8080 expected blocked, got blocked
+
+==> Real paths
+external-secrets-76ccc4969-j5625                    1/1  Running  1 (140m ago)  8h
+external-secrets-cert-controller-6f58665688-rj79g   1/1  Running  1 (140m ago)  8h
+external-secrets-webhook-745bbf55b6-tg2fs           1/1  Running  1 (140m ago)  8h
+# (restarts are from the Codespace restart, before this change)
+openbao   114m   Valid    ReadWrite      True
+apps-external-secrets: applied revision main@sha1:e31b112 (through the webhook)
+
+RESULT: external-secrets policies work as intended
+
+==> Test gate (afterwards): GATE PASSED (10 checks; PushSecret synced 3 s before)
