@@ -20,7 +20,17 @@ bash scripts/bootstrap.sh                            # kind + SOPS key + Flux
 flux get kustomizations --watch
 ```
 
-_TODO: OpenBao init/unseal and verification steps._
+OpenBao (once Flux shows `apps-openbao` Ready; details in
+[`docs/runbooks/openbao-init-unseal.md`](docs/runbooks/openbao-init-unseal.md)):
+
+```bash
+bash scripts/openbao-deploy-check.sh   # 3 pods Running, sealed, tables in PostgreSQL
+bash scripts/openbao-init.sh           # once: keys to ~/openbao-init.json + Codespaces secrets
+bash scripts/openbao-unseal.sh         # after every pod/Codespace restart
+bash scripts/openbao-configure.sh      # once: KV v2, Kubernetes auth, ESO policies and role
+bash scripts/openbao-evidence.sh       # evidence in docs/evidence/04-*.txt
+bash scripts/openbao-failover-test.sh  # deletes the active pod (asks first)
+```
 
 ## Components and versions
 
@@ -33,7 +43,7 @@ _TODO: OpenBao init/unseal and verification steps._
 | ingress-nginx | HTTPS entry point | TODO |
 | SeaweedFS | In-cluster S3 for PostgreSQL backups | 4.48 (image) |
 | CloudNativePG | HA PostgreSQL with backups | operator 1.30.1 (chart 0.29.1), PostgreSQL 18.6, plugin-barman-cloud 0.15.1 (chart 0.8.1) |
-| OpenBao | Secrets management (HA, PostgreSQL backend) | TODO |
+| OpenBao | Secrets management (HA, PostgreSQL backend) | 2.7.1 (chart 0.30.4) |
 | External Secrets Operator | Secret sync OpenBao <-> Kubernetes | TODO |
 
 ## Architecture and design decisions
@@ -43,6 +53,7 @@ _TODO: summary of each ADR, see [`docs/adr/`](docs/adr/)._
 - [ADR 0001](docs/adr/0001-pinned-versions.md): pin exact chart and image versions.
 - [ADR 0002](docs/adr/0002-in-cluster-s3.md): in-cluster S3 with SeaweedFS for PostgreSQL backups.
 - [ADR 0003](docs/adr/0003-cloudnativepg-ha.md): HA PostgreSQL with CloudNativePG, backups through the Barman Cloud plugin.
+- [ADR 0004](docs/adr/0004-openbao-ha-postgresql.md): OpenBao HA on PostgreSQL, manual Shamir unseal, TLS at Traefik.
 
 ## Production-ready vs simplified for the demo
 
