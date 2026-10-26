@@ -16,7 +16,7 @@ SELECTOR=app.kubernetes.io/name=openbao,component=server
 INIT_FILE="$HOME/openbao-init.json"
 
 echo "==> Roll pods onto the new config (unseals each restarted pod)"
-bash scripts/openbao-tls-rollout.sh | grep -E '^(target|---|openbao-[0-9]: |GET )' || true
+bash scripts/openbao-tls-rollout.sh
 
 POD=$(kubectl -n "$NS" get pods -l "$SELECTOR,openbao-active=true" -o jsonpath='{.items[0].metadata.name}')
 [[ -n "$POD" ]] || { echo "no active OpenBao pod"; exit 1; }
