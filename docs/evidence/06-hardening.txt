@@ -245,3 +245,39 @@ OpenBao: 3 pods 1/1, openbao-2 active, none sealed
 RESULT: databases policies work as intended
 
 ==> Test gate (afterwards): GATE PASSED (all checks; Working WAL archiving: OK)
+
+################################################################################
+# B2c NetworkPolicies: namespace openbao   2026-10-26
+# Commands: bash scripts/netpol-test-openbao.sh ; bash scripts/test-gate.sh
+# Policies: apps/openbao/networkpolicy.yaml (revision 08bfd58)
+################################################################################
+
+NAME                   POD-SELECTOR                     AGE
+allow-api              app.kubernetes.io/name=openbao   2s
+allow-cluster          app.kubernetes.io/name=openbao   2s
+default-deny-ingress   <none>                           2s
+
+==> Connectivity (standby openbao-0 = 10.244.4.9; temporary busybox probe pods)
+PASS  traefik (app.kubernetes.io/name=traefik) -> openbao-active.openbao.svc:8200 expected open, got open
+PASS  external-secrets (app.kubernetes.io/name=external-secrets) -> openbao-active.openbao.svc:8200 expected open, got open
+PASS  external-secrets -> openbao-active.openbao.svc:8200 expected blocked, got blocked
+PASS  default -> openbao-active.openbao.svc:8200 expected blocked, got blocked
+PASS  default -> 10.244.4.9:8201 expected blocked, got blocked
+
+==> Real path: HTTPS through Traefik
+GET https://openbao.demo.local/v1/sys/health -> HTTP 200
+
+==> Real path: ESO login on STANDBY openbao-0
+login on standby: ok (token created by the active pod)
+secret/demo/hello via standby: hello-from-openbao
+# Inference, not verified in the OpenBao source: a login is a write, which a
+# standby forwards to the active pod over 8201. A redirect to the active pod's
+# IP would fail TLS (pod IPs are not in the certificate), so success points to
+# forwarding.
+
+==> Real path: ESO store
+openbao   110m   Valid    ReadWrite      True
+
+RESULT: openbao policies work as intended
+
+==> Test gate (afterwards): GATE PASSED (10 checks; PushSecret synced 4 s before)
