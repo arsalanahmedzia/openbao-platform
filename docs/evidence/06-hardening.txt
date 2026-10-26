@@ -195,3 +195,53 @@ pg-openbao-20261026231156 phase=completed started=2026-10-26T23:11:56Z stopped=2
 RESULT: storage policies work as intended
 
 ==> Test gate (afterwards): GATE PASSED (all 9 checks; Working WAL archiving: OK)
+
+################################################################################
+# B2b NetworkPolicies: namespace databases   2026-10-26
+# Commands: bash scripts/netpol-test-databases.sh ; bash scripts/test-gate.sh
+# Policies: apps/database/networkpolicy.yaml (revision 0d1b532)
+################################################################################
+
+First attempt (revision 6136b99/9ce964e) used ipBlock 172.18.0.0/16, taken from
+old evidence of the previous cluster. The rebuilt cluster's nodes are on
+172.19.0.x, so the test script stopped before applying. Flux applied the
+commit by itself on its interval; the next test-gate run then hung at
+`kubectl cnpg status` (API server -> instance manager :8000 blocked), which
+confirms that path needs the ipBlock. Fixed with 172.16.0.0/12 (all Docker
+default network ranges); the gate now runs `kubectl cnpg status` with a 30 s
+timeout so a blocked path shows as FAIL instead of hanging.
+
+==> Node IPs must be inside 172.16.0.0/12 (ipBlock for the API server)
+openbao-platform-control-plane   172.19.0.3
+openbao-platform-worker          172.19.0.2
+openbao-platform-worker2         172.19.0.5
+openbao-platform-worker3         172.19.0.4
+
+NAME                     POD-SELECTOR                 AGE
+allow-instance-manager   cnpg.io/cluster=pg-openbao   2m21s
+allow-postgres           cnpg.io/cluster=pg-openbao   2m21s
+default-deny-ingress     <none>                       2m21s
+
+==> Connectivity (primary pod IP 10.244.4.7; temporary busybox probe pods)
+PASS  openbao (app.kubernetes.io/name=openbao) -> pg-openbao-rw.databases.svc:5432 expected open, got open
+PASS  openbao -> pg-openbao-rw.databases.svc:5432 expected blocked, got blocked
+PASS  default -> pg-openbao-rw.databases.svc:5432 expected blocked, got blocked
+PASS  default -> 10.244.4.7:8000 expected blocked, got blocked
+
+==> Real paths
+Status:                  Cluster in healthy state
+Ready instances:         3
+Streaming Replication status
+Name          ... Replay Lag       State      Sync State
+pg-openbao-2  ... 00:00:00.001088  streaming  async
+pg-openbao-3  ... 00:00:00.001103  streaming  async
+Instances status
+pg-openbao-1  0/2D093F28   Primary           OK      Burstable  1.30.1  openbao-platform-worker2
+pg-openbao-2  0/2D093F28   Standby (async)   OK      Burstable  1.30.1  openbao-platform-worker
+pg-openbao-3  0/2D093F28   Standby (async)   OK      Burstable  1.30.1  openbao-platform-worker3
+pg-openbao-20261026232104 phase=completed started=2026-10-26T23:21:05Z stopped=2026-10-26T23:21:09Z
+OpenBao: 3 pods 1/1, openbao-2 active, none sealed
+
+RESULT: databases policies work as intended
+
+==> Test gate (afterwards): GATE PASSED (all checks; Working WAL archiving: OK)
