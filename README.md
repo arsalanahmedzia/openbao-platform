@@ -100,6 +100,8 @@ _TODO: see `docs/operations.md`._
 
 ## Limitations and next steps
 
+Risk assessment with risk matrix: [`docs/risk-assessment.md`](docs/risk-assessment.md).
+
 _TODO_
 
 ## Time spent
