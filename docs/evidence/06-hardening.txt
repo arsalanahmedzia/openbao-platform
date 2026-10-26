@@ -129,3 +129,14 @@ PASS  ExternalSecret hello Ready
 PASS  pulled value is hello-from-openbao
 PASS  PushSecret push-demo Ready
 GATE PASSED
+
+################################################################################
+# A5 Root token   2026-10-26
+################################################################################
+
+Prepared, not run (root token still needed for later steps, as the brief says):
+  scripts/openbao-revoke-root.sh    revoke with confirmation, checks the token is refused
+  scripts/openbao-generate-root.sh  new root token from 3 key shares, stored as Codespaces
+                                    secret; UNTESTED (written from the v2.7.1 CLI source)
+Runbook docs/runbooks/openbao-init-unseal.md section 6 describes both.
+Nothing changed in the cluster, so no test gate was needed.
