@@ -19,16 +19,60 @@ the same `devcontainer.json` reproduces the environment for anyone.
 
 ## Secrets used by the environment
 
-Stored as **Codespaces user secrets** (GitHub settings, encrypted, injected as env vars),
-never in the repo or on a local disk:
+Stored as **Codespaces user secrets** (GitHub settings, encrypted, injected as
+env vars, visible only to Codespaces of this repository), never in the repo:
 
-| Secret | Purpose |
-| --- | --- |
-| `SOPS_AGE_KEY` | age private key, lets Flux decrypt SOPS secrets |
-| `FLUX_GITHUB_TOKEN` | fine-grained token for `flux bootstrap` (limited to this repo, with expiry) |
-| `GITHUB_USER` | GitHub user name |
+| Secret | Purpose | What it really is (checked 2026-10-26) |
+| --- | --- | --- |
+| `SOPS_AGE_KEY` | age private key, lets Flux decrypt SOPS secrets | age private key |
+| `FLUX_GITHUB_TOKEN` | token for `flux bootstrap` | **The `gh` CLI login token** (OAuth, prefix `gho_`), saved with `gh auth token \| gh secret set FLUX_GITHUB_TOKEN --user --app codespaces --repos <repo>`. Scopes: `repo`, `workflow`, `codespace:secrets`, `gist`, `read:org`. **No expiry. Valid for every repository of the account**, not only this one. Same token as the `gh` login the scripts use for Codespaces secrets. |
+| `GITHUB_USER` | GitHub user name | not secret |
+| `OPENBAO_UNSEAL_KEYS` | the 5 OpenBao key shares (JSON list), for `scripts/openbao-unseal.sh` | written by `scripts/openbao-init.sh` |
+| `OPENBAO_ROOT_TOKEN` | OpenBao root token, for the configure/policy scripts | written by `scripts/openbao-init.sh`; to be revoked (`scripts/openbao-revoke-root.sh`) |
 
-The age key and the OpenBao unseal keys are additionally kept in a password manager.
+Checked with `bash scripts/github-access-check.sh` (prints token types and
+scopes, never the values). An earlier version of this page said
+`FLUX_GITHUB_TOKEN` was a fine-grained token limited to this repository with an
+expiry; that was the plan, not what was done. Flux itself does **not** use this
+token after bootstrap: it reads Git through a **read-only deploy key**
+(`flux-system-main-flux-system-./clusters/demo`, `read_only=true`).
+
+The age key and the OpenBao unseal keys are additionally kept in a password
+manager (owner's statement, not checked here).
+
+## Manual GitHub steps (owner checklist)
+
+These are done in the GitHub web UI by the account owner; nothing here can be
+done by Flux or by the scripts. Re-run `bash scripts/github-access-check.sh`
+afterwards to confirm.
+
+**Now**
+- [ ] **Two-factor authentication** on the GitHub account, preferably a passkey
+      or security key (Settings -> Password and authentication). Whoever controls
+      the account controls the repository, the Codespaces secrets (unseal keys,
+      root token, age key) and therefore the cluster.
+- [ ] **Branch protection / ruleset on `main`** (repository Settings -> Rules ->
+      Rulesets, or Branches): block force pushes and branch deletion. Requiring
+      pull requests would also block the direct pushes this project uses (and
+      `flux bootstrap` writes to `main`), so leave that off for the demo and
+      note it as a production setting.
+- [ ] **Replace `FLUX_GITHUB_TOKEN`** with a fine-grained personal access token
+      limited to this repository, with an expiry date (Settings -> Developer
+      settings -> Fine-grained tokens). It is only needed for a new
+      `flux bootstrap`. Permissions per the Flux documentation (check them there
+      before creating the token): Administration read/write (to add the deploy
+      key), Contents read/write, Metadata read. Store it with
+      `gh secret set FLUX_GITHUB_TOKEN --user --app codespaces --repos <repo>`
+      (value through stdin, never as an argument).
+
+**At the end of the review**
+- [ ] Revoke the `gh` OAuth token: Settings -> Applications -> Authorized OAuth
+      Apps -> GitHub CLI -> Revoke (this also ends every `gh` login that uses it).
+- [ ] Delete the Codespaces secrets `FLUX_GITHUB_TOKEN`, `SOPS_AGE_KEY`,
+      `OPENBAO_UNSEAL_KEYS`, `OPENBAO_ROOT_TOKEN` (Settings -> Codespaces).
+- [ ] Delete the deploy key `flux-system-main-flux-system-./clusters/demo` and any
+      other stale deploy keys (repository Settings -> Deploy keys).
+- [ ] Delete the Codespace (this also deletes the cluster and `~/openbao-init.json`).
 
 ## Setup
 
