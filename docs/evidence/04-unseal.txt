@@ -1,0 +1,28 @@
+# OpenBao stage, step 4: unseal all pods after init (keys via stdin, not shown)
+# Command: bash scripts/openbao-unseal.sh   (2026-10-26)
+
+keys from: /home/vscode/openbao-init.json
+openbao-0: unsealed
+openbao-1: unsealed
+openbao-2: unsealed
+
+==> Waiting for all pods to be Ready (readiness = unsealed)
+pod/openbao-0 condition met
+pod/openbao-1 condition met
+pod/openbao-2 condition met
+
+--- openbao-0
+Initialized     true
+Sealed          false
+HA Enabled      true
+HA Mode         active
+--- openbao-1
+Initialized            true
+Sealed                 false
+HA Enabled             true
+HA Mode                standby
+--- openbao-2
+Initialized            true
+Sealed                 false
+HA Enabled             true
+HA Mode                standby
