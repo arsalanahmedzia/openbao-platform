@@ -28,8 +28,10 @@ check "exactly one active OpenBao pod" \
 
 echo
 echo "==> PostgreSQL"
-kubectl cnpg status pg-openbao -n databases 2>/dev/null |
+timeout 30 kubectl cnpg status pg-openbao -n databases 2>/dev/null |
   grep -E '^(Status|Instances|Ready instances|Working WAL archiving|Last Successful Backup):?' || true
+check "kubectl cnpg status answers within 30 s (API server -> instance manager)" \
+  timeout 30 kubectl cnpg status pg-openbao -n databases
 check "PostgreSQL cluster healthy" \
   sh -c 'kubectl -n databases get cluster pg-openbao -o jsonpath="{.status.phase}" | grep -q "healthy"'
 check "3 PostgreSQL instances ready" \
