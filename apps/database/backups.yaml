@@ -1,13 +1,16 @@
 # Base backups of pg-openbao through the Barman Cloud plugin (ObjectStore
 # pg-backups). WAL is archived continuously in addition (Cluster plugins).
-# Schedule format has 6 fields, seconds first: 02:00:00 UTC every day.
+# Schedule format has 6 fields, seconds first: 12:00:00 UTC every day
+# (13:00 Berlin in winter, 14:00 in summer). Chosen because the Codespace is
+# usually running then; at the old 02:00 UTC it was stopped and the backup
+# did not run (risk R06, ADR 0006).
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
   name: pg-openbao-daily
   namespace: databases
 spec:
-  schedule: "0 0 2 * * *"
+  schedule: "0 0 12 * * *"
   immediate: false
   backupOwnerReference: self
   cluster:
