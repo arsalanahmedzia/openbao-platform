@@ -140,3 +140,31 @@ Prepared, not run (root token still needed for later steps, as the brief says):
                                     secret; UNTESTED (written from the v2.7.1 CLI source)
 Runbook docs/runbooks/openbao-init-unseal.md section 6 describes both.
 Nothing changed in the cluster, so no test gate was needed.
+
+################################################################################
+# B1 NetworkPolicy enforcement   2026-10-26
+# Command: bash scripts/netpol-enforcement-test.sh  (MANUAL TEMPORARY TEST,
+# namespace netpol-test created and deleted by the script, nothing from Git)
+# kind v0.33.0, default CNI kindnet; kind release notes v0.24.0: "Out-of-the-box
+# support for network policy via sigs.k8s.io/kube-network-policies".
+################################################################################
+
+NAME     READY   STATUS    RESTARTS   AGE   IP            NODE
+client   1/1     Running   0          3s    10.244.2.10   openbao-platform-worker
+server   1/1     Running   0          3s    10.244.4.10   openbao-platform-worker2
+
+==> 1. No NetworkPolicy: client -> server must work
+PASS  expected ok, got ok
+
+==> 2. deny-all ingress policy: client -> server must be blocked
+networkpolicy.networking.k8s.io/deny-all-ingress created
+PASS  expected blocked, got blocked
+
+==> 3. plus allow app=client -> app=server TCP 8080: must work again
+networkpolicy.networking.k8s.io/allow-client-to-server created
+PASS  expected ok, got ok
+
+RESULT: NetworkPolicies are enforced (deny and allow both work)
+==> Cleanup: deleting namespace netpol-test
+
+==> Test gate (afterwards, revision ffc7336f): GATE PASSED (all 9 checks)

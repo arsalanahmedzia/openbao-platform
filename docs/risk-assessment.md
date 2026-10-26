@@ -112,6 +112,6 @@ is the first thing production must change.
   OAuth token (scopes above), and the Flux deploy key is read-only.
 - Whether OpenBao 2.7.1 reloads listener certificates on `SIGHUP` was not
   tested (R12).
-- Whether this cluster's kindnet enforces NetworkPolicies was not checked
-  (R10): test with a deny-all policy before relying on it.
+- Checked on 2026-10-26 (hardening B1): kindnet in this cluster (kind v0.33.0)
+  enforces NetworkPolicies, deny and allow, across nodes.
 - Likelihood values are judgements for this setup, not measured rates.
