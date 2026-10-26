@@ -40,7 +40,7 @@ bash scripts/openbao-failover-test.sh  # deletes the active pod (asks first)
 | Flux | GitOps engine | TODO |
 | SOPS + age | Encrypted bootstrap secrets in Git | TODO |
 | cert-manager | TLS certificates (self-signed CA) | TODO |
-| ingress-nginx | HTTPS entry point | TODO |
+| Traefik | HTTPS entry point (ingress) | chart 42.1.3 |
 | SeaweedFS | In-cluster S3 for PostgreSQL backups | 4.48 (image) |
 | CloudNativePG | HA PostgreSQL with backups | operator 1.30.1 (chart 0.29.1), PostgreSQL 18.6, plugin-barman-cloud 0.15.1 (chart 0.8.1) |
 | OpenBao | Secrets management (HA, PostgreSQL backend) | 2.7.1 (chart 0.30.4) |
