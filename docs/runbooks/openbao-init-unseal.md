@@ -81,6 +81,12 @@ The same applies after rotating the database password
 `BAO_PG_CONNECTION_URL` at start. CloudNativePG changes the role's password
 right away, so restart all OpenBao pods promptly after Flux applied it.
 
+The same again after cert-manager renewed the listener certificate
+`openbao-server-tls` (90 days, renewed 15 days before expiry): OpenBao only
+loads it at start. `bash scripts/openbao-tls-rollout.sh` only restarts pods on
+an old StatefulSet revision, so after a renewal delete the pods by hand as
+above.
+
 ## 5. Lost keys: what can and cannot be recovered
 
 - **Fewer than 3 shares left** (file, copy and Codespaces secrets lost): the
@@ -125,13 +131,15 @@ curl --resolve openbao.demo.local:443:127.0.0.1 --cacert /tmp/openbao-ca.crt \
   https://openbao.demo.local/v1/sys/health
 ```
 
-From your browser (fallback, plain HTTP through a tunnel):
+From your browser (fallback, tunnel to the pod; since ADR 0005 the listener
+itself speaks HTTPS with a certificate for `localhost`, signed by the demo CA,
+so the browser warns unless it trusts that CA):
 
 ```bash
 kubectl -n openbao port-forward svc/openbao-active 8200:8200
 ```
 
-Codespaces offers to open forwarded port 8200; add `/ui` to the URL. Logging
+Codespaces offers to open forwarded port 8200 (use `https://`); add `/ui` to the URL. Logging
 in needs a token; for the demo, log in only to show the UI and do not keep a
 root token around for it.
 
