@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: pg-openbao-openbao
+    namespace: databases
+    labels:
+        cnpg.io/reload: "true"
+type: kubernetes.io/basic-auth
+stringData:
+    username: ENC[AES256_GCM,data:UdQDHw+cnQ==,iv:zM70IxBblj7IppVt8cZKHHXe9om8sVPJ+FDLEtK7l6A=,tag:KlQfcA40lQ/M4AMocavX3A==,type:str]
+    password: ENC[AES256_GCM,data:gZWFRhkSJ606Xjdajg7AB+A+LP4NmCBy3wqZ/Dm7dL3f9GgIXOjg3sMpKZt2XIbi,iv:4REjiTMXnMEMGm9T0ga8DulbACsQ8nK6K1jziYUp7N4=,tag:WES7XLq//y4ajPiV+JjMTA==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBYSXlRU00vMmNOM3lqU1Q0
+            Y0VDSjNrdUN5dldLWEcvZE5sUzd3Ly9sRWdBCjN0T3dOZEhqdzZ0MDdOK1JVR1Rz
+            bGVmM0dPdjlPVFk2UitwYUUvem04MlEKLS0tIG5EdkUxc3EyOSttaEMyU0g3eUh2
+            VDRqTHByU2IxWkcvNkFpMm5uRGIxUjQKOb+UUETBPDt6oQSH/anmyEeEGDo79+dn
+            kainFm8hrZONvZYLjMZQdT0owTW8J2SiQdAML+FGgdgVl82w5TS96Q==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age162kwlzp6kleh6txpqkyxrqv7xwph06rhttxszjm5v4wu0a2l7elqswykja
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-26T15:15:44Z"
+    mac: ENC[AES256_GCM,data:Mh9bt4GKWiWlubjMXTeKuhuMWvPWxC7+MOG6aOGaT6xZtCcXV4d6lqcBTfaM0dtEIuqdraTM1sJc6RFLeOoMowKrDYEhcxkZ3Jf7KRjciTRcyP3C9rO/njucG0LgVSrL28EdznjiN1HNy0pfUJQoNW7ga8ogKgvQDgqLhBuJjlI=,iv:zVkaYfwxH5Hh0iDykqt1P7YWrzI/NWXQOMhNct/L3D4=,tag:Hvn+Hc16MYvbMgHiL/5fAg==,type:str]
+    version: 3.13.3

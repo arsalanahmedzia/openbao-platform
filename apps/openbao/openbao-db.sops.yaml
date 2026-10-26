@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: openbao-db
+    namespace: openbao
+type: Opaque
+stringData:
+    BAO_PG_CONNECTION_URL: ENC[AES256_GCM,data:9Qv9pOy0reAaYLZ+NVHpgmLFKeksfHHlwFCYjfObskemxWPJq5hyaFLcJtulDyBJrGbEa77WjoFFyMviOD+42jnNWD4S9+4PUbVImma6IN8Pt2snqRp9/TBubpbmRe4Szs4F/l/nY44shxijRXd8p3xDL8ovuMAl5LrfcQ==,iv:oD1vRiJ4tQWgIFvyan0bldHFzbOoW6bNYOssZDcvFXI=,tag:vUQe/BOhy5+K+UJ80j4syw==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBBUytVbzFwMkEyaHJja0xV
+            Y1lGSUVMcXBKVnRRMTgrT1N2Y1NxUm5FSkdBCmZUY0VYVlFjY0dPdjZxQWZzRDBt
+            Y1FRWWpQaE5peHd2K3htWmN6cENmRDQKLS0tIEd0TzlMZmg5VVZEcXpCMWRkem1m
+            Y0l4aldVQ3hEc1ZBVUpMZlZEOCticG8Kd/KzTo7Xx91ErEEo91YF4WKPfslU69Gm
+            +GqIIZPPJpFDCr/l+5KNeAU7Fhely2j/o4bwTig3c2dPn/Sfz5DNJA==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age162kwlzp6kleh6txpqkyxrqv7xwph06rhttxszjm5v4wu0a2l7elqswykja
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-26T15:15:44Z"
+    mac: ENC[AES256_GCM,data:koGrTtcKg5DAplpYjQsQ/pW29sve8+e8hEBLNZh35tv07pA3pxjlUPUYgp+WyphqT/egVYN1o1SdT/suJXgKAuoasZXb5ZyqIGkBQyNCEVVQkNzv8cie7GxHRLwYA7aSBiofjgCpt9L3yrcsobKrzIHrCgVo50zAUx3U7mSjvn0=,iv:Vwk2pXJr1rlt3AslTxM7V89ympXYHC7HTDx42U4GAuQ=,tag:KxXPQ3zE75Yoyn4XFywiVg==,type:str]
+    version: 3.13.3
