@@ -103,23 +103,47 @@ above.
 
 ## 6. Root token: revoke and generate when needed
 
-After `openbao-configure.sh` the root token should not be used. To revoke it
-(token through stdin, as in the scripts; pod = the active one):
+The root token can do everything and is not needed for daily operation
+(unseal needs only key shares; ESO uses Kubernetes auth). Scripts that need it:
+`openbao-configure.sh`, `openbao-policy-update.sh`, and the audit device list
+in `openbao-audit-check.sh`.
+
+**Revoke** (asks first; token through stdin; checks that the token is refused
+afterwards; offers to delete the Codespaces secret):
 
 ```bash
-POD=$(kubectl -n openbao get pods -l openbao-active=true -o jsonpath='{.items[0].metadata.name}')
-jq -r .root_token ~/openbao-init.json |
-  kubectl -n openbao exec -i "$POD" -- sh -c 'read -r BAO_TOKEN; export BAO_TOKEN; bao token revoke -self'
+bash scripts/openbao-revoke-root.sh
 ```
 
-Expected: `Success! Revoked token (if it existed)`. The value in
-`~/openbao-init.json` and in `OPENBAO_ROOT_TOKEN` is then useless.
+Expected: `Success! Revoked token`, then `refused (expected): the root token
+is revoked`. The `root_token` in `~/openbao-init.json` and in your downloaded
+copy is then useless; keep the file for the unseal keys.
 
-To get a new root token later, `bao operator generate-root` combines a
-one-time password with 3 key shares (`-init`, then 3 times with a share, then
-`-decode`). It is an interactive procedure: run it in a terminal session
-inside the active pod (`kubectl -n openbao exec -it <pod> -- sh`) and revoke
-the new token again when done.
+**Generate a new root token when needed** (needs 3 of the 5 key shares;
+**untested**, written from the OpenBao v2.7.1 CLI source):
+
+```bash
+bash scripts/openbao-generate-root.sh   # stores it as Codespaces secret OPENBAO_ROOT_TOKEN
+# restart the Codespace so the new secret appears as an environment variable,
+# do the work, then:
+bash scripts/openbao-revoke-root.sh
+```
+
+What the script does, step by step (the same commands work by hand inside the
+active pod):
+
+1. `bao operator generate-root -generate-otp`: a one-time password (OTP).
+2. `bao operator generate-root -init -otp=<OTP>`: starts the procedure and
+   returns a `nonce` (an ID for this attempt).
+3. Three times: `bao operator generate-root -nonce=<nonce> -` with one key
+   share on stdin (`-` means "read from stdin"; without it the CLI prompts on a
+   terminal and fails when input is piped). Progress goes 1/3, 2/3, 3/3; the
+   last answer contains `encoded_token`.
+4. `bao operator generate-root -decode=- -otp=<OTP>` with the encoded token on
+   stdin prints the new root token (the script sends it straight to
+   `gh secret set`, never to the screen).
+5. A started attempt that is not finished blocks new attempts; cancel it with
+   `bao operator generate-root -cancel`.
 
 ## 7. Reach the UI
 
