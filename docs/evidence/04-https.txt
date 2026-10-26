@@ -1,0 +1,13 @@
+# HTTPS through Traefik (host port 443), certificate checked against demo-root-ca, captured 2026-10-26T15:39:46Z
+
+$ curl --resolve openbao.demo.local:443:127.0.0.1 --cacert ca.crt https://openbao.demo.local/v1/sys/health
+{"initialized":true,"sealed":false,"standby":false,"replication_performance_mode":"primary","replication_dr_mode":"disabled","server_time_utc":1793029188,"version":"2.7.1","cluster_name":"vault-cluster-06f4adea","cluster_id":"732734d8-7d06-0cf5-eaac-4b8cd8f58325"}
+
+HTTP 200
+
+# TLS details (curl -v, filtered)
+* SSL connection using TLSv1.3 / TLS_AES_128_GCM_SHA256 / X25519 / id-ecPublicKey
+*  subject: [NONE]
+*  expire date: Jan 24 15:20:20 2027 GMT
+*  issuer: CN=demo-root-ca
+*  SSL certificate verify ok.

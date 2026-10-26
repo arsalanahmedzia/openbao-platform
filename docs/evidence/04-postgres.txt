@@ -1,0 +1,21 @@
+# PostgreSQL side of OpenBao, captured 2026-10-26T15:39:46Z
+
+$ kubectl cnpg psql pg-openbao -n databases -- -d openbao -c '\dt'
+               List of tables
+ Schema |       Name       | Type  |  Owner  
+--------+------------------+-------+---------
+ public | openbao_ha_locks | table | openbao
+ public | openbao_kv_store | table | openbao
+(2 rows)
+
+
+# Row counts only (no data): OpenBao writes encrypted entries
+39
+1
+
+$ kubectl cnpg backup pg-openbao -n databases --method=plugin --plugin-name=barman-cloud.cloudnative-pg.io
+backup/pg-openbao-20261026153949 created
+
+$ kubectl -n databases get backup.postgresql.cnpg.io/pg-openbao-20261026153949 -o jsonpath={.metadata.name} phase={.status.phase} started={.status.startedAt} stopped={.status.stoppedAt}{"\n"}
+pg-openbao-20261026153949 phase=completed started=2026-10-26T15:39:51Z stopped=2026-10-26T15:39:56Z
+

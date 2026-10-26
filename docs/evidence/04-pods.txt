@@ -1,0 +1,14 @@
+# OpenBao pods, captured 2026-10-26T15:39:46Z
+
+$ kubectl -n openbao get pods -o wide
+NAME        READY   STATUS    RESTARTS   AGE   IP            NODE                       NOMINATED NODE   READINESS GATES
+openbao-0   1/1     Running   0          19m   10.244.4.11   openbao-platform-worker2   <none>           <none>
+openbao-1   1/1     Running   0          19m   10.244.1.12   openbao-platform-worker3   <none>           <none>
+openbao-2   1/1     Running   0          19m   10.244.2.11   openbao-platform-worker    <none>           <none>
+
+$ kubectl -n openbao get pods -L openbao-active,openbao-sealed
+NAME        READY   STATUS    RESTARTS   AGE   OPENBAO-ACTIVE   OPENBAO-SEALED
+openbao-0   1/1     Running   0          19m   true             false
+openbao-1   1/1     Running   0          19m   false            false
+openbao-2   1/1     Running   0          19m   false            false
+

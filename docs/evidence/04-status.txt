@@ -1,0 +1,56 @@
+# bao status per pod, captured 2026-10-26T15:39:46Z
+
+$ kubectl -n openbao exec openbao-0 -- bao status
+Key             Value
+---             -----
+Seal Type       shamir
+Initialized     true
+Sealed          false
+Total Shares    5
+Threshold       3
+Version         2.7.1
+Commit Date     2026-10-01T15:32:54Z
+Storage Type    postgresql
+Cluster Name    vault-cluster-06f4adea
+Cluster ID      732734d8-7d06-0cf5-eaac-4b8cd8f58325
+HA Enabled      true
+HA Cluster      https://openbao-0.openbao-internal:8201
+HA Mode         active
+Active Since    2026-10-26T15:32:15.678271516Z
+
+$ kubectl -n openbao exec openbao-1 -- bao status
+Key                    Value
+---                    -----
+Seal Type              shamir
+Initialized            true
+Sealed                 false
+Total Shares           5
+Threshold              3
+Version                2.7.1
+Commit Date            2026-10-01T15:32:54Z
+Storage Type           postgresql
+Cluster Name           vault-cluster-06f4adea
+Cluster ID             732734d8-7d06-0cf5-eaac-4b8cd8f58325
+HA Enabled             true
+HA Cluster             https://openbao-0.openbao-internal:8201
+HA Mode                standby
+Active Node Address    http://10.244.4.11:8200
+
+$ kubectl -n openbao exec openbao-2 -- bao status
+Key                    Value
+---                    -----
+Seal Type              shamir
+Initialized            true
+Sealed                 false
+Total Shares           5
+Threshold              3
+Version                2.7.1
+Commit Date            2026-10-01T15:32:54Z
+Storage Type           postgresql
+Cluster Name           vault-cluster-06f4adea
+Cluster ID             732734d8-7d06-0cf5-eaac-4b8cd8f58325
+HA Enabled             true
+HA Cluster             https://openbao-0.openbao-internal:8201
+HA Mode                standby
+Active Node Address    http://10.244.4.11:8200
+
