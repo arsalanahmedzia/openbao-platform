@@ -1,0 +1,75 @@
+# Incoming traffic to namespace openbao (hardening B2, risk R10, ADR 0006).
+# Default: nothing may connect to any pod here. Then:
+#   8200 (API, HTTPS) to the OpenBao pods only from
+#     - Traefik pods (namespace traefik AND app.kubernetes.io/name=traefik):
+#       https://openbao.demo.local
+#     - the ESO controller (namespace external-secrets AND
+#       app.kubernetes.io/name=external-secrets; the webhook and
+#       cert-controller have other names and do not need OpenBao)
+#     - the OpenBao pods themselves (in-pod checks through the Service)
+#   8201 (cluster port: standby -> active request forwarding) only between the
+#     OpenBao pods
+# Ports as in the chart's own optional policy (server.networkPolicy, which
+# opens 8200/8201 to every namespace). The readiness probe is an exec
+# (`bao status` inside the container), so it needs no network rule.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: openbao
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-api
+  namespace: openbao
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: openbao
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: external-secrets
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: external-secrets
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: openbao
+      ports:
+        - protocol: TCP
+          port: 8200
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-cluster
+  namespace: openbao
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: openbao
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: openbao
+      ports:
+        - protocol: TCP
+          port: 8201

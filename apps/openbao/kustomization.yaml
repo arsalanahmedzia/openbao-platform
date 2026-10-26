@@ -7,3 +7,4 @@ resources:
   - server-certificate.yaml
   - serverstransport.yaml
   - helmrelease.yaml
+  - networkpolicy.yaml
