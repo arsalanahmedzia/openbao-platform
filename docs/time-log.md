@@ -8,5 +8,6 @@ Time spent per task, recorded as the work happened.
 | 2026-10-25 | Storage | In-cluster S3 (SeaweedFS), encrypted S3 credentials, bucket Job, ADRs 0001/0002 | |
 | 2026-10-25 | Database | HA PostgreSQL (CloudNativePG), S3 backups, replication/failover/PITR tests, runbook, ADR 0003 | |
 | 2026-10-26 | OpenBao | OpenBao HA on PostgreSQL (Flux layer, SOPS DB password), init/unseal/configure scripts, HTTPS ingress, failover test, runbook, ADR 0004 | |
+| 2026-10-26 | External Secrets | TLS on the OpenBao listener, ClusterSecretStore, ExternalSecret pull + refresh test, PushSecret, policy fix (most specific path wins), least-privilege evidence, runbook, ADR 0005 | |
 
 **Total:** _TODO_
