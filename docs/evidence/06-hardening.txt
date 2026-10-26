@@ -54,3 +54,30 @@ annotation `kustomize.toolkit.fluxcd.io/prune: disabled` to exclude an object
 from garbage collection, both when it disappears from Git and when its Flux
 Kustomization is deleted. Deleting a Namespace still deletes everything in it,
 so protecting the PostgreSQL Cluster alone would not protect its data.
+
+################################################################################
+# A3 GitHub token documentation (R08)   2026-10-26
+# Command: bash scripts/github-access-check.sh   (GitHub API only, no values printed)
+################################################################################
+
+==> Tokens (values never printed)
+FLUX_GITHUB_TOKEN (Codespaces secret, as injected into this Codespace)
+  type prefix: gho_
+  status:      HTTP/2 200
+  scopes:       codespace:secrets, gist, read:org, repo, workflow
+  expires:     (no expiry reported)
+gh login (used by the scripts for Codespaces secrets)
+  type prefix: gho_
+  status:      HTTP/2 200
+  scopes:       codespace:secrets, gist, read:org, repo, workflow
+  expires:     (no expiry reported)
+
+==> Deploy keys of arsalanahmedzia/openbao-platform (Flux bootstrap creates one)
+  flux-system-main-flux-system-./clusters/demo  read_only=true  created=2026-10-26T14:47:47Z
+
+==> Branch protection on main
+  none (or not visible with this token)
+
+Result: docs/environment.md corrected (the token is the gh OAuth token, not a
+fine-grained repo token) and an owner checklist added. Nothing changed in the
+cluster, so no test gate was needed.
