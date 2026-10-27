@@ -49,7 +49,7 @@ Score = likelihood (L, 1-5) × impact (I, 1-5).
 
 Status: **Open** · **Partly** mitigated · **Done** (mitigated) · **Accepted**.
 
-| ID | Risk | Threat | L | I | Score | Status | Fix / next step |
+| ID | Risk | Threat | L | I | Score | Status | Mitigations |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | R01 | All unseal keys and the root token in one place | Account compromise | 3 | 5 | 🔴 15 | Open | Revoke root (`openbao-revoke-root.sh`); auto-unseal |
 | R03 | OpenBao sealed after every restart | Infrastructure failure | 5 | 3 | 🔴 15 | Accepted | Auto-unseal |
