@@ -1,0 +1,167 @@
+# F1: a worker node dies   2026-10-27
+# Stopped: openbao-platform-worker2 (docker stop), the node with the ACTIVE
+# OpenBao pod (openbao-0) and the PostgreSQL PRIMARY (pg-openbao-1).
+# Commands were run by hand (no scripts), outputs pasted; no tokens or keys used
+# except the unseal script (keys via stdin from the Codespaces secret).
+
+################################################################################
+# Start state
+################################################################################
+bash scripts/resume.sh        -> all 4 nodes Ready
+bash scripts/openbao-unseal.sh -> keys from: Codespaces secret OPENBAO_UNSEAL_KEYS
+                                  openbao-0 active, openbao-1/2 standby
+bash scripts/test-gate.sh     -> GATE PASSED
+
+Placement before the test:
+openbao-platform-worker2   openbao-0 (active)   pg-openbao-1 (primary)
+openbao-platform-worker    openbao-2 (standby)  pg-openbao-2 (replica)
+openbao-platform-worker3   openbao-1 (standby)  pg-openbao-3 (replica)
+
+$ kubectl get pods -A -o wide --field-selector spec.nodeName=openbao-platform-worker2
+NAMESPACE          NAME                                 READY   STATUS      NODE
+cert-manager       cert-manager-bc8ddc9f6-6qdvx         1/1     Running     openbao-platform-worker2
+databases          pg-openbao-1                         2/2     Running     openbao-platform-worker2
+external-secrets   external-secrets-76ccc4969-j5625     1/1     Running     openbao-platform-worker2
+flux-system        helm-controller-6d7994bb6d-9cjvm     1/1     Running     openbao-platform-worker2
+flux-system        source-controller-64b7c59c55-zkghw   1/1     Running     openbao-platform-worker2
+kube-system        kindnet-mmlb2                        1/1     Running     openbao-platform-worker2
+kube-system        kube-proxy-knzh2                     1/1     Running     openbao-platform-worker2
+openbao            openbao-0                            1/1     Running     openbao-platform-worker2
+storage            create-bucket-pg-backups-zmxjj       0/1     Completed   openbao-platform-worker2
+# The only ESO controller replica and two Flux controllers also ran on worker2.
+
+Baseline: 15:13:04 health HTTP 200 (curl through Traefik, demo CA)
+
+################################################################################
+# Break
+################################################################################
+$ date -u +%T; docker stop openbao-platform-worker2
+15:21:36
+openbao-platform-worker2
+
+# OpenBao health through Traefik, every 2 s (second terminal):
+15:21:31 200
+15:21:33 200
+15:21:35 200
+15:21:37 502
+15:21:40 502
+15:21:42 502
+15:21:44 503
+   ... 503 every 2 s ...
+15:22:50 503
+15:22:52 200
+15:22:54 200
+   ... 200 ...
+15:23:13 200
+
+################################################################################
+# Watch
+################################################################################
+$ kubectl get node openbao-platform-worker2 (Ready condition)
+Ready=Unknown since 2026-10-27T15:22:30Z
+
+$ kubectl -n databases get cluster pg-openbao (status)
+primary=pg-openbao-2 since=2026-10-27T15:22:37.669767Z phase=Waiting for the instances to become active
+
+$ kubectl -n openbao get pods -L openbao-active,openbao-sealed   (15:25)
+openbao-0   1/1  Running  openbao-platform-worker2  OPENBAO-ACTIVE false  OPENBAO-SEALED true
+openbao-1   1/1  Running  openbao-platform-worker3  false  false
+openbao-2   1/1  Running  openbao-platform-worker   true   false
+# openbao-0 changed its own labels while shutting down: docker stop sends a
+# stop signal first (10 s grace), so the node's processes shut down cleanly.
+
+$ kubectl -n databases get pods -L cnpg.io/instanceRole   (15:25)
+pg-openbao-1   2/2  Terminating  openbao-platform-worker2  replica
+pg-openbao-2   2/2  Running      openbao-platform-worker   primary
+pg-openbao-3   2/2  Running      openbao-platform-worker3  replica
+
+$ kubectl -n openbao logs openbao-2 (lock / error lines)
+15:21:42 [ERROR] core: skipping invalidation streaming ... pg-openbao-rw ... connect: connection refused
+15:21:53 [ERROR] core: failed to acquire lock: ... dial error: timeout: context deadline exceeded
+15:22:04 [ERROR] core: failed to acquire lock: ... timeout
+15:22:15 [ERROR] core: failed to acquire lock: ... timeout
+15:22:26 [ERROR] core: failed to acquire lock: ... timeout
+15:22:29 [ERROR] core: failed to acquire lock: ... connect: no route to host
+15:22:32 [ERROR] core: failed to acquire lock: ... connect: no route to host
+15:22:43 [ERROR] core: failed to acquire lock: ... timeout
+15:22:44 [INFO]  core: acquired lock, enabling active operation
+15:22:51 [ERROR] core: skipping invalidation streaming ... no route to host
+
+$ date -u +%T; kubectl -n external-secrets get pods -o wide   (15:32:26)
+external-secrets-76ccc4969-bnd2n   1/1  Running      AGE 4m55s  openbao-platform-worker3
+external-secrets-76ccc4969-j5625   1/1  Terminating  AGE 24h    openbao-platform-worker2
+$ kubectl get clustersecretstore openbao; kubectl -n eso-demo get externalsecret,pushsecret
+openbao   Valid    ReadWrite      True
+hello      SecretSynced   True    LAST SYNC 10s
+push-demo  Synced                 LAST SYNC 8s
+$ kubectl -n eso-demo get secret hello-from-openbao (message, decoded)
+hello-from-openbao
+
+$ kubectl -n flux-system get pods -o wide   (15:32)
+helm-controller-...-9cjvm     Terminating  openbao-platform-worker2
+helm-controller-...-vg24c     Running      AGE 5m45s  openbao-platform-worker
+source-controller-...-b5t8m   Running      AGE 5m45s  openbao-platform-worker3
+source-controller-...-zkghw   Terminating  openbao-platform-worker2
+$ flux get kustomizations
+apps-database           Unknown  Reconciliation in progress
+apps-openbao            False    dependency 'flux-system/apps-database' is not ready
+(all other layers True)
+
+################################################################################
+# Recover
+################################################################################
+$ date -u +%T; docker start openbao-platform-worker2
+15:34:47
+$ kubectl wait --for=condition=Ready node/openbao-platform-worker2 --timeout=180s; date -u +%T
+node/openbao-platform-worker2 condition met
+15:35:07
+
+$ kubectl -n openbao get pods -L openbao-active,openbao-sealed
+openbao-0   0/1  Running  AGE 31s  openbao-platform-worker2  false  true
+$ kubectl -n openbao exec openbao-0 -- bao status
+Initialized        true
+Sealed             true
+command terminated with exit code 2
+
+$ kubectl -n databases get pods -L cnpg.io/instanceRole
+pg-openbao-1   1/2  Running  AGE 37s   openbao-platform-worker2  replica
+(about 1 minute later)
+pg-openbao-1   2/2  Running  AGE 119s  openbao-platform-worker2  replica
+no Terminating or Pending pods
+
+$ bash scripts/openbao-unseal.sh
+openbao-0: unsealed, openbao-1/2 already unsealed
+openbao-0 standby, openbao-1 standby, openbao-2 active
+
+$ bash scripts/test-gate.sh
+all Flux layers Ready (revision 311ebad6), 3 OpenBao pods Ready, one active,
+PostgreSQL healthy with 3 ready instances, store Valid, pull and push Ready
+GATE PASSED
+
+################################################################################
+# Timeline and result
+################################################################################
+15:21:36  worker2 stopped                                    0 s
+15:22:30  node Ready=Unknown (NotReady)                     54 s
+15:22:37  pg-openbao-2 promoted to PostgreSQL primary       61 s
+15:22:44  openbao-2 acquired the lock, active               68 s
+15:22:52  first HTTP 200 through Traefik                    76 s
+~15:26:41 Flux source/helm-controller replaced           ~5 min
+~15:27:31 ESO controller replaced on worker3             ~5 min 55 s
+15:34:47  worker2 started; Ready at 15:35:07                 20 s
+          openbao-0 back SEALED; pg-openbao-1 back as replica (2/2 after ~2 min)
+
+OpenBao outage: 76 s (502 for ~6 s, then 503 for ~66 s). Most of it is node
+failure detection (54 s) plus PostgreSQL failover (7 s); OpenBao itself took
+the lock 7 s after PostgreSQL had a new primary.
+The Kubernetes Secret hello-from-openbao kept its value throughout.
+
+Different from the expectation:
+- "docker stop is like pulling the power": wrong. docker stop gives the node's
+  processes a stop signal and 10 s, so OpenBao shut down cleanly and removed its
+  active label; the openbao-active Service was then empty, which explains the
+  503s (Traefik's "no pod to send to"; inferred, Traefik's answer body was not
+  captured). A real power loss (or docker kill) was not tested.
+- Outage 76 s instead of "about a minute".
+- Flux controllers were replaced about 50 s before the ESO controller; I
+  expected both after the same 300 s. Reason not checked.
