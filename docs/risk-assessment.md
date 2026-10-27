@@ -1,10 +1,12 @@
-# Risk assessment: OpenBao platform
+# Risk Assessment: OpenBao Platform
 
-Date: 2026-10-26 · Scope: everything deployed from this repository (kind in a
+Date: 2026-10-26.
+
+Scope: everything deployed from this repository (kind in a
 GitHub Codespace, Flux, SOPS, cert-manager, Traefik, SeaweedFS, CloudNativePG,
-OpenBao, External Secrets). Evidence: `docs/evidence/`.
+OpenBao, External Secrets).
 
-## 1. Threat model
+## 1. Threat Model
 
 **What we protect**
 
@@ -32,7 +34,7 @@ OpenBao, External Secrets). Evidence: `docs/evidence/`.
 (kubectl, keys) · Internet → Traefik → OpenBao · namespace ↔ namespace (pod
 network) · OpenBao → PostgreSQL → S3.
 
-## 2. Risk matrix
+## 2. Risk Matrix
 
 Score = likelihood (L, 1-5) × impact (I, 1-5).
 🔴 High 15-25 · 🟡 Medium 8-14 · 🟢 Low 1-7.
