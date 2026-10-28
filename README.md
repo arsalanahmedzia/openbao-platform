@@ -21,19 +21,19 @@ PostgreSQL, old backups, lost nodes).
 ### How it gets built
 
 ```mermaid
-flowchart LR
+flowchart TB
   git[(GitHub repo<br/>the wanted state)]
   flux[Flux<br/>runs inside the cluster]
-  l1[1 flux-system]
-  l2[2 infra-controllers<br/>the tools]
-  l3[3 infra-configs<br/>demo CA, settings]
-  l4[4 infra-storage<br/>SeaweedFS S3]
-  l5[5 apps-database<br/>PostgreSQL]
-  l6[6 apps-openbao<br/>OpenBao]
-  l7[7 apps-external-secrets<br/>ESO]
-  l8[8 apps-monitoring<br/>Prometheus]
-  flux -->|"fetches every minute"| git
-  flux -->|"applies in this order,<br/>each waits for the one before"| l1
+  l1[flux-system<br/>Flux itself]
+  l2[infra-controllers<br/>the tools]
+  l3[infra-configs<br/>demo CA and settings]
+  l4[infra-storage<br/>SeaweedFS S3]
+  l5[apps-database<br/>PostgreSQL]
+  l6[apps-openbao<br/>OpenBao]
+  l7[apps-external-secrets<br/>secret sync]
+  l8[apps-monitoring<br/>Prometheus and alerts]
+  flux -->|"fetches the repo every minute"| git
+  flux -->|"builds the layers one after the other,<br/>each waits until the one before is healthy"| l1
   l1 --> l2 --> l3 --> l4 --> l5 --> l6 --> l7
   l3 --> l8
 ```
@@ -45,36 +45,42 @@ flowchart TB
   user([Person with a browser])
   traefik[Traefik<br/>HTTPS entry point]
   bao[OpenBao x3<br/>keeps the secrets<br/>1 active, 2 standby]
+  api[Kubernetes API<br/>knows who is who]
   pg[(PostgreSQL x3<br/>OpenBao saves its data here)]
   s3[(SeaweedFS S3<br/>backup storage)]
-  eso[ESO controller<br/>copies secrets between<br/>OpenBao and Kubernetes]
-  ksec[Kubernetes Secret<br/>what apps really read]
+  eso[External Secrets Operator<br/>copies secrets between<br/>OpenBao and Kubernetes]
+  ksec[Kubernetes Secret<br/>what apps read]
+  cm[cert-manager<br/>makes the TLS certificates]
   prom[Prometheus + Alertmanager<br/>measures and raises alerts]
 
-  user -->|"A opens https"| traefik
-  traefik -->|"B forwards"| bao
-  bao -->|"C saves data"| pg
-  pg -->|"D sends backups and WAL"| s3
-  eso -->|"E pull: reads a secret"| bao
-  eso -->|"F push: writes a secret"| bao
-  eso -->|"G creates or updates"| ksec
-  prom -.->|"H asks for metrics"| bao
-  prom -.->|"H"| pg
-  prom -.->|"H"| eso
+  user -->|"opens the HTTPS page"| traefik
+  traefik -->|"sends the request to the active pod"| bao
+  eso -->|"logs in and reads secrets"| bao
+  eso -->|"logs in and writes secrets"| bao
+  bao -->|"asks: is this login real?"| api
+  bao -->|"saves all its data"| pg
+  pg -->|"sends daily backups and WAL logs"| s3
+  eso -->|"creates and updates"| ksec
+  cm -->|"issues OpenBao's TLS certificate"| bao
+  prom -.->|"measures"| bao
+  prom -.->|"measures"| pg
+  prom -.->|"measures"| eso
   classDef store fill:#e8f1ff,stroke:#4a6fa5
   classDef main fill:#fff4d6,stroke:#b8860b
   class pg,s3 store
   class bao,eso main
 ```
 
-How to read it: an arrow points from the one who starts the call to the one who is asked. Letters A to G follow a
-secret through the platform. Dotted arrows (H) are monitoring. Everything runs inside one kind cluster.
+How to read it: an arrow points from the one who starts the call to the one who is asked. Dotted arrows are monitoring.
+Not drawn, to keep it readable: unsealing OpenBao, the NetworkPolicies, SOPS + age for secrets in Git, and the daily backup schedule.
+They are described in the sections below. Everything runs inside one kind cluster.
 
-Words used: ESO is the External Secrets Operator. S3 is a common way to store
-files over HTTP; SeaweedFS provides it inside the cluster. WAL (write-ahead
-log) is PostgreSQL's running record of every change; with the backups it allows
-a restore to any point in time. Layer 8 does not wait for layers 4 to 7: it
-only needs the tools (2) and the demo CA (3).
+Words used: S3 is a common way to store files over HTTP; SeaweedFS provides it
+inside the cluster. WAL (write-ahead log) is PostgreSQL's running record of
+every change; with the backups it allows a restore to any point in time.
+`apps-monitoring` branches off after `infra-configs`: it waits only for
+`infra-controllers` and `infra-configs`, not for the database, OpenBao or
+secret-sync layers.
 
 ## Quick start
 
