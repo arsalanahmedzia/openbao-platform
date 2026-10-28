@@ -155,7 +155,7 @@ $ bash scripts/monitoring-cnpg-metrics.sh   (excerpt)
 
 $ bash scripts/test-gate.sh  ->  GATE PASSED (8 layers Ready at b7377270)
 # Note: the old cnpg_collector_last_*_backup_timestamp metrics are deprecated
-# and not used; backups go through the Barman Cloud plugin (v0.15.0 docs).
+# and not used; backups go through the Barman Cloud plugin (v0.15.1 docs).
 
 ================================================================================
 M2 (External Secrets metrics), 2026-10-28, revision ad24a7c
@@ -386,3 +386,10 @@ Token/key scan of 08-monitoring.txt and 08-m6-f3-sealed.txt (2026-10-28):
   grep -i -E 'hvs\.|s\.[A-Za-z0-9]{20,}|BEGIN [A-Z ]*PRIVATE|AGE-SECRET-KEY|unseal key|root token:|ghp_|github_pat_|password'
     -> no match
   grep -o -E '[A-Za-z0-9+/=_-]{40,}'  -> only pod, metric and object names and separator lines
+
+Correction (2026-10-28): the pinned charts install CloudNativePG 1.30.1
+(chart 0.29.1 appVersion 1.30.1) and plugin-barman-cloud v0.15.1 (chart 0.8.1),
+as the README says. Earlier notes here said 1.30.0 / v0.15.0 (a misread of the
+chart index). The docs used are the same at both versions (CNPG monitoring.md
+1.30.0 vs 1.30.1: only example version strings differ; plugin observability.md
+identical; pods.go port 9187 "metrics" unchanged).

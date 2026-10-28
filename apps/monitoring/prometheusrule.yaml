@@ -10,7 +10,7 @@
 #                                           CloudNativePG 1.30 docs + seen
 #   barman_cloud_cloudnative_pg_io_last_available_backup_timestamp,
 #   barman_cloud_cloudnative_pg_io_last_failed_backup_timestamp
-#                                           Barman Cloud plugin v0.15.0 docs + seen
+#                                           Barman Cloud plugin v0.15.1 docs + seen
 #   externalsecret_/pushsecret_/clustersecretstore_status_condition
 #                                           ESO v2.14.0 docs + seen
 # No Alertmanager receiver is configured: alerts are visible in Prometheus and
