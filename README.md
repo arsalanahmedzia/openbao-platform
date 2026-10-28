@@ -18,26 +18,6 @@ the HTTPS entry point. Prometheus scrapes OpenBao, PostgreSQL and the ESO
 controller and raises alerts (sealed OpenBao, failed syncs, unhealthy
 PostgreSQL, old backups, lost nodes).
 
-### How it gets built
-
-```mermaid
-flowchart TB
-  git[(GitHub repo<br/>the wanted state)]
-  flux[Flux<br/>runs inside the cluster]
-  l1[flux-system<br/>Flux itself]
-  l2[infra-controllers<br/>the tools]
-  l3[infra-configs<br/>demo CA and settings]
-  l4[infra-storage<br/>SeaweedFS S3]
-  l5[apps-database<br/>PostgreSQL]
-  l6[apps-openbao<br/>OpenBao]
-  l7[apps-external-secrets<br/>secret sync]
-  l8[apps-monitoring<br/>Prometheus and alerts]
-  flux -->|"fetches the repo every minute"| git
-  flux -->|"builds the layers one after the other,<br/>each waits until the one before is healthy"| l1
-  l1 --> l2 --> l3 --> l4 --> l5 --> l6 --> l7
-  l3 --> l8
-```
-
 ### How it runs
 
 ```mermaid
@@ -80,32 +60,7 @@ They are described in the sections below. Everything runs inside one kind cluste
 Also not drawn: pods do not call the Kubernetes API for their certificates; the kubelet (the Kubernetes agent on each node)
 puts Secrets into the pods as files. The backups are sent by the Barman Cloud plugin, which runs inside each PostgreSQL pod.
 
-Words used: S3 is a common way to store files over HTTP; SeaweedFS provides it
-inside the cluster. WAL (write-ahead log) is PostgreSQL's running record of
-every change; with the backups it allows a restore to any point in time. A
-service account is the identity a pod has in Kubernetes. `apps-monitoring`
-branches off after `infra-configs`: it waits only for `infra-controllers` and
-`infra-configs`, not for the database, OpenBao or secret-sync layers.
-
-### What is where in the repo
-
-| Folder | Flux layer | What is in it |
-| --- | --- | --- |
-| [`clusters/demo/`](clusters/demo/) | `flux-system` | Flux itself (`flux-system/`) and the list of layers with their order (`infrastructure.yaml`, `apps.yaml`) |
-| [`infrastructure/controllers/`](infrastructure/controllers/) | `infra-controllers` | The tools: cert-manager, Traefik, CloudNativePG + Barman Cloud plugin, External Secrets Operator; chart sources |
-| [`infrastructure/configs/`](infrastructure/configs/) | `infra-configs` | The demo CA and its issuers, the ESO metrics certificate, one demo SOPS Secret |
-| [`infrastructure/storage/`](infrastructure/storage/) | `infra-storage` | SeaweedFS (S3), the job that creates the backup bucket, the S3 keys (SOPS) |
-| [`apps/database/`](apps/database/) | `apps-database` | The PostgreSQL cluster `pg-openbao`, backup target and schedule, the database password (SOPS) |
-| [`apps/openbao/`](apps/openbao/) | `apps-openbao` | OpenBao (Helm), its certificates, the Traefik connection settings, the database connection string (SOPS) |
-| [`apps/external-secrets/`](apps/external-secrets/) | `apps-external-secrets` | The store `openbao`, the pull and push examples in namespace `eso-demo` |
-| [`apps/monitoring/`](apps/monitoring/) | `apps-monitoring` | Prometheus stack (Helm), what to scrape (PodMonitors), the alert rules |
-| [`openbao/policies/`](openbao/policies/) | none | OpenBao policies; loaded by `scripts/openbao-configure.sh`, not by Flux |
-| [`scripts/`](scripts/) | none | Bootstrap, OpenBao init/unseal/configure, checks, failure tests ([`scripts/README.md`](scripts/README.md)) |
-| [`docs/`](docs/) | none | Design decisions (`adr/`), runbooks, test outputs (`evidence/`), risk assessment, time log |
-
-NetworkPolicies sit next to the things they protect: `networkpolicy.yaml` in `infrastructure/storage/`,
-`apps/database/`, `apps/openbao/` and `apps/external-secrets/`, and
-`external-secrets-networkpolicy.yaml` in `infrastructure/controllers/`.
+Details (build order, repo map, secrets in Git, certificates, network rules, versions, design decisions): [`docs/architecture.md`](docs/architecture.md).
 
 ## Quick start
 
@@ -140,113 +95,7 @@ bash scripts/test-gate.sh
 bash scripts/monitoring-check.sh
 ```
 
-## Components and versions
-
-| Component | Purpose | Version |
-| --- | --- | --- |
-| kind | Local multi-node Kubernetes cluster | v0.33.0 |
-| kind node image | Kubernetes inside each node container | `kindest/node:v1.37.0` (Kubernetes 1.37.0, kind v0.33.0 default) |
-| Flux | GitOps engine | v2.9.6 |
-| SOPS | Encrypted bootstrap secrets in Git | 3.13.3 |
-| age | Key for SOPS | 1.1.1 (Ubuntu package) |
-| cert-manager | TLS certificates (self-signed CA) | v1.21.3 |
-| Traefik | HTTPS entry point (ingress) | chart 42.1.3 |
-| SeaweedFS | In-cluster S3 for PostgreSQL backups | 4.48 (image) |
-| CloudNativePG | HA PostgreSQL with backups | operator 1.30.1 (chart 0.29.1), PostgreSQL 18.6, plugin-barman-cloud 0.15.1 (chart 0.8.1) |
-| OpenBao | Secrets management (HA, PostgreSQL backend) | 2.7.1 (chart 0.30.4) |
-| External Secrets Operator | Secret sync OpenBao <-> Kubernetes | 2.14.0 (chart and app) |
-| kube-prometheus-stack | Metrics and alerts: Prometheus, Alertmanager, Prometheus Operator, kube-state-metrics | chart 92.3.1 (Prometheus v3.15.0, Alertmanager v0.34.1, operator v0.94.1, kube-state-metrics 2.20.0) |
-
-## Architecture and design decisions
-
-All decisions are in [`docs/adr/`](docs/adr/) (ADRs 0001 to 0005 and 0007;
-0006, the security-hardening decisions, is referenced in the NetworkPolicy
-files but not written yet):
-
-- [ADR 0001](docs/adr/0001-pinned-versions.md): pin exact chart and image versions.
-- [ADR 0002](docs/adr/0002-in-cluster-s3.md): in-cluster S3 with SeaweedFS for PostgreSQL backups.
-- [ADR 0003](docs/adr/0003-cloudnativepg-ha.md): HA PostgreSQL with CloudNativePG, backups through the Barman Cloud plugin.
-- [ADR 0004](docs/adr/0004-openbao-ha-postgresql.md): OpenBao HA on PostgreSQL, manual Shamir unseal, TLS at Traefik.
-- [ADR 0005](docs/adr/0005-external-secrets-openbao.md): External Secrets with one ClusterSecretStore, TLS on the OpenBao listener, Kubernetes auth, push/pull policies.
-- [ADR 0007](docs/adr/0007-monitoring.md): monitoring with kube-prometheus-stack, metrics over verified TLS (OpenBao, ESO; PostgreSQL plain HTTP as a known gap), alert rules.
-
-## How the pieces fit together
-
-### Secrets in Git: SOPS + age
-
-OpenBao cannot hand out the secrets it needs to start (its own database
-password), so a few bootstrap secrets are stored in Git, encrypted. SOPS
-encrypts only the values inside files named `*.sops.yaml`; age is the
-encryption tool, with one key pair.
-
-```mermaid
-flowchart LR
-  you([You])
-  git[(GitHub repo<br/>*.sops.yaml files,<br/>values encrypted)]
-  key[Codespaces secret<br/>SOPS_AGE_KEY<br/>the age private key]
-  boot[scripts/bootstrap.sh<br/>runs once]
-  agesec[Secret sops-age<br/>in namespace flux-system]
-  flux[Flux]
-  out[Kubernetes Secrets<br/>with the real values]
-
-  you -->|"encrypts with sops and pushes"| git
-  boot -->|"reads"| key
-  boot -->|"creates"| agesec
-  flux -->|"fetches"| git
-  flux -->|"reads the key"| agesec
-  flux -->|"decrypts and creates"| out
-```
-
-How to read it: an arrow points from the one who acts to what it acts on.
-The public key is in [`.sops.yaml`](.sops.yaml), so anyone can encrypt; only
-the private key can decrypt, and it is never in Git. Four layers decrypt
-(`infra-configs`, `infra-storage`, `apps-database`, `apps-openbao`). The five
-encrypted Secrets:
-
-| File | Secret (namespace) | What it holds |
-| --- | --- | --- |
-| `infrastructure/configs/sops-demo.sops.yaml` | `sops-demo` (`default`) | A demo value, not used by anything |
-| `infrastructure/storage/seaweedfs-s3-config.sops.yaml` | `seaweedfs-s3-config` (`storage`) | SeaweedFS's S3 users and keys (`s3.json`), also used by the bucket job |
-| `infrastructure/storage/s3-credentials.sops.yaml` | `s3-credentials` (`databases`) | The S3 key PostgreSQL uses for backups |
-| `apps/database/pg-openbao-openbao.sops.yaml` | `pg-openbao-openbao` (`databases`) | Password of the PostgreSQL user `openbao` |
-| `apps/openbao/openbao-db.sops.yaml` | `openbao-db` (`openbao`) | OpenBao's database connection string with that password |
-
-### Certificates and who checks them
-
-cert-manager creates a self-signed demo CA (a certificate authority: the one
-certificate that signs all others) and signs every TLS certificate with it.
-
-```mermaid
-flowchart TB
-  self[ClusterIssuer selfsigned-bootstrap<br/>signs only the CA]
-  ca[demo-root-ca<br/>the demo CA]
-  iss[ClusterIssuer demo-ca<br/>signs with the demo CA]
-  c1[openbao-tls<br/>Traefik shows it for<br/>openbao.demo.local]
-  c2[openbao-server-tls<br/>OpenBao ports 8200 and 9101]
-  c3[external-secrets-metrics-tls<br/>ESO metrics port 8080]
-  c4[prometheus-client-tls<br/>gives Prometheus the CA]
-
-  self -->|"signs"| ca
-  ca -->|"is used by"| iss
-  iss -->|"signs"| c1
-  iss -->|"signs"| c2
-  iss -->|"signs"| c3
-  iss -->|"signs"| c4
-```
-
-How to read it: an arrow points from the signer to what it signs. Who checks
-which certificate against the demo CA:
-
-| Connection | Who checks | How |
-| --- | --- | --- |
-| Browser or curl to `https://openbao.demo.local` | You | Give curl the CA (`--cacert`); a browser warns, the CA is not trusted by default |
-| Traefik to OpenBao (port 8200) | Traefik | `ServersTransport` with the demo CA and the name `openbao-active.openbao.svc` |
-| ESO to OpenBao (port 8200) | ESO | `caProvider` in the store, CA from `openbao-server-tls` |
-| Prometheus to OpenBao (9101) and ESO (8080) | Prometheus | CA from `prometheus-client-tls`, fixed server names, never skipped |
-| OpenBao to PostgreSQL (5432) | nobody | Encrypted (`sslmode=require`) but not checked (risk R15); PostgreSQL uses CloudNativePG's own CA |
-| Prometheus to PostgreSQL metrics (9187) | nobody | Plain HTTP (known gap, risk R30) |
-
-### Starting and unsealing OpenBao
+## Starting and unsealing OpenBao
 
 OpenBao keeps its data encrypted. After every start it is **sealed**: it
 cannot read its own data until 3 of the 5 key shares are entered.
@@ -280,57 +129,6 @@ stdin, never on the screen or the command line. `openbao-configure.sh` sets up
 the secret storage (KV v2), the Kubernetes login for ESO, and the policies in
 [`openbao/policies/`](openbao/policies/). Runbook:
 [`docs/runbooks/openbao-init-unseal.md`](docs/runbooks/openbao-init-unseal.md).
-
-### Network rules (NetworkPolicies)
-
-In five namespaces every incoming connection is blocked unless a rule allows
-it: `storage`, `databases`, `openbao`, `external-secrets`, `eso-demo`. Outgoing
-connections are not limited. The other namespaces have no rules.
-
-```mermaid
-flowchart LR
-  traefik[Traefik]
-  prom[Prometheus]
-  cnpgop[CloudNativePG operator]
-  apisrv[Kubernetes API server<br/>on the node network]
-  subgraph openbao[namespace openbao]
-    bao[OpenBao pods]
-  end
-  subgraph databases[namespace databases]
-    pg[PostgreSQL pods]
-  end
-  subgraph storage[namespace storage]
-    s3[SeaweedFS S3]
-    job[bucket job]
-  end
-  subgraph esons[namespace external-secrets]
-    esoctl[ESO controller]
-    hook[ESO webhook]
-  end
-
-  traefik -->|"8200"| bao
-  esoctl -->|"8200"| bao
-  bao -->|"8200, 8201 between the pods"| bao
-  bao -->|"5432"| pg
-  pg -->|"5432 replication, 8000"| pg
-  cnpgop -->|"8000"| pg
-  apisrv -->|"8000"| pg
-  pg -->|"8333 backups"| s3
-  job -->|"8333"| s3
-  apisrv -->|"10250"| hook
-  prom -.->|"9101"| bao
-  prom -.->|"9187"| pg
-  prom -.->|"8080"| esoctl
-```
-
-How to read it: an arrow points from the one who connects to the one who
-accepts; the label is the allowed port. Nothing else may connect into these
-namespaces. Namespace `eso-demo` has no pods, so it has no allow rules. Port
-8000 is CloudNativePG's instance manager (status and control of each
-PostgreSQL pod), 10250 the ESO webhook that checks new ESO objects, 8201
-OpenBao's cluster port (standbys forward requests to the active pod). The
-rules live in the `networkpolicy.yaml` files listed above; tested with
-`scripts/netpol-*.sh` (evidence in [`docs/evidence/06-hardening.txt`](docs/evidence/06-hardening.txt)).
 
 ## Production-ready vs simplified for the demo
 
