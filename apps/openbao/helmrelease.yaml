@@ -129,12 +129,15 @@ spec:
             }
           }
 
-          # Metrics listener for Prometheus (ADR 0007): plain HTTP, serves only
-          # /v1/sys/metrics, no token needed. Only the Prometheus pod may reach
-          # it (NetworkPolicy allow-prometheus-metrics).
+          # Metrics listener for Prometheus (ADR 0007): HTTPS with the same
+          # certificate as 8200 (Prometheus verifies it against the demo CA,
+          # name openbao.openbao.svc), serves only /v1/sys/metrics, no token
+          # needed. Only the Prometheus pod may reach it (NetworkPolicy
+          # allow-prometheus-metrics).
           listener "tcp" {
-            address     = "[::]:9101"
-            tls_disable = 1
+            address       = "[::]:9101"
+            tls_cert_file = "/openbao/tls/tls.crt"
+            tls_key_file  = "/openbao/tls/tls.key"
             telemetry {
               metrics_only                   = true
               unauthenticated_metrics_access = true

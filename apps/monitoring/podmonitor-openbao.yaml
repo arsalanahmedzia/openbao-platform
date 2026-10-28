@@ -1,5 +1,8 @@
 # Scrapes all 3 OpenBao pods (active and standbys) on the metrics listener
-# (port 9101, plain HTTP, no token; apps/openbao/helmrelease.yaml).
+# (port 9101, HTTPS, no token; apps/openbao/helmrelease.yaml).
+# Prometheus connects to each pod IP and verifies the certificate against the
+# demo CA (ca.crt from certificate.yaml) and the name openbao.openbao.svc,
+# which the shared OpenBao certificate covers. No insecureSkipVerify.
 # Field names checked in the PodMonitor CRD of operator v0.94.1.
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
@@ -21,3 +24,10 @@ spec:
         format:
           - prometheus
       interval: 30s
+      scheme: https
+      tlsConfig:
+        ca:
+          secret:
+            name: prometheus-client-tls
+            key: ca.crt
+        serverName: openbao.openbao.svc

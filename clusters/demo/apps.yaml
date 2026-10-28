@@ -83,11 +83,13 @@ metadata:
   name: apps-monitoring
   namespace: flux-system
 spec:
-  # Needs only the chart repository (infra-controllers). The ServiceMonitors,
-  # PodMonitors and PrometheusRules for the other namespaces will live in
+  # Needs the chart repository (infra-controllers) and the ClusterIssuer
+  # demo-ca (infra-configs) for certificate.yaml. The ServiceMonitors,
+  # PodMonitors and PrometheusRules for the other namespaces live in
   # apps/monitoring/ too, so no other layer depends on the new CRDs.
   dependsOn:
     - name: infra-controllers
+    - name: infra-configs
   interval: 10m
   retryInterval: 1m
   # First install: CRDs and four new images.

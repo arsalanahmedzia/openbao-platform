@@ -1,0 +1,25 @@
+# Client certificate for Prometheus, signed by the demo CA. Used for its ca.crt:
+# cert-manager writes the demo CA into the Secret prometheus-client-tls, here in
+# namespace monitoring, where the PodMonitor's tlsConfig must find it (a
+# PodMonitor can only reference Secrets in its own namespace). Prometheus
+# verifies the OpenBao metrics listener with it. The CA is never copied into
+# Git, so a rebuilt cluster with a new demo CA still works. See ADR 0007.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: prometheus-client
+  namespace: monitoring
+spec:
+  secretName: prometheus-client-tls
+  commonName: prometheus
+  usages:
+    - client auth
+  duration: 2160h      # 90 days
+  renewBefore: 360h    # renew 15 days before expiry
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: demo-ca
+    kind: ClusterIssuer
+    group: cert-manager.io
