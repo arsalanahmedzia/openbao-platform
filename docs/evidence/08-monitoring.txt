@@ -156,3 +156,38 @@ $ bash scripts/monitoring-cnpg-metrics.sh   (excerpt)
 $ bash scripts/test-gate.sh  ->  GATE PASSED (8 layers Ready at b7377270)
 # Note: the old cnpg_collector_last_*_backup_timestamp metrics are deprecated
 # and not used; backups go through the Barman Cloud plugin (v0.15.0 docs).
+
+================================================================================
+M2 (External Secrets metrics), 2026-10-28, revision ad24a7c
+================================================================================
+PodMonitor monitoring/external-secrets: controller pod only, port 8080
+"metrics" (plain HTTP, declared by chart 2.14.0 by default; ESO HelmRelease
+unchanged, no restarts). PodMonitor instead of a ServiceMonitor: no extra
+metrics Service needed.
+
+$ bash scripts/monitoring-eso-metrics.sh   (excerpt)
+13:52:59 PASS  PodMonitor monitoring/external-secrets exists
+13:53:00 INFO  GET :8080/metrics -> HTTP 200, 695 sample lines
+13:53:00 PASS  controller metrics answer
+13:53:00 INFO  distinct metric names: 195
+13:53:00 PASS  externalsecret_status_condition present:
+        externalsecret_status_condition{condition="Ready",name="hello",namespace="eso-demo",status="False"} 0
+        externalsecret_status_condition{condition="Ready",name="hello",namespace="eso-demo",status="True"} 1
+13:53:00 PASS  clustersecretstore_status_condition present:
+        clustersecretstore_status_condition{condition="Ready",name="openbao",namespace="",status="False"} 0
+        clustersecretstore_status_condition{condition="Ready",name="openbao",namespace="",status="True"} 1
+13:53:00 PASS  pushsecret_status_condition present:
+        pushsecret_status_condition{condition="Ready",name="push-demo",namespace="eso-demo",status="False"} 0
+        pushsecret_status_condition{condition="Ready",name="push-demo",namespace="eso-demo",status="True"} 1
+==> 4. Prometheus targets (expected down until M3)
+        external-secrets-76ccc4969-5kmhc  health=down  Get "http://10.244.2.9:8080/metrics": context deadline exceeded
+13:53:01 PASS  Prometheus discovered the ESO controller target
+13:53:01 RESULT  M2 External Secrets passed
+
+$ bash scripts/test-gate.sh  ->  GATE PASSED (8 layers Ready at ad24a7cd)
+# Note: the first run (13:48, ec867af) showed no target: the query came 2 s
+# after the PodMonitor was created, before Prometheus reloaded its config.
+# The script now waits up to 2 min for the target and fails if none appears.
+# Flux metrics skipped: Flux 2.x needs a kube-state-metrics custom resource
+# configuration for the Kustomization/HelmRelease ready state (not cheap);
+# the test gate checks Flux.
