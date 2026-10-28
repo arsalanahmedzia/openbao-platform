@@ -15,8 +15,12 @@
 #   3. Asks y/N, then recreates them in a safe order (a new pod gets a new IP):
 #      a. CoreDNS (names must resolve first)
 #      b. all other affected pods except databases and openbao
-#      c. PostgreSQL pods one at a time: replicas first, then the primary
-#         (short failover); data stays on the volumes
+#      c. all affected PostgreSQL pods TOGETHER (data stays on the volumes).
+#         Not one at a time: the CloudNativePG operator does not recreate a
+#         deleted instance while it cannot reach the others (wrong IPs), which
+#         deadlocked the first version of this script. A primary with a wrong
+#         IP can hang in Terminating while it tries to archive WAL to S3; the
+#         script then prints the force-delete command (it does not run it).
 #      d. the OpenBao pods (they come back SEALED)
 #        kubectl -n <ns> delete pod <pod>
 #   4. Reminds you to unseal and run the test gate.
@@ -74,17 +78,26 @@ done
 sleep 20
 
 echo
-echo "==> 3c. PostgreSQL, one pod at a time (replicas first)"
-PRIMARY=$(kubectl -n databases get cluster pg-openbao -o jsonpath='{.status.currentPrimary}')
-REPLICAS=$(kubectl -n databases get pods -l cnpg.io/cluster=pg-openbao,cnpg.io/instanceRole=replica -o jsonpath='{.items[*].metadata.name}')
-for pod in $REPLICAS "$PRIMARY"; do
-  printf '%s\n' "${WRONG[@]}" | grep -qx "databases $pod" || { echo "$pod: IP fine, skipped"; continue; }
-  echo "--- $pod"
-  kubectl -n databases delete pod "$pod"
-  until kubectl -n databases get pod "$pod" >/dev/null 2>&1; do sleep 2; done
-  kubectl -n databases wait pod "$pod" --for=condition=Ready --timeout=300s
+echo "==> 3c. PostgreSQL (affected pods together)"
+for entry in "${WRONG[@]}"; do
+  read -r ns pod <<<"$entry"
+  [[ "$ns" == databases ]] && kubectl -n databases delete pod "$pod" --wait=false
+done
+HEALTHY=no
+for i in $(seq 60); do   # up to 10 minutes
+  if [[ "$(kubectl -n databases get cluster pg-openbao -o jsonpath='{.status.readyInstances}')" == 3 ]] &&
+     kubectl -n databases get cluster pg-openbao -o jsonpath='{.status.phase}' | grep -q healthy; then
+    HEALTHY=yes; break
+  fi
+  if (( i == 24 )); then   # after 4 minutes
+    STUCK=$(kubectl -n databases get pods --no-headers | awk '$3=="Terminating"{print $1}')
+    [[ -n "$STUCK" ]] && echo "Still Terminating after 4 min: $STUCK. If it does not finish, force it (crash-style stop, data stays on the volume):" &&
+      for p in $STUCK; do echo "  kubectl -n databases delete pod $p --grace-period=0 --force"; done
+  fi
+  sleep 10
 done
 kubectl -n databases get pods -L cnpg.io/instanceRole
+[[ "$HEALTHY" == yes ]] && echo "PostgreSQL healthy with 3 instances" || echo "PostgreSQL NOT healthy after 10 min: check the pods above"
 
 echo
 echo "==> 3d. OpenBao"
