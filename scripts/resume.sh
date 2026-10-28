@@ -37,6 +37,13 @@ echo "ok"
 echo "==> Waiting for nodes to be Ready"
 kubectl wait --for=condition=Ready nodes --all --timeout=300s
 
+# Docker can give the node containers different IPs on a restart; kindnet then
+# may hand out pod IPs from another node's range and pod traffic (DNS first)
+# breaks. Check and, if needed, repair (asks before recreating pods).
+echo "==> Pod network check (node IPs can change on a restart)"
+sleep 30   # let kindnet and the pods start
+bash "$(dirname "$0")/kind-fix-pod-network.sh"
+
 echo
 echo "Cluster is back. Check Flux with: flux get kustomizations"
 echo "OpenBao pods restart SEALED. Once they are Running, unseal them with:"
