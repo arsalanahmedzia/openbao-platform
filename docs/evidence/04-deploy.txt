@@ -1,14 +1,15 @@
 # OpenBao stage, step 2: Flux layer apps-openbao applied, pods sealed before init
+# Flux revisions are shown as <rev>; the revision was the commit of 2026-10-26 15:18 ("Add OpenBao deploy check script").
 # Command: bash scripts/openbao-deploy-check.sh   (2026-10-26)
 
 ==> Flux layers
 NAME                    REVISION                SUSPENDED       READY   MESSAGE
-apps-database           main@sha1:833c7ef2      False           True    Applied revision: main@sha1:833c7ef2
-apps-openbao            main@sha1:833c7ef2      False           True    Applied revision: main@sha1:833c7ef2
-flux-system             main@sha1:833c7ef2      False           True    Applied revision: main@sha1:833c7ef2
-infra-configs           main@sha1:833c7ef2      False           True    Applied revision: main@sha1:833c7ef2
-infra-controllers       main@sha1:833c7ef2      False           True    Applied revision: main@sha1:833c7ef2
-infra-storage           main@sha1:833c7ef2      False           True    Applied revision: main@sha1:833c7ef2
+apps-database           main@sha1:<rev>      False           True    Applied revision: main@sha1:<rev>
+apps-openbao            main@sha1:<rev>      False           True    Applied revision: main@sha1:<rev>
+flux-system             main@sha1:<rev>      False           True    Applied revision: main@sha1:<rev>
+infra-configs           main@sha1:<rev>      False           True    Applied revision: main@sha1:<rev>
+infra-controllers       main@sha1:<rev>      False           True    Applied revision: main@sha1:<rev>
+infra-storage           main@sha1:<rev>      False           True    Applied revision: main@sha1:<rev>
 
 ==> HelmRelease, Certificate, Ingress
 NAME    REVISION        SUSPENDED       READY   MESSAGE

@@ -134,7 +134,7 @@ openbao-0: unsealed, openbao-1/2 already unsealed
 openbao-0 standby, openbao-1 standby, openbao-2 active
 
 $ bash scripts/test-gate.sh
-all Flux layers Ready (revision 311ebad6), 3 OpenBao pods Ready, one active,
+all Flux layers Ready (Git state of 2026-10-27 00:07), 3 OpenBao pods Ready, one active,
 PostgreSQL healthy with 3 ready instances, store Valid, pull and push Ready
 GATE PASSED
 

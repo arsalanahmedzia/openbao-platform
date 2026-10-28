@@ -35,7 +35,7 @@ pg-restore-test-1   1/1     Running   0          20s   10.244.1.16   openbao-pla
 # Test gate afterwards (bash scripts/test-gate.sh): GATE PASSED (10 checks)
 #
 # Before this run:
-# - NetworkPolicy fix (commit 5d6a0c2): allow-instance-manager selected only
+# - NetworkPolicy fix (apps/database/networkpolicy.yaml, 2026-10-28 10:58): allow-instance-manager selected only
 #   pg-openbao; a restore cluster's instance manager (:8000) would have been
 #   unreachable for the operator and the restore would have hung. It now
 #   selects every CloudNativePG instance (cnpg.io/podRole=instance), same

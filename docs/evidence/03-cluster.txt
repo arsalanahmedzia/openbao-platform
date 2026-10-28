@@ -1,12 +1,13 @@
 # PostgreSQL cluster pg-openbao, captured 2026-10-25T12:51:34Z
+# Flux revisions are shown as <rev>; the revision was the commit of 2026-10-25 12:46 ("Add apps-database Flux layer").
 
 $ flux get kustomizations
 NAME             	REVISION          	SUSPENDED	READY	MESSAGE                              
-apps-database    	main@sha1:29010bbf	False    	True 	Applied revision: main@sha1:29010bbf	
-flux-system      	main@sha1:29010bbf	False    	True 	Applied revision: main@sha1:29010bbf	
-infra-configs    	main@sha1:29010bbf	False    	True 	Applied revision: main@sha1:29010bbf	
-infra-controllers	main@sha1:29010bbf	False    	True 	Applied revision: main@sha1:29010bbf	
-infra-storage    	main@sha1:29010bbf	False    	True 	Applied revision: main@sha1:29010bbf	
+apps-database    	main@sha1:<rev>	False    	True 	Applied revision: main@sha1:<rev>	
+flux-system      	main@sha1:<rev>	False    	True 	Applied revision: main@sha1:<rev>	
+infra-configs    	main@sha1:<rev>	False    	True 	Applied revision: main@sha1:<rev>	
+infra-controllers	main@sha1:<rev>	False    	True 	Applied revision: main@sha1:<rev>	
+infra-storage    	main@sha1:<rev>	False    	True 	Applied revision: main@sha1:<rev>	
 
 $ kubectl -n databases get cluster,pods -o wide
 NAME                                    AGE    INSTANCES   READY   STATUS                     PRIMARY
