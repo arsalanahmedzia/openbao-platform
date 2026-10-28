@@ -44,7 +44,7 @@ Score = likelihood (L, 1-5) × impact (I, 1-5).
 | **5 Severe** | 🟢 | 🟡 R02 R07 R08 R09 | 🔴 **R01 R04 R05** | 🔴 | 🔴 |
 | **4 Major** | 🟢 R15 | 🟡 R13 R18 R19 R26 | 🟡 R12 | 🔴 | 🔴 |
 | **3 Moderate** | 🟢 | 🟢 R10 R14 R20 R21 R22 | 🟡 R17 | 🟡 R11 R27 | 🔴 **R03** |
-| **2 Minor** | 🟢 | 🟢 R06 R24 | 🟢 R16 R23 | 🟡 | 🟡 |
+| **2 Minor** | 🟢 | 🟢 R06 R24 R28 | 🟢 R16 R23 R29 | 🟡 | 🟡 |
 | **1 Negligible** | 🟢 R25 | 🟢 | 🟢 | 🟢 | 🟢 |
 
 ## 3. Risks
@@ -76,9 +76,11 @@ Status: **Open** · **Partly** mitigated · **Done** (mitigated) · **Accepted**
 | R21 | Deleting the PushSecret deletes the value | Operator error | 2 | 3 | 🟢 6 | Accepted | Review deletions |
 | R22 | Tight memory limits | Infrastructure failure | 2 | 3 | 🟢 6 | Accepted | Load test, raise limits |
 | R23 | Running OpenBao pods can differ from Git | Operator error | 3 | 2 | 🟢 6 | Partly | Rollout script; alert on drift |
+| R29 | ESO controller and Flux source/helm controllers run as 1 replica: a lost node stops syncing for ~6 min (F1) | Infrastructure failure | 3 | 2 | 🟢 6 | Open | 2 replicas, or a shorter toleration for unreachable nodes |
 | R06 | Scheduled backup late while stopped | Infrastructure failure | 2 | 2 | 🟢 4 | Done | Runs on resume; 12:00 UTC slot |
 | R15 | OpenBao does not verify PostgreSQL's certificate | Pod compromise | 1 | 4 | 🟢 4 | Open | `sslmode=verify-full` |
 | R24 | One Traefik replica | Infrastructure failure | 2 | 2 | 🟢 4 | Accepted | 2+ replicas behind a load balancer |
+| R28 | Deleting the PostgreSQL primary pod: failover waits up to 180 s for open connections (F2: 187 s) | Operator error | 2 | 2 | 🟢 4 | Accepted | Switchover first (`kubectl cnpg promote`); shorter `smartShutdownTimeout` |
 | R25 | Demo Secret unencrypted in Git (not a real secret) | Operator error | 1 | 1 | 🟢 1 | Accepted | None |
 
 ## 4. What was done, what was not
@@ -92,9 +94,21 @@ revoke script prepared (R01).
 ESO's token rights (R09), narrowing `eso-read` (R20), PostgreSQL
 `verify-full` (R15), egress policies (R10).
 
-**Found in the failure tests (2026-10-28):** R27, the pod network breaking
-after a Codespace restart; repaired with `scripts/kind-fix-pod-network.sh`,
-now checked by `scripts/resume.sh`.
+**Failure tests (2026-10-27/28, `docs/runbooks/failure-tests.md`):**
+
+- Proven as described: R03 (restarted OpenBao pods come back sealed; F1, F3),
+  R06 (the missed 12:00 UTC slot of 2026-10-27 ran at 14:51; 2026-10-28 ran on
+  time), R14 (F2 failover; the data-loss window was not measured), R16 (F1: the
+  stopped node's pods were not rescheduled), R21 (F4: value and all versions
+  deleted).
+- Gaps confirmed: R04 (F1: losing one node stopped OpenBao for 76 s, mostly
+  node detection), R11 (F3: the store stays "Valid" while OpenBao is sealed;
+  nothing alerts).
+- Fixed: the restore path (R10): the NetworkPolicy did not let the operator
+  reach a restore cluster; `allow-instance-manager` now covers every
+  CloudNativePG instance.
+- New: R27 (pod network after a Codespace restart), R28 (slow failover when
+  the primary pod is deleted), R29 (single-replica controllers).
 
 **Not verified:** OpenBao reloading its certificate on `SIGHUP` (R12); the
 password-manager copies of the keys (R02, R19).
