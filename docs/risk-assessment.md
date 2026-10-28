@@ -105,7 +105,7 @@ ESO's token rights (R09), narrowing `eso-read` (R20), PostgreSQL
   deleted).
 - Gaps confirmed: R04 (F1: losing one node stopped OpenBao for 76 s, mostly
   node detection), R11 (F3: the store stays "Valid" while OpenBao is sealed;
-  nothing alerts).
+  nothing alerted then; alerts added on 2026-10-28, see "Monitoring" below).
 - Fixed: the restore path (R10): the NetworkPolicy did not let the operator
   reach a restore cluster; `allow-instance-manager` now covers every
   CloudNativePG instance.

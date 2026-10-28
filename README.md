@@ -9,11 +9,14 @@ Production-oriented Kubernetes platform with OpenBao as the secrets management s
 Flux applies this Git repository to the cluster in layers, each waiting for
 the one before: `flux-system` → `infra-controllers` → `infra-configs` →
 `infra-storage` → `apps-database` → `apps-openbao` → `apps-external-secrets`.
-OpenBao runs as 3 pods in HA mode (one active, two standby) and stores its
+`apps-monitoring` (Prometheus, Alertmanager, alert rules) only waits for
+`infra-controllers` and `infra-configs`. OpenBao runs as 3 pods in HA mode (one active, two standby) and stores its
 data in PostgreSQL. PostgreSQL is run by CloudNativePG with 3 instances and
 backs up to S3 on SeaweedFS. The External Secrets Operator syncs between
 OpenBao and Kubernetes Secrets in both directions (pull and push). Traefik is
-the HTTPS entry point.
+the HTTPS entry point. Prometheus scrapes OpenBao, PostgreSQL and the ESO
+controller and raises alerts (sealed OpenBao, failed syncs, unhealthy
+PostgreSQL, old backups, lost nodes).
 
 ```mermaid
 flowchart LR
@@ -34,12 +37,18 @@ flowchart LR
     subgraph eso[External Secrets]
       esoctl[ESO controller]
     end
+    subgraph monitoring[namespace monitoring]
+      prom[Prometheus + Alertmanager]
+    end
     k8s[Kubernetes Secrets]
     bao --> pg
     pg -->|base backups + WAL| s3
     esoctl -->|pull| bao
     esoctl -->|push| bao
     esoctl --> k8s
+    prom -.->|metrics| bao
+    prom -.->|metrics| pg
+    prom -.->|metrics| esoctl
   end
 ```
 
@@ -65,6 +74,15 @@ bash scripts/openbao-unseal.sh         # after every pod/Codespace restart
 bash scripts/openbao-configure.sh      # once: KV v2, Kubernetes auth, ESO policies and role
 bash scripts/openbao-evidence.sh       # evidence in docs/evidence/04-*.txt
 bash scripts/openbao-failover-test.sh  # deletes the active pod (asks first)
+```
+
+Check everything (read-only; includes monitoring: targets up, alert rules
+loaded, nothing firing; details in
+[`docs/runbooks/monitoring.md`](docs/runbooks/monitoring.md)):
+
+```bash
+bash scripts/test-gate.sh
+bash scripts/monitoring-check.sh
 ```
 
 ## Components and versions
@@ -108,9 +126,9 @@ files but not written yet):
 | TLS | Self-signed demo CA through cert-manager | Company CA or ACME |
 | Root token | Used for init and configuration; still valid, revoke with `scripts/openbao-revoke-root.sh` | Break-glass only, generated when needed and revoked again |
 | Access | Kubernetes auth with least-privilege policies (done) | Same |
-| NetworkPolicies | Default-deny ingress in `storage`, `databases`, `openbao`, `external-secrets`, `eso-demo` (done). No egress policies. No policies in the other namespaces | Ingress and egress policies in every namespace |
+| NetworkPolicies | Default-deny ingress in `storage`, `databases`, `openbao`, `external-secrets`, `eso-demo` (done); the metrics ports are open only to the Prometheus pod. No egress policies. No policies in the other namespaces | Ingress and egress policies in every namespace |
 | Audit | OpenBao audit device to stdout (the pod log) | Audit log shipped to a log system |
-| Monitoring and alerting | None: no Prometheus or alerting is deployed; checks are scripts | Metrics and alerts (seal status, backup age, certificate expiry, ESO errors) |
+| Monitoring and alerting | Prometheus and Alertmanager (1 replica each), 8 alerts (seal status, ESO sync and store, PostgreSQL health, backup age, nodes); no receiver, alerts are only visible (done) | 2 replicas, a receiver (mail/on-call), longer retention, dashboards; also certificate-expiry alerts |
 | Secrets in Git | SOPS + age (done); the age key is a Codespaces secret | age key in a KMS or an external secret manager |
 
 ## Secret synchronization demo
