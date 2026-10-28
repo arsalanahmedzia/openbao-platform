@@ -81,6 +81,7 @@ Status: **Open** · **Partly** mitigated · **Done** (mitigated) · **Accepted**
 | R15 | OpenBao does not verify PostgreSQL's certificate | Pod compromise | 1 | 4 | 🟢 4 | Open | `sslmode=verify-full` |
 | R24 | One Traefik replica | Infrastructure failure | 2 | 2 | 🟢 4 | Accepted | 2+ replicas behind a load balancer |
 | R28 | Deleting the PostgreSQL primary pod: failover waits up to 180 s for open connections (F2: 187 s) | Operator error | 2 | 2 | 🟢 4 | Accepted | Switchover first (`kubectl cnpg promote`); shorter `smartShutdownTimeout` |
+| R30 | PostgreSQL metrics (port 9187) are plain HTTP: readable and changeable on the pod network. Known gap: CloudNativePG can only use PostgreSQL's server certificate for them, signed by the operator's own CA in `pg-openbao-ca` (Secret also holds `ca.key`), which a PodMonitor in `monitoring` cannot reference and which we do not want the Prometheus Operator to read (ADR 0007) | Pod compromise | 1 | 2 | 🟢 2 | Accepted | NetworkPolicy: only the Prometheus pod may connect. Production fix: PostgreSQL server certificate from cert-manager/demo CA (`spec.certificates.serverTLSSecret`, `serverCASecret`), then `spec.monitoring.tls.enabled: true` (rolls all instances; switchover first); also enables R15 |
 | R25 | Demo Secret unencrypted in Git (not a real secret) | Operator error | 1 | 1 | 🟢 1 | Accepted | None |
 
 ## 4. What was done, what was not
