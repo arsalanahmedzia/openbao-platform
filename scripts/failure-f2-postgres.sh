@@ -114,9 +114,11 @@ kubectl -n "$DB_NS" delete pod "$PRIMARY" --wait=false
 echo
 echo "==> 5. Watch the failover"
 NEW=""
+info "waiting for a new primary (up to 300 s; a deleted primary may first wait up to 180 s for open connections)"
 while (( $(date +%s) - T0 < 300 )); do
   NEW=$(primary)
   [[ -n "$NEW" && "$NEW" != "$PRIMARY" ]] && break
+  (( ($(date +%s) - T0) % 30 == 0 )) && info "still $PRIMARY after $(( $(date +%s) - T0 )) s, phase: $(phase)"
   sleep 1
 done
 if [[ -n "$NEW" && "$NEW" != "$PRIMARY" ]]; then
