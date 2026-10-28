@@ -273,3 +273,45 @@ $ bash scripts/test-gate.sh  ->  GATE PASSED (8 layers Ready at 2c434511)
 # CloudNativePG metrics stay plain HTTP + NetworkPolicy (known gap R30).
 # The gate shows the OpenBao pods restarted once ~16:21 with new IPs
 # (Codespace restart); all unsealed and Ready.
+
+================================================================================
+M4 (alert rules) + M5 (check script), 2026-10-28, revisions 7325cef / f1612ef
+================================================================================
+Before applying: promtool 3.15.0 (official release, sha256 checked)
+  promtool check rules  -> SUCCESS: 8 rules found
+  promtool test rules   -> SUCCESS (unit tests with made-up series: OpenBao
+    sealed by metric and by readiness, one alert per pod; PostgreSQL with no
+    instance at all and with the primary gone; backup 25 h quiet / 27 h fires;
+    failed backup newer than the good one; ESO controller missing;
+    ExternalSecret not ready)
+
+$ bash scripts/monitoring-check.sh   (first run, 16:43:59, seconds after the reconcile)
+16:43:59 PASS  all 13 targets up
+16:43:59 FAIL  rule OpenBaoSealed: null      (x8: group not loaded yet)
+# The operator -> ConfigMap -> config-reloader path takes up to ~1-2 min.
+# The script now waits up to 2 min for the group (f1612ef).
+
+$ bash scripts/monitoring-check.sh   (16:46)
+16:46:10 PASS  Prometheus ready
+16:46:11 PASS  Alertmanager ready
+        up  kube-prometheus-stack-alertmanager  ...:8080 / ...:9093
+        up  kube-prometheus-stack-operator      ...:8080
+        up  kube-prometheus-stack-prometheus    ...:8080 / ...:9090
+        up  kube-state-metrics                  ...:8080
+        up  monitoring/external-secrets  external-secrets-7b64c6dbb9-c4pgv  https://10.244.2.9:8080/metrics
+        up  monitoring/openbao  openbao-0  https://10.244.2.6:9101/v1/sys/metrics?format=prometheus
+        up  monitoring/openbao  openbao-1  https://10.244.1.7:9101/v1/sys/metrics?format=prometheus
+        up  monitoring/openbao  openbao-2  https://10.244.4.6:9101/v1/sys/metrics?format=prometheus
+        up  monitoring/pg-openbao  pg-openbao-1  http://10.244.4.10:9187/metrics
+        up  monitoring/pg-openbao  pg-openbao-2  http://10.244.2.8:9187/metrics
+        up  monitoring/pg-openbao  pg-openbao-3  http://10.244.1.10:9187/metrics
+16:46:11 PASS  all 13 targets up
+16:46:11 INFO  rule groups loaded: platform (monitoring-platform-alerts-70e34836-....yaml)
+16:46:11 PASS  rule OpenBaoSealed / ExternalSecretNotReady / PushSecretNotReady /
+               ClusterSecretStoreNotReady / ExternalSecretsControllerDown /
+               PostgresNotHealthy / BackupFailedOrTooOld / NodeNotReady loaded, health ok
+16:46:11 INFO  no pending or firing alerts
+16:46:11 PASS  no firing alerts
+16:46:11 RESULT  monitoring check passed
+
+$ bash scripts/test-gate.sh  ->  GATE PASSED (8 layers Ready at 7325cef0)
