@@ -6,3 +6,4 @@ resources:
   - certificate.yaml
   - podmonitor-openbao.yaml
   - podmonitor-cnpg.yaml
+  - podmonitor-external-secrets.yaml
