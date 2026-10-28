@@ -242,52 +242,9 @@ its instance manager (port 8000): `allow-instance-manager` in
 selects every CloudNativePG instance (`cnpg.io/podRole: instance`), not only
 `pg-openbao`.
 
-## Operations: monitoring, alerting, troubleshooting
+## Operations
 
-Scripts for daily use:
-
-| Script | When |
-| --- | --- |
-| [`scripts/resume.sh`](scripts/resume.sh) | After a Codespace restart: starts the nodes, fixes the network, checks the pod network |
-| [`scripts/openbao-unseal.sh`](scripts/openbao-unseal.sh) | After every OpenBao pod restart (pods start sealed) |
-| [`scripts/test-gate.sh`](scripts/test-gate.sh) | Is everything OK? Read-only check of Flux, OpenBao, PostgreSQL, External Secrets |
-| [`scripts/monitoring-check.sh`](scripts/monitoring-check.sh) | Read-only: all scrape targets up, alert rules loaded, which alerts are pending or firing |
-| [`scripts/eso-debug.sh`](scripts/eso-debug.sh) | Why is an ExternalSecret or PushSecret not Ready? |
-| `scripts/failure-f1-worker.sh` … `scripts/failure-f6-restore.sh` | One failure test each; asks before it breaks anything and puts everything back at the end |
-
-Outputs of all tests are in [`docs/evidence/`](docs/evidence/). Runbooks:
-[`docs/runbooks/`](docs/runbooks/).
-
-> **Known problem after a Codespace restart:** Docker can give the kind node
-> containers different IP addresses. kindnet then hands out pod IPs from
-> another node's range, DNS fails, and OpenBao crash-loops because it cannot
-> reach PostgreSQL (risk R27). `scripts/resume.sh` checks this and runs
-> [`scripts/kind-fix-pod-network.sh`](scripts/kind-fix-pod-network.sh), which
-> restarts kindnet and recreates the affected pods (it asks first).
-
-**Monitoring and alerting** (namespace `monitoring`, layer `apps-monitoring`,
-[ADR 0007](docs/adr/0007-monitoring.md), runbook
-[`docs/runbooks/monitoring.md`](docs/runbooks/monitoring.md)): Prometheus
-scrapes OpenBao (HTTPS, port 9101), the 3 PostgreSQL instances (port 9187)
-and the External Secrets controller (HTTPS, port 8080), plus
-kube-state-metrics for pod and node state. Alerts:
-
-| Alert | Fires when |
-| --- | --- |
-| OpenBaoSealed | an OpenBao pod is sealed or not ready for 2 min |
-| ExternalSecretNotReady / PushSecretNotReady | a sync has failed for 5 min |
-| ClusterSecretStoreNotReady | the store is not Valid for 5 min |
-| ExternalSecretsControllerDown | the ESO controller cannot be scraped for 5 min |
-| PostgresNotHealthy | fewer than 3 PostgreSQL instances up, or no primary, for 5 min |
-| BackupFailedOrTooOld | no successful backup for 26 h, or the last backup failed |
-| NodeNotReady | a node is not Ready for 2 min |
-
-Proven on 2026-10-28: with OpenBao sealed (F3 re-run), OpenBaoSealed fired
-after 2 min 22 s and reached Alertmanager
-([`08-monitoring.txt`](docs/evidence/08-monitoring.txt)). No receiver is
-configured: alerts are visible in the UIs (port-forward, see the runbook) and
-in `scripts/monitoring-check.sh`, nothing is sent. The OpenBao audit log goes
-to the pod log.
+Daily scripts, the known problem after a Codespace restart, monitoring and alerts: [`docs/operations.md`](docs/operations.md).
 
 ## Failure tests
 
