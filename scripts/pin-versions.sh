@@ -16,6 +16,7 @@ helm repo add traefik          https://traefik.github.io/charts           --forc
 helm repo add cnpg             https://cloudnative-pg.github.io/charts    --force-update >/dev/null
 helm repo add external-secrets https://charts.external-secrets.io         --force-update >/dev/null
 helm repo add openbao          https://openbao.github.io/openbao-helm      --force-update >/dev/null
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update >/dev/null
 helm repo update >/dev/null
 
 # Newest stable version of a chart, e.g. latest jetstack/cert-manager
@@ -43,6 +44,7 @@ pin infrastructure/controllers/cnpg.yaml             __CNPG_VERSION__           
 pin infrastructure/controllers/cnpg.yaml             __BARMAN_PLUGIN_VERSION__  cnpg/plugin-barman-cloud
 pin infrastructure/controllers/external-secrets.yaml __ESO_VERSION__            external-secrets/external-secrets
 pin apps/openbao/helmrelease.yaml                    __OPENBAO_VERSION__        openbao/openbao
+pin apps/monitoring/helmrelease.yaml                 __KPS_VERSION__            prometheus-community/kube-prometheus-stack
 
 echo
 echo "Done. Review with: git diff"
