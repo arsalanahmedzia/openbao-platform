@@ -3,10 +3,14 @@
 #   5432 (PostgreSQL) to the pg-openbao pods only from
 #     - OpenBao pods (namespace openbao AND label app.kubernetes.io/name=openbao)
 #     - the other pg-openbao instances and their Jobs (replication, pg_basebackup)
-#   8000 (instance manager status API, HTTPS) to the pg-openbao pods only from
+#   8000 (instance manager status API, HTTPS) to EVERY CloudNativePG instance
+#   pod in this namespace (label cnpg.io/podRole=instance), so a restore
+#   cluster (e.g. docs/runbooks/restore-example.yaml) can be managed too;
+#   before failure test F6 this selected only pg-openbao and a restore would
+#   have hung. Only from
 #     - namespace cnpg-system (CloudNativePG operator: status, backups; the
 #       Barman Cloud plugin runs there too)
-#     - the other pg-openbao instances (failsafe / primary isolation check)
+#     - other CloudNativePG instances (failsafe / primary isolation check)
 #     - the kind node network: the kube-apiserver's pods/proxy
 #       used by `kubectl cnpg status` comes from the control-plane node.
 #       172.16.0.0/12 = all of Docker's default network ranges (172.17-172.31),
@@ -60,7 +64,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      cnpg.io/cluster: pg-openbao
+      cnpg.io/podRole: instance
   policyTypes:
     - Ingress
   ingress:
@@ -70,7 +74,7 @@ spec:
               kubernetes.io/metadata.name: cnpg-system
         - podSelector:
             matchLabels:
-              cnpg.io/cluster: pg-openbao
+              cnpg.io/podRole: instance
         - ipBlock:
             cidr: 172.16.0.0/12
       ports:
