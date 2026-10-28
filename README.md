@@ -2,11 +2,46 @@
 
 Production-oriented Kubernetes platform with OpenBao as the secrets management system, a highly available PostgreSQL backend, External Secrets Operator for bidirectional secret synchronization, and Flux for GitOps.
 
-> Status: work in progress
+> Status: complete, failure-tested in a Codespace (kind)
 
 ## Overview
 
-_TODO: one paragraph + architecture diagram._
+Flux applies this Git repository to the cluster in layers, each waiting for
+the one before: `flux-system` → `infra-controllers` → `infra-configs` →
+`infra-storage` → `apps-database` → `apps-openbao` → `apps-external-secrets`.
+OpenBao runs as 3 pods in HA mode (one active, two standby) and stores its
+data in PostgreSQL. PostgreSQL is run by CloudNativePG with 3 instances and
+backs up to S3 on SeaweedFS. The External Secrets Operator syncs between
+OpenBao and Kubernetes Secrets in both directions (pull and push). Traefik is
+the HTTPS entry point.
+
+```mermaid
+flowchart LR
+  git[GitHub repo] --> flux[Flux]
+  flux -->|layers| cluster
+
+  subgraph cluster[kind cluster]
+    traefik[Traefik HTTPS] --> bao
+    subgraph openbao[namespace openbao]
+      bao[OpenBao 3 pods HA]
+    end
+    subgraph databases[namespace databases]
+      pg[(PostgreSQL 3 instances CloudNativePG)]
+    end
+    subgraph storage[namespace storage]
+      s3[(SeaweedFS S3)]
+    end
+    subgraph eso[External Secrets]
+      esoctl[ESO controller]
+    end
+    k8s[Kubernetes Secrets]
+    bao --> pg
+    pg -->|base backups + WAL| s3
+    esoctl -->|pull| bao
+    esoctl -->|push| bao
+    esoctl --> k8s
+  end
+```
 
 ## Quick start
 
@@ -36,10 +71,12 @@ bash scripts/openbao-failover-test.sh  # deletes the active pod (asks first)
 
 | Component | Purpose | Version |
 | --- | --- | --- |
-| kind | Local multi-node Kubernetes cluster | TODO |
-| Flux | GitOps engine | TODO |
-| SOPS + age | Encrypted bootstrap secrets in Git | TODO |
-| cert-manager | TLS certificates (self-signed CA) | TODO |
+| kind | Local multi-node Kubernetes cluster | v0.33.0 as used (recorded in `docs/evidence/06-hardening.txt`); `scripts/install-tools.sh` installs the latest release, not pinned |
+| kind node image | Kubernetes inside each node container | kind's default for v0.33.0 (no image set in `scripts/kind-config.yaml`); exact tag not verified |
+| Flux | GitOps engine | v2.9.6 (`clusters/demo/flux-system/gotk-components.yaml`); CLI installed as latest |
+| SOPS | Encrypted bootstrap secrets in Git | 3.13.3 (recorded in the `*.sops.yaml` files); installed as latest |
+| age | Key for SOPS | Ubuntu 24.04 package (`apt-get install age`); version not verified |
+| cert-manager | TLS certificates (self-signed CA) | v1.21.3 |
 | Traefik | HTTPS entry point (ingress) | chart 42.1.3 |
 | SeaweedFS | In-cluster S3 for PostgreSQL backups | 4.48 (image) |
 | CloudNativePG | HA PostgreSQL with backups | operator 1.30.1 (chart 0.29.1), PostgreSQL 18.6, plugin-barman-cloud 0.15.1 (chart 0.8.1) |
@@ -48,7 +85,8 @@ bash scripts/openbao-failover-test.sh  # deletes the active pod (asks first)
 
 ## Architecture and design decisions
 
-_TODO: summary of each ADR, see [`docs/adr/`](docs/adr/)._
+All decisions are in [`docs/adr/`](docs/adr/) (ADRs 0001 to 0005; there is no
+0006 or later):
 
 - [ADR 0001](docs/adr/0001-pinned-versions.md): pin exact chart and image versions.
 - [ADR 0002](docs/adr/0002-in-cluster-s3.md): in-cluster S3 with SeaweedFS for PostgreSQL backups.
@@ -58,7 +96,19 @@ _TODO: summary of each ADR, see [`docs/adr/`](docs/adr/)._
 
 ## Production-ready vs simplified for the demo
 
-_TODO_
+| Topic | Demo | Production |
+| --- | --- | --- |
+| Unseal | Shamir: 5 key shares, threshold 3, manual `scripts/openbao-unseal.sh` after every pod restart | Auto-unseal with a cloud KMS or an HSM |
+| Unseal keys | All shares in one Codespaces secret (and `~/openbao-init.json`) | Shares split between different people, never in one place |
+| Cluster | One kind cluster in one Codespace (4 node containers on one VM) | Several nodes in several zones |
+| Backup storage | SeaweedFS inside the same cluster | S3 outside the cluster, in another region or account |
+| TLS | Self-signed demo CA through cert-manager | Company CA or ACME |
+| Root token | Used for init and configuration; still valid, revoke with `scripts/openbao-revoke-root.sh` | Break-glass only, generated when needed and revoked again |
+| Access | Kubernetes auth with least-privilege policies (done) | Same |
+| NetworkPolicies | Default-deny ingress in `storage`, `databases`, `openbao`, `external-secrets`, `eso-demo` (done). No egress policies. No policies in the other namespaces | Ingress and egress policies in every namespace |
+| Audit | OpenBao audit device to stdout (the pod log) | Audit log shipped to a log system |
+| Monitoring and alerting | None: no Prometheus or alerting is deployed; checks are scripts | Metrics and alerts (seal status, backup age, certificate expiry, ESO errors) |
+| Secrets in Git | SOPS + age (done); the age key is a Codespaces secret | age key in a KMS or an external secret manager |
 
 ## Secret synchronization demo
 
@@ -92,17 +142,79 @@ Runbook: [`docs/runbooks/external-secrets.md`](docs/runbooks/external-secrets.md
 
 ## Backup and restore
 
-_TODO: see [`docs/runbooks/`](docs/runbooks/)._
+- The `ScheduledBackup` `pg-openbao-daily` takes a base backup every day at
+  12:00 UTC (13:00 Berlin in winter), cron `"0 0 12 * * *"`
+  ([`apps/database/backups.yaml`](apps/database/backups.yaml)). A slot missed
+  while the Codespace is stopped runs as soon as the cluster runs again.
+- Backups go through the Barman Cloud plugin to `s3://pg-backups/` on
+  SeaweedFS; WAL is archived continuously; retention 7 days
+  ([`apps/database/objectstore.yaml`](apps/database/objectstore.yaml)).
+- Point-in-time recovery always goes into a **new** cluster, never over the
+  live one. Runbook:
+  [`docs/runbooks/postgres-backup-restore.md`](docs/runbooks/postgres-backup-restore.md).
+
+```bash
+bash scripts/failure-f6-restore.sh                                # tested PITR into a temporary cluster
+kubectl -n databases get backups --sort-by=.metadata.creationTimestamp
+```
+
+A restore cluster needs NetworkPolicy access for the CloudNativePG operator to
+its instance manager (port 8000): `allow-instance-manager` in
+[`apps/database/networkpolicy.yaml`](apps/database/networkpolicy.yaml) now
+selects every CloudNativePG instance (`cnpg.io/podRole: instance`), not only
+`pg-openbao`.
 
 ## Operations: monitoring, alerting, troubleshooting
 
-_TODO: see `docs/operations.md`._
+Scripts for daily use:
+
+| Script | When |
+| --- | --- |
+| [`scripts/resume.sh`](scripts/resume.sh) | After a Codespace restart: starts the nodes, fixes the network, checks the pod network |
+| [`scripts/openbao-unseal.sh`](scripts/openbao-unseal.sh) | After every OpenBao pod restart (pods start sealed) |
+| [`scripts/test-gate.sh`](scripts/test-gate.sh) | Is everything OK? Read-only check of Flux, OpenBao, PostgreSQL, External Secrets |
+| [`scripts/eso-debug.sh`](scripts/eso-debug.sh) | Why is an ExternalSecret or PushSecret not Ready? |
+| `scripts/failure-f1-worker.sh` … `scripts/failure-f6-restore.sh` | One failure test each; asks before it breaks anything and puts everything back at the end |
+
+Outputs of all tests are in [`docs/evidence/`](docs/evidence/). Runbooks:
+[`docs/runbooks/`](docs/runbooks/).
+
+> **Known problem after a Codespace restart:** Docker can give the kind node
+> containers different IP addresses. kindnet then hands out pod IPs from
+> another node's range, DNS fails, and OpenBao crash-loops because it cannot
+> reach PostgreSQL (risk R27). `scripts/resume.sh` checks this and runs
+> [`scripts/kind-fix-pod-network.sh`](scripts/kind-fix-pod-network.sh), which
+> restarts kindnet and recreates the affected pods (it asks first).
+
+Monitoring and alerting: none is deployed (no Prometheus, no alerts). The
+OpenBao audit log goes to the pod log. There is no `docs/operations.md`;
+operations are described in the runbooks above.
+
+## Failure tests
+
+All tests ran in the Codespace on 2026-10-27 and 2026-10-28. Details:
+[`docs/runbooks/failure-tests.md`](docs/runbooks/failure-tests.md).
+
+| Test | What we break | Result | Recovery time | Evidence file |
+| --- | --- | --- | --- | --- |
+| F1 | Worker node with the active OpenBao pod and the PostgreSQL primary (`docker stop`) | OpenBao answered again through a standby; the restarted pod came back sealed | OpenBao 76 s (54 s until the node was seen as lost, 7 s PostgreSQL promotion, 15 s until OpenBao answered) | [`07-f1-worker-node.txt`](docs/evidence/07-f1-worker-node.txt) |
+| F2 | PostgreSQL primary pod deleted | Replica promoted; OpenBao writes failed only about 4-6 s | Failover 187 s (180 s smart shutdown); healthy after 213 s | [`07-f2-postgres.txt`](docs/evidence/07-f2-postgres.txt) |
+| F3 | All OpenBao pods restarted (sealed) while ESO runs | Kubernetes Secret kept its value; ESO recovered by itself after unseal | ExternalSecret Ready 16 s after unseal | [`07-f3-sealed.txt`](docs/evidence/07-f3-sealed.txt) |
+| F4 | PushSecret deleted (Flux paused) | Value and all versions deleted in OpenBao; Flux recreated the PushSecret | Deleted after 1 s; back 2 s after Flux resumed | [`07-f4-pushsecret.txt`](docs/evidence/07-f4-pushsecret.txt) |
+| F5 | ESO controller pod deleted | New pod logged in with new tokens; Secret untouched | New pod 1 s; synced 6 s | [`07-f5-eso-restart.txt`](docs/evidence/07-f5-eso-restart.txt) |
+| F6 | Point-in-time restore into a new cluster | Restored exactly to the target time | Restore cluster healthy after 71 s | [`07-f6-restore.txt`](docs/evidence/07-f6-restore.txt) |
 
 ## Limitations and next steps
 
 Risk assessment with risk matrix: [`docs/risk-assessment.md`](docs/risk-assessment.md).
 
-_TODO_
+- Unseal is manual: every OpenBao pod restart needs `scripts/openbao-unseal.sh`.
+- Backup storage is inside the same cluster: losing the Codespace loses data and backups.
+- Single cluster in one Codespace; the HA design only covers pod and node-container failures.
+- No monitoring or alerting.
+- The OpenBao root token is still valid: revoke it with `scripts/openbao-revoke-root.sh`.
+- Flux and GitHub tokens, Codespaces secrets and the deploy key must be revoked after the review (checklist in [`docs/environment.md`](docs/environment.md)).
+- Nothing was load-tested.
 
 ## Time spent
 
