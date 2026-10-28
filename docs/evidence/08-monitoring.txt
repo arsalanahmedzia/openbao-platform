@@ -191,3 +191,49 @@ $ bash scripts/test-gate.sh  ->  GATE PASSED (8 layers Ready at ad24a7cd)
 # Flux metrics skipped: Flux 2.x needs a kube-state-metrics custom resource
 # configuration for the Kustomization/HelmRelease ready state (not cheap);
 # the test gate checks Flux.
+
+================================================================================
+M3 (NetworkPolicies for Prometheus), 2026-10-28, revision 1b5a691
+================================================================================
+New objects allow-prometheus-metrics (existing policies unchanged), each from
+namespace monitoring AND label app.kubernetes.io/name=prometheus only:
+  openbao           app.kubernetes.io/name=openbao           TCP 9101
+  databases         cnpg.io/cluster=pg-openbao               TCP 9187
+  external-secrets  app.kubernetes.io/name=external-secrets  TCP 8080
+
+$ bash scripts/monitoring-netpol-check.sh
+13:59:53 PASS  NetworkPolicy openbao/allow-prometheus-metrics exists
+13:59:53 PASS  NetworkPolicy databases/allow-prometheus-metrics exists
+13:59:53 PASS  NetworkPolicy external-secrets/allow-prometheus-metrics exists
+==> 2. Connectivity (openbao-0 10.244.2.11, pg-openbao-2 10.244.2.5, ESO controller 10.244.2.9)
+13:59:57 PASS  monitoring (app.kubernetes.io/name=prometheus) -> 10.244.2.11:9101 expected open, got open
+14:00:02 PASS  monitoring -> 10.244.2.11:9101 expected blocked, got blocked
+14:00:07 PASS  default (app.kubernetes.io/name=prometheus) -> 10.244.2.11:9101 expected blocked, got blocked
+14:00:10 PASS  monitoring (app.kubernetes.io/name=prometheus) -> 10.244.2.5:9187 expected open, got open
+14:00:15 PASS  monitoring -> 10.244.2.5:9187 expected blocked, got blocked
+14:00:20 PASS  default (app.kubernetes.io/name=prometheus) -> 10.244.2.5:9187 expected blocked, got blocked
+14:00:23 PASS  monitoring (app.kubernetes.io/name=prometheus) -> 10.244.2.9:8080 expected open, got open
+14:00:28 PASS  monitoring -> 10.244.2.9:8080 expected blocked, got blocked
+14:00:33 PASS  default (app.kubernetes.io/name=prometheus) -> 10.244.2.9:8080 expected blocked, got blocked
+==> 3. Prometheus targets
+        kube-prometheus-stack-alertmanager  alertmanager-...-0  http://10.244.1.22:8080/metrics  health=up
+        kube-prometheus-stack-alertmanager  alertmanager-...-0  http://10.244.1.22:9093/metrics  health=up
+        kube-prometheus-stack-operator      operator-7f64d7bd9b-7rzj8  http://10.244.1.20:8080/metrics  health=up
+        kube-prometheus-stack-prometheus    prometheus-...-0  http://10.244.1.24:8080/metrics  health=up
+        kube-prometheus-stack-prometheus    prometheus-...-0  http://10.244.1.24:9090/metrics  health=up
+        kube-state-metrics                  kube-state-metrics-6d67f98f5-ktwcw  http://10.244.1.21:8080/metrics  health=up
+        monitoring/external-secrets  external-secrets-76ccc4969-5kmhc  http://10.244.2.9:8080/metrics  health=up
+        monitoring/openbao  openbao-0  https://10.244.2.11:9101/v1/sys/metrics?format=prometheus  health=up
+        monitoring/openbao  openbao-1  https://10.244.1.26:9101/v1/sys/metrics?format=prometheus  health=up
+        monitoring/openbao  openbao-2  https://10.244.4.14:9101/v1/sys/metrics?format=prometheus  health=up
+        monitoring/pg-openbao  pg-openbao-1  http://10.244.4.11:9187/metrics  health=up
+        monitoring/pg-openbao  pg-openbao-2  http://10.244.2.5:9187/metrics  health=up
+        monitoring/pg-openbao  pg-openbao-3  http://10.244.1.7:9187/metrics  health=up
+14:00:34 PASS  openbao: 3/3 targets up
+14:00:34 PASS  databases: 3/3 targets up
+14:00:34 PASS  external-secrets: 1/1 targets up
+14:00:34 RESULT  M3 passed
+
+$ bash scripts/test-gate.sh  ->  GATE PASSED (8 layers Ready at 1b5a6918)
+# The OpenBao targets are up over https with ca_file + server_name and
+# insecure_skip_verify false: Prometheus verified the certificate.
