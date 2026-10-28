@@ -1,11 +1,38 @@
 # Runbook: monitoring and alerts
 
+## What it is
+
+Prometheus collects numbers (metrics) from OpenBao, PostgreSQL and External
+Secrets every 30 s and checks 8 alert rules. When a rule is true for long
+enough, the alert fires and Alertmanager shows it.
+
 Prometheus, Alertmanager, the Prometheus Operator and kube-state-metrics run in
 namespace `monitoring` (Flux layer `apps-monitoring`, folder
 `apps/monitoring/`). Design: [ADR 0007](../adr/0007-monitoring.md). Tested on
 2026-10-28, evidence in `docs/evidence/08-monitoring.txt`.
+Words are explained in the [glossary](../glossary.md).
 
-## 1. What is watched
+## Why we need it
+
+The failure tests showed failures nobody would notice: a sealed OpenBao (F3),
+a lost node (F1), a late backup (R06). Without alerts they stay hidden until a
+secret is missing.
+
+## The picture
+
+The dotted arrows in the README picture ([`how-it-runs.png`](../images/how-it-runs.png),
+shown in the [README](../../README.md#in-60-seconds)) are monitoring:
+Prometheus measures OpenBao, PostgreSQL and ESO. How to read it: an arrow
+points from the one who starts the call to the one who is asked.
+
+How Prometheus knows what to measure: a PodMonitor is a Kubernetes object
+that names the pods and the port to read. There is one per target in
+`apps/monitoring/`. (A ServiceMonitor does the same through a Kubernetes
+Service; it is not used here.)
+
+## Step by step
+
+### 1. What is watched
 
 | Target (Prometheus job) | Pods | Port | Transport |
 | --- | --- | --- | --- |
@@ -19,7 +46,7 @@ Only the Prometheus pod may reach 9101, 9187 and 8080 (NetworkPolicy
 `allow-prometheus-metrics` in each namespace). No Alertmanager receiver is
 configured: alerts are only visible, nothing is sent.
 
-## 2. Check everything
+### 2. Check everything
 
 ```bash
 bash scripts/monitoring-check.sh
@@ -30,7 +57,7 @@ Read-only. Expected: `PASS all 13 targets up`, 8 × `PASS rule ... health ok`,
 a FAIL and is listed with its summary. Right after a rule change the script
 waits up to 2 minutes for the rules to load.
 
-## 3. Open the UIs
+### 3. Open the UIs
 
 There is no Ingress for monitoring. Use a port-forward (VS Code / Codespaces
 forwards the port to your browser):
@@ -45,7 +72,7 @@ kubectl -n monitoring port-forward svc/kube-prometheus-stack-alertmanager 9093:9
 
 Ctrl+C ends the port-forward.
 
-## 4. Alerts: meaning and what to do
+### 4. Alerts: meaning and what to do
 
 **OpenBaoSealed** (critical, 2 min). A pod reports `vault_core_unsealed 0` or
 is not Ready (its readiness check is `bao status`). A sealed pod serves no
@@ -100,7 +127,7 @@ Its pods are not moved (no spare node, R16).
 2. `docker start <node>`, then `bash scripts/resume.sh`; OpenBao pods on it
    come back sealed (`bash scripts/openbao-unseal.sh`).
 
-## 5. Prove that an alert fires
+### 5. Prove that an alert fires
 
 Done on 2026-10-28 (M6): the sealed test with a longer sealed time.
 
@@ -114,7 +141,14 @@ F3_WATCH_ROUNDS=16 F3_OUT=docs/evidence/08-m6-f3-sealed.txt bash scripts/failure
 Result: pending 22 s after the pods were deleted, firing after 2 min 22 s,
 one alert per pod, received by Alertmanager; gone after the unseal.
 
-## 6. Limits
+## Example
+
+A smoke detector waits a moment before it beeps, so steam from the kettle
+does not set it off. Each alert here also waits ("for: 2m", "5m" or "15m")
+before it fires, so a short normal hiccup (a failover, a restart) does not
+raise an alarm.
+
+## What can go wrong
 
 - One Prometheus and one Alertmanager replica; all monitoring pods ran on one
   node. If that node fails, monitoring stops (R31).
@@ -122,3 +156,6 @@ one alert per pod, received by Alertmanager; gone after the unseal.
 - Retention 2 days (max 1 GB on a 2 Gi volume).
 - PostgreSQL metrics are plain HTTP (R30). Flux is not monitored here
   (`scripts/test-gate.sh` checks it).
+- A new or changed alert rule shows "not loaded" right after a change: the
+  rules need up to 1-2 minutes to reach Prometheus; `scripts/monitoring-check.sh`
+  waits for them.
