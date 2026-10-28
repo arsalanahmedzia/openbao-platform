@@ -426,3 +426,18 @@ overlay          32G   18G   13G  58% /
 # about 300-380 MiB more than the other workers. Requested for monitoring:
 # about 500 MiB (limits about 1.7 GiB). Prometheus' 2 Gi volume is on the
 # same disk (kind local-path), capped at 1 GB of data by retentionSize.
+
+Monitoring's own share (measured by Prometheus, ~17:15 UTC):
+$ query: sum by (job) (process_resident_memory_bytes{namespace="monitoring"}) / 2^20
+kube-prometheus-stack-prometheus  167 MiB   (incl. config-reloader; estimate was 250-400)
+kube-prometheus-stack-alertmanager  49 MiB  (incl. config-reloader; estimate 30-50)
+kube-prometheus-stack-operator  44 MiB      (estimate 40-80)
+(kube-state-metrics: its own process metrics are on a second port that is
+not scraped, so not in this query; estimate 40-80 MiB)
+$ query: prometheus_tsdb_head_series
+10995 active series   (estimate 10,000-30,000)
+# Measured 260 MiB + kube-state-metrics, roughly 300 MiB in total, which fits
+# worker3 (all monitoring pods) using 300-380 MiB more than the other workers.
+# "Before" = the node total above minus about 300 MiB (calculated, not measured).
+# `kubectl exec ... -c prometheus -- du -sh /prometheus` failed: the Prometheus
+# image has no du (the command was not checked before it was handed over).
