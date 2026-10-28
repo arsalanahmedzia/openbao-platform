@@ -9,6 +9,7 @@ Evidence: `docs/evidence/07-f<N>-*.txt`.
 | F1 | Worker node with the active OpenBao pod and the PostgreSQL primary | OpenBao answered again through a standby; one pod sealed after the restart | OpenBao 76 s; ESO ~6 min; node rejoin 20 s |
 | F2 | PostgreSQL primary pod deleted | Replica promoted; OpenBao writes failed only ~4-6 s; old primary back as replica | Failover 187 s; healthy after 213 s |
 | F3 | All 3 OpenBao pods restarted (sealed) while ESO runs | Secret kept its value; ESO errors after ~90 s; recovered by itself after unseal, no ESO restart | ExternalSecret 16 s after unseal |
+| F4 | PushSecret deleted (Flux paused) | Value and all versions deleted in OpenBao; Flux recreated the PushSecret, value back | Deleted after 1 s; back 2 s after Flux resumed |
 
 ## F1. A worker node dies
 
@@ -127,3 +128,29 @@ without restarting ESO, possibly only after minutes (retry pauses).
 (`Ready=False`), not on the store status; auto-unseal (R03) so a restart does
 not need a person; apps should read the Kubernetes Secret, which survives an
 OpenBao outage.
+
+## F4. The PushSecret is deleted
+
+**What we broke:** `bash scripts/failure-f4-pushsecret.sh` suspended the Flux
+kustomization `apps-external-secrets` (so Flux could not recreate the object
+during the test) and deleted the PushSecret `push-demo`.
+
+**What we expected:** with `deletionPolicy: Delete`, ESO deletes
+`secret/pushed/push-demo` in OpenBao; after Flux resumes, the PushSecret comes
+back from Git and the value is pushed again.
+
+**What really happened:** the PushSecret was gone at once (ESO's finalizer
+acted in the same second), the value and its metadata (all versions) were gone
+from OpenBao 1 s later, and the Kubernetes source Secret stayed. After
+`flux resume`, Flux recreated the PushSecret and the value was back in OpenBao
+2 s later, as version 1 (created from scratch). Checked as the ESO login. The
+gate passed. As expected.
+
+**How to recover by hand:** `flux resume kustomization apps-external-secrets`
+(or `flux reconcile kustomization apps-external-secrets`) recreates the
+PushSecret from Git; ESO pushes the value again.
+
+**What we would change in production:** use `deletionPolicy: Delete` only
+where Kubernetes is the source of truth (R21), and review PushSecret deletions
+in pull requests: a removed PushSecret deletes the value and its history in
+OpenBao for good.
