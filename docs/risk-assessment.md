@@ -43,8 +43,8 @@ Score = likelihood (L, 1-5) × impact (I, 1-5).
 | --- | --- | --- | --- | --- | --- |
 | **5 Severe** | 🟢 | 🟡 R02 R07 R08 R09 | 🔴 **R01 R04 R05** | 🔴 | 🔴 |
 | **4 Major** | 🟢 R15 | 🟡 R13 R18 R19 R26 | 🟡 R12 | 🔴 | 🔴 |
-| **3 Moderate** | 🟢 | 🟢 R10 R14 R20 R21 R22 | 🟡 R17 | 🟡 R11 R27 | 🔴 **R03** |
-| **2 Minor** | 🟢 | 🟢 R06 R24 R28 | 🟢 R16 R23 R29 | 🟡 | 🟡 |
+| **3 Moderate** | 🟢 | 🟢 R10 R11 R14 R20 R21 R22 | 🟡 R17 | 🟡 R27 | 🔴 **R03** |
+| **2 Minor** | 🟢 R30 | 🟢 R06 R24 R28 | 🟢 R16 R23 R29 R31 | 🟡 | 🟡 |
 | **1 Negligible** | 🟢 R25 | 🟢 | 🟢 | 🟢 | 🟢 |
 
 ## 3. Risks
@@ -57,7 +57,6 @@ Status: **Open** · **Partly** mitigated · **Done** (mitigated) · **Accepted**
 | R03 | OpenBao sealed after every restart | Infrastructure failure | 5 | 3 | 🔴 15 | Accepted | Auto-unseal |
 | R04 | All nodes on one Codespace VM | Infrastructure failure | 3 | 5 | 🔴 15 | Accepted | Nodes in 3 zones |
 | R05 | Backups inside the same cluster | Infrastructure failure | 3 | 5 | 🔴 15 | Accepted | Off-cluster object storage |
-| R11 | No monitoring or alerting | All | 4 | 3 | 🟡 12 | Partly | Audit log done; add metrics and alerts |
 | R12 | TLS renewal needs manual pod restarts | Operator error | 3 | 4 | 🟡 12 | Open | Automate restart; alert on cert age |
 | R27 | Codespace restart can shuffle the kind node IPs; pods get IPs from another node's range, DNS and pod traffic fail, OpenBao crash-loops (seen 2026-10-28) | Infrastructure failure | 4 | 3 | 🟡 12 | Partly | `resume.sh` detects it; `kind-fix-pod-network.sh` repairs; real nodes keep their IPs |
 | R02 | Losing the key shares loses all data | Operator error | 2 | 5 | 🟡 10 | Open | Test the off-Codespace copy |
@@ -77,6 +76,8 @@ Status: **Open** · **Partly** mitigated · **Done** (mitigated) · **Accepted**
 | R22 | Tight memory limits | Infrastructure failure | 2 | 3 | 🟢 6 | Accepted | Load test, raise limits |
 | R23 | Running OpenBao pods can differ from Git | Operator error | 3 | 2 | 🟢 6 | Partly | Rollout script; alert on drift |
 | R29 | ESO controller and Flux source/helm controllers run as 1 replica: a lost node stops syncing for ~6 min (F1) | Infrastructure failure | 3 | 2 | 🟢 6 | Open | 2 replicas, or a shorter toleration for unreachable nodes |
+| R11 | Failures go unnoticed (before 2026-10-28: no monitoring) | All | 2 | 3 | 🟢 6 | Partly | Prometheus + 8 alerts (ADR 0007), OpenBaoSealed proven in M6; no receiver, so alerts are only seen when someone looks (R31) |
+| R31 | Monitoring is single: 1 Prometheus, 1 Alertmanager, all 4 monitoring pods were on worker3, no receiver | Infrastructure failure | 3 | 2 | 🟢 6 | Accepted | 2 replicas, a receiver (mail/on-call) and a watchdog alert checked from outside |
 | R06 | Scheduled backup late while stopped | Infrastructure failure | 2 | 2 | 🟢 4 | Done | Runs on resume; 12:00 UTC slot |
 | R15 | OpenBao does not verify PostgreSQL's certificate | Pod compromise | 1 | 4 | 🟢 4 | Open | `sslmode=verify-full` |
 | R24 | One Traefik replica | Infrastructure failure | 2 | 2 | 🟢 4 | Accepted | 2+ replicas behind a load balancer |
@@ -113,3 +114,22 @@ ESO's token rights (R09), narrowing `eso-read` (R20), PostgreSQL
 
 **Not verified:** OpenBao reloading its certificate on `SIGHUP` (R12); the
 password-manager copies of the keys (R02, R19).
+
+**Monitoring (2026-10-28, ADR 0007, `docs/evidence/08-monitoring.txt`):**
+
+- Now detected by an alert: R03 / sealed OpenBao (OpenBaoSealed, fired in the
+  M6 re-run of F3 after 2 min 22 s), R06 / late or failed backup
+  (BackupFailedOrTooOld), R14 and R28 / PostgreSQL instance or primary missing
+  (PostgresNotHealthy), R16 / lost node (NodeNotReady), R29 / ESO controller
+  gone (ExternalSecretsControllerDown), R11 / ESO syncs failing
+  (ExternalSecretNotReady, PushSecretNotReady, ClusterSecretStoreNotReady).
+  Only OpenBaoSealed was proven by a test; the others by rule unit tests
+  (`promtool test rules`) and the real metrics.
+- New findings: in the M6 run the store did go to `InvalidProviderConfig`
+  after 142 s sealed (F3 with 2 min sealed never saw it, R11); the OpenBao
+  metrics listener keeps answering while sealed; ESO alerts first named the
+  controller's namespace instead of the object's (fixed with `honorLabels`);
+  ESO's chart default for metrics TLS silently falls back to a self-signed
+  certificate (avoided, ADR 0007).
+- New risks: R30 (PostgreSQL metrics plain HTTP, known gap), R31 (monitoring
+  itself single and silent).
