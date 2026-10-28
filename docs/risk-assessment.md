@@ -43,7 +43,7 @@ Score = likelihood (L, 1-5) × impact (I, 1-5).
 | --- | --- | --- | --- | --- | --- |
 | **5 Severe** | 🟢 | 🟡 R02 R07 R08 R09 | 🔴 **R01 R04 R05** | 🔴 | 🔴 |
 | **4 Major** | 🟢 R15 | 🟡 R13 R18 R19 R26 | 🟡 R12 | 🔴 | 🔴 |
-| **3 Moderate** | 🟢 | 🟢 R10 R14 R20 R21 R22 | 🟡 R17 | 🟡 R11 | 🔴 **R03** |
+| **3 Moderate** | 🟢 | 🟢 R10 R14 R20 R21 R22 | 🟡 R17 | 🟡 R11 R27 | 🔴 **R03** |
 | **2 Minor** | 🟢 | 🟢 R06 R24 | 🟢 R16 R23 | 🟡 | 🟡 |
 | **1 Negligible** | 🟢 R25 | 🟢 | 🟢 | 🟢 | 🟢 |
 
@@ -59,6 +59,7 @@ Status: **Open** · **Partly** mitigated · **Done** (mitigated) · **Accepted**
 | R05 | Backups inside the same cluster | Infrastructure failure | 3 | 5 | 🔴 15 | Accepted | Off-cluster object storage |
 | R11 | No monitoring or alerting | All | 4 | 3 | 🟡 12 | Partly | Audit log done; add metrics and alerts |
 | R12 | TLS renewal needs manual pod restarts | Operator error | 3 | 4 | 🟡 12 | Open | Automate restart; alert on cert age |
+| R27 | Codespace restart can shuffle the kind node IPs; pods get IPs from another node's range, DNS and pod traffic fail, OpenBao crash-loops (seen 2026-10-28) | Infrastructure failure | 4 | 3 | 🟡 12 | Partly | `resume.sh` detects it; `kind-fix-pod-network.sh` repairs; real nodes keep their IPs |
 | R02 | Losing the key shares loses all data | Operator error | 2 | 5 | 🟡 10 | Open | Test the off-Codespace copy |
 | R07 | Flux prune can delete the database | Operator error | 2 | 5 | 🟡 10 | Accepted | Prune protection (decided against) |
 | R08 | Git write = cluster admin; broad GitHub token | Account compromise | 2 | 5 | 🟡 10 | Open | Checklist in `docs/environment.md` |
@@ -90,6 +91,10 @@ revoke script prepared (R01).
 **Not done (security work paused):** Pod Security Standards (B3), narrowing
 ESO's token rights (R09), narrowing `eso-read` (R20), PostgreSQL
 `verify-full` (R15), egress policies (R10).
+
+**Found in the failure tests (2026-10-28):** R27, the pod network breaking
+after a Codespace restart; repaired with `scripts/kind-fix-pod-network.sh`,
+now checked by `scripts/resume.sh`.
 
 **Not verified:** OpenBao reloading its certificate on `SIGHUP` (R12); the
 password-manager copies of the keys (R02, R19).
