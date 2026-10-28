@@ -75,10 +75,19 @@ down=$(jq '[.data.activeTargets[] | select(.health!="up")] | length' "$TMP/targe
 
 echo
 echo "==> 3. Alert rules (group platform)"
-curl -s "$P/api/v1/rules?type=alert" > "$TMP/rules.json"
+# A new or changed PrometheusRule needs up to ~1-2 min: the operator writes it
+# into a ConfigMap, the config-reloader sees the file and reloads Prometheus.
+for _ in $(seq 1 12); do
+  curl -s "$P/api/v1/rules?type=alert" > "$TMP/rules.json"
+  jq -e '.data.groups[] | select(.name=="platform")' "$TMP/rules.json" >/dev/null && break
+  info "group platform not loaded yet, waiting"
+  sleep 10
+done
+info "rule groups loaded: $(jq -r '[.data.groups[] | "\(.name) (\(.file | split("/") | last))"] | join(", ")' "$TMP/rules.json")"
 for r in "${RULES[@]}"; do
-  h=$(jq -r --arg r "$r" '[.data.groups[] | select(.name=="platform") | .rules[] | select(.name==$r)][0] | "\(.health) \(.lastError // "")"' "$TMP/rules.json")
-  [[ $h == "ok "* ]] && pass "rule $r loaded, health ok" || fail "rule $r: ${h:-not loaded}"
+  h=$(jq -r --arg r "$r" '[.data.groups[] | select(.name=="platform") | .rules[] | select(.name==$r)][0]
+                          | if . == null then "not loaded" else "\(.health) \(.lastError // "")" end' "$TMP/rules.json")
+  [[ $h == "ok "* ]] && pass "rule $r loaded, health ok" || fail "rule $r: $h"
 done
 
 echo
