@@ -1,0 +1,46 @@
+# Monitoring stage: evidence (one section per step)
+
+################################################################################
+# M1 Flux layer apps-monitoring   2026-10-28
+# kube-prometheus-stack 92.3.1 (2026-10-13); Prometheus v3.15.0 (2026-09-25),
+# Alertmanager v0.34.1, operator v0.94.1, kube-state-metrics 2.20.0
+# Command: bash scripts/monitoring-deploy-check.sh
+################################################################################
+
+First install failed: the operator pod hung in ContainerCreating:
+  Warning FailedMount ... MountVolume.SetUp failed for volume "tls-secret" :
+  secret "kube-prometheus-stack-admission" not found
+Cause: admissionWebhooks.enabled=false removes the Job that creates that
+Secret, but prometheusOperator.tls.enabled (default true) still mounts it.
+Fix in Git: prometheusOperator.tls.enabled: false.
+The fix only reached the cluster after the waiting reconcile of
+apps-monitoring hit its 15 min timeout (wait: true); flux suspend/resume did
+not end the waiting run. Then helm-controller's install attempt with the old
+values timed out (10 min), and the next attempt used the new values.
+
+==> Result (13:13 UTC)
+kube-prometheus-stack   92.3.1   True   Helm install succeeded for release monitoring/kube-prometheus-stack.v1 with chart kube-prometheus-stack@92.3.1
+
+NAME                                                       READY   STATUS    NODE
+alertmanager-kube-prometheus-stack-alertmanager-0          2/2     Running   openbao-platform-worker3
+kube-prometheus-stack-kube-state-metrics-6d67f98f5-ktwcw   1/1     Running   openbao-platform-worker3
+kube-prometheus-stack-operator-7f64d7bd9b-7rzj8            1/1     Running   openbao-platform-worker3
+prometheus-kube-prometheus-stack-prometheus-0              2/2     Running   openbao-platform-worker3
+prometheus-...-db-prometheus-kube-prometheus-stack-prometheus-0   Bound   2Gi   RWO   standard
+CRDs from the operator: 10
+
+PASS  Prometheus Ready
+PASS  Alertmanager Ready
+PASS  Prometheus Operator Ready
+PASS  kube-state-metrics Ready
+PASS  Prometheus volume Bound
+
+POD                                                        CONTAINER                      MEM_REQ      MEM_LIMIT
+alertmanager-kube-prometheus-stack-alertmanager-0          alertmanager,config-reloader   32Mi,16Mi    96Mi,64Mi
+kube-prometheus-stack-kube-state-metrics-6d67f98f5-ktwcw   kube-state-metrics             64Mi         256Mi
+kube-prometheus-stack-operator-7f64d7bd9b-7rzj8            kube-prometheus-stack          64Mi         256Mi
+prometheus-kube-prometheus-stack-prometheus-0              prometheus,config-reloader     304Mi,16Mi   960Mi,64Mi
+
+RESULT  M1 passed
+# Observation: all 4 monitoring pods run on worker3 (no spreading): losing
+# that node stops monitoring until the pods are rescheduled.
