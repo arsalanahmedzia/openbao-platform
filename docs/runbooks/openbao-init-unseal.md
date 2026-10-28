@@ -1,9 +1,53 @@
 # Runbook: OpenBao init, unseal and recovery
 
+## What it is
+
+OpenBao is the vault that keeps the secrets. This runbook shows how to start
+it the first time, how to unlock (unseal) it after every restart, and how to
+recover when a pod, a key or the root token is lost.
+
 OpenBao runs as StatefulSet `openbao/openbao` (3 pods, one active, two
 standby) with all data in PostgreSQL `databases/pg-openbao`. Design:
 [ADR 0004](../adr/0004-openbao-ha-postgresql.md). Tested on 2026-10-26,
 evidence in `docs/evidence/04-*.txt`.
+Words are explained in the [glossary](../glossary.md).
+
+## Why we need it
+
+OpenBao keeps its data encrypted, and every OpenBao pod starts **sealed**: it
+cannot read its own data. Without these steps OpenBao would stay locked after
+every restart, and External Secrets could not read or write any secret.
+
+## The picture: starting and unsealing OpenBao
+
+```mermaid
+flowchart TB
+  you([You])
+  init[scripts/openbao-init.sh<br/>once per new OpenBao]
+  unseal[scripts/openbao-unseal.sh<br/>after every restart]
+  conf[scripts/openbao-configure.sh<br/>once]
+  keys[(Codespaces secrets<br/>and ~/openbao-init.json<br/>5 key shares, root token)]
+  api[Kubernetes API]
+  bao[OpenBao pods<br/>start sealed]
+
+  you -->|"runs"| init
+  you -->|"runs"| unseal
+  you -->|"runs"| conf
+  init -->|"saves the shares and the root token"| keys
+  unseal -->|"reads 3 shares"| keys
+  conf -->|"reads the root token"| keys
+  init -->|"kubectl exec: bao operator init"| api
+  unseal -->|"kubectl exec: one share at a time, via stdin"| api
+  conf -->|"kubectl exec: storage, logins, policies"| api
+  api -->|"runs the bao command inside the pod"| bao
+```
+
+How to read it: an arrow points from the one who starts the call to the one who
+is asked. The scripts never call OpenBao over the network; they run the `bao`
+command inside a pod through `kubectl exec`, and pass keys and tokens through
+stdin, never on the screen or the command line. `openbao-configure.sh` sets up
+the secret storage (KV v2), the Kubernetes login for ESO, and the policies in
+[`openbao/policies/`](../../openbao/policies/).
 
 Terms:
 - **Sealed**: the pod is running but cannot decrypt anything; it answers only
@@ -20,7 +64,9 @@ Where the secrets are (never in Git, never printed):
   `OPENBAO_ROOT_TOKEN`; they appear as environment variables in a new or
   restarted Codespace.
 
-## 1. First start (once per new OpenBao, i.e. empty database)
+## Step by step
+
+### 1. First start (once per new OpenBao, i.e. empty database)
 
 ```bash
 bash scripts/openbao-deploy-check.sh   # 3 pods Running 0/1, Initialized false
@@ -33,7 +79,7 @@ bash scripts/openbao-configure.sh      # KV v2, Kubernetes auth, policies, role
 reports `initialized=true`. Download `~/openbao-init.json` (Explorer, right
 click, Download) and keep it somewhere safe outside the Codespace.
 
-## 2. After a restart (Codespace, node or all pods)
+### 2. After a restart (Codespace, node or all pods)
 
 ```bash
 bash scripts/resume.sh                 # Codespace only: nodes back
@@ -44,7 +90,7 @@ bash scripts/openbao-unseal.sh
 Expected: `openbao-N: unsealed` for each sealed pod, then all `1/1` and one
 `HA Mode active`. The script is safe to repeat; unsealed pods are skipped.
 
-## 3. One pod fails or is deleted
+### 3. One pod fails or is deleted
 
 Nothing to do for the service: if it was the active pod, a standby takes the
 lock within seconds (measured: about 7 s). The StatefulSet recreates the pod;
@@ -62,7 +108,7 @@ If a pod stays `Pending` after a node failure: required anti-affinity allows
 one pod per worker, so it waits until the worker is back. OpenBao keeps
 running with the other pods.
 
-## 4. Config change from Git
+### 4. Config change from Git
 
 The chart uses `updateStrategy: OnDelete`: Flux updates the StatefulSet, but
 running pods keep the old config until deleted. Roll it by hand, standbys
@@ -87,7 +133,7 @@ loads it at start. `bash scripts/openbao-tls-rollout.sh` only restarts pods on
 an old StatefulSet revision, so after a renewal delete the pods by hand as
 above.
 
-## 5. Lost keys: what can and cannot be recovered
+### 5. Lost keys: what can and cannot be recovered
 
 - **Fewer than 3 shares left** (file, copy and Codespaces secrets lost): the
   data in PostgreSQL **cannot be decrypted by anyone**. Backups of
@@ -101,7 +147,7 @@ above.
 - **Key shares leaked**: rekey (`bao operator rekey`) so the old shares become
   useless; the encryption key itself can be rotated with `bao operator rotate`.
 
-## 6. Root token: revoke and generate when needed
+### 6. Root token: revoke and generate when needed
 
 The root token can do everything and is not needed for daily operation
 (unseal needs only key shares; ESO uses Kubernetes auth). Scripts that need it:
@@ -145,7 +191,7 @@ active pod):
 5. A started attempt that is not finished blocks new attempts; cancel it with
    `bao operator generate-root -cancel`.
 
-## 7. Reach the UI
+### 7. Reach the UI
 
 HTTPS through Traefik from inside the Codespace:
 
@@ -167,7 +213,7 @@ Codespaces offers to open forwarded port 8200 (use `https://`); add `/ui` to the
 in needs a token; for the demo, log in only to show the UI and do not keep a
 root token around for it.
 
-## 8. Restore of PostgreSQL and OpenBao
+### 8. Restore of PostgreSQL and OpenBao
 
 A point-in-time restore of `pg-openbao` (see
 [postgres-backup-restore.md](postgres-backup-restore.md)) brings back
@@ -176,3 +222,21 @@ OpenBao's encrypted data as of that time; the same unseal keys still work
 `bootstrap.recovery.secret.name: pg-openbao-openbao` in the restore manifest so
 the role `openbao` gets the password OpenBao knows, point the connection URL at
 the new cluster's `-rw` Service, restart the OpenBao pods and unseal them.
+
+## Example
+
+A bank vault with five managers. Each manager holds one key, and any three of
+them together can open the vault; one or two keys open nothing. OpenBao's
+unseal works the same way: 5 key shares (Shamir shares), any 3 unseal a pod.
+
+## What can go wrong
+
+- `test-gate.sh` or `kubectl -n openbao get pods` shows pods `0/1`: they are
+  sealed after a restart. Fix: `bash scripts/openbao-unseal.sh` (section 2).
+- A pod stays `Pending` after a node failure: only one OpenBao pod may run per
+  worker, so it waits until the worker is back (section 3).
+- A changed config or a renewed certificate is not used: running pods keep
+  the old one until they are deleted (`OnDelete`, risk R12). Restart them one
+  by one (section 4).
+- Fewer than 3 key shares left: the data cannot be decrypted by anyone
+  (section 5, risk R02).

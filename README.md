@@ -95,41 +95,6 @@ bash scripts/test-gate.sh
 bash scripts/monitoring-check.sh
 ```
 
-## Starting and unsealing OpenBao
-
-OpenBao keeps its data encrypted. After every start it is **sealed**: it
-cannot read its own data until 3 of the 5 key shares are entered.
-
-```mermaid
-flowchart TB
-  you([You])
-  init[scripts/openbao-init.sh<br/>once per new OpenBao]
-  unseal[scripts/openbao-unseal.sh<br/>after every restart]
-  conf[scripts/openbao-configure.sh<br/>once]
-  keys[(Codespaces secrets<br/>and ~/openbao-init.json<br/>5 key shares, root token)]
-  api[Kubernetes API]
-  bao[OpenBao pods<br/>start sealed]
-
-  you -->|"runs"| init
-  you -->|"runs"| unseal
-  you -->|"runs"| conf
-  init -->|"saves the shares and the root token"| keys
-  unseal -->|"reads 3 shares"| keys
-  conf -->|"reads the root token"| keys
-  init -->|"kubectl exec: bao operator init"| api
-  unseal -->|"kubectl exec: one share at a time, via stdin"| api
-  conf -->|"kubectl exec: storage, logins, policies"| api
-  api -->|"runs the bao command inside the pod"| bao
-```
-
-How to read it: an arrow points from the one who starts the call to the one who
-is asked. The scripts never call OpenBao over the network; they run the `bao`
-command inside a pod through `kubectl exec`, and pass keys and tokens through
-stdin, never on the screen or the command line. `openbao-configure.sh` sets up
-the secret storage (KV v2), the Kubernetes login for ESO, and the policies in
-[`openbao/policies/`](openbao/policies/). Runbook:
-[`docs/runbooks/openbao-init-unseal.md`](docs/runbooks/openbao-init-unseal.md).
-
 ## Production-ready vs simplified for the demo
 
 | Topic | Demo | Production |
