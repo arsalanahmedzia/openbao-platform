@@ -1,10 +1,43 @@
 # Runbook: PostgreSQL backup and point-in-time restore
 
+## What it is
+
+PostgreSQL is the database where OpenBao saves all its data. This runbook
+shows how its backups are made, how to check them, and how to restore the
+database to an exact moment in the past.
+
 Cluster `databases/pg-openbao` (CloudNativePG) archives WAL continuously and
 takes a daily base backup through the Barman Cloud plugin into
 `s3://pg-backups/pg-openbao/` (ObjectStore `databases/pg-backups`, SeaweedFS).
 Design: [ADR 0003](../adr/0003-cloudnativepg-ha.md), [ADR 0002](../adr/0002-in-cluster-s3.md).
 Tested on 2026-10-25, evidence in `docs/evidence/03-*.txt`.
+Words are explained in the [glossary](../glossary.md).
+
+## Why we need it
+
+If the data in PostgreSQL is lost or damaged, every secret in OpenBao is lost
+with it. A backup that was never checked or restored may not work when it is
+needed, so the restore was tested (failure test F6).
+
+## The picture: backup and restore
+
+```mermaid
+flowchart LR
+  subgraph databases[namespace databases]
+    pg[(pg-openbao<br/>3 PostgreSQL pods,<br/>Barman Cloud plugin in each)]
+    restore[(pg-restore<br/>a NEW cluster,<br/>only when you restore)]
+  end
+  s3[(SeaweedFS S3<br/>bucket pg-backups<br/>kept 7 days)]
+  pg -->|"WAL: every change, all the time"| s3
+  pg -->|"base backup: a full copy, daily 12:00 UTC"| s3
+  restore -->|"reads a base backup and the WAL<br/>up to the chosen time"| s3
+```
+
+How to read it: an arrow points from the pod that starts the call to the one
+that is asked. The live cluster only writes to S3; a restore cluster only
+reads from it (it has no WAL archiving of its own, so it can never overwrite
+the live cluster's backups). Example restore cluster:
+[`restore-example.yaml`](restore-example.yaml).
 
 Terms:
 - **Base backup**: full copy of the database files at one moment (`base/<id>/data.tar.gz`).
@@ -14,7 +47,32 @@ Terms:
 - **Timeline**: a number PostgreSQL increases at every promotion or PITR, so WAL
   histories that branched off each other are not mixed (`0000000N.history`).
 
-## 1. Check backup health
+## How it is set up
+
+- The `ScheduledBackup` `pg-openbao-daily` takes a base backup every day at
+  12:00 UTC (13:00 Berlin in winter), cron `"0 0 12 * * *"`
+  ([`apps/database/backups.yaml`](../../apps/database/backups.yaml)). A slot missed
+  while the Codespace is stopped runs as soon as the cluster runs again.
+- Backups go through the Barman Cloud plugin to `s3://pg-backups/` on
+  SeaweedFS; WAL is archived continuously; retention 7 days
+  ([`apps/database/objectstore.yaml`](../../apps/database/objectstore.yaml)).
+- Point-in-time recovery always goes into a **new** cluster, never over the
+  live one. The steps are in section 4 below.
+
+```bash
+bash scripts/failure-f6-restore.sh                                # tested PITR into a temporary cluster
+kubectl -n databases get backups --sort-by=.metadata.creationTimestamp
+```
+
+A restore cluster needs NetworkPolicy access for the CloudNativePG operator to
+its instance manager (port 8000): `allow-instance-manager` in
+[`apps/database/networkpolicy.yaml`](../../apps/database/networkpolicy.yaml) now
+selects every CloudNativePG instance (`cnpg.io/podRole: instance`), not only
+`pg-openbao`.
+
+## Step by step
+
+### 1. Check backup health
 
 ```bash
 kubectl cnpg status pg-openbao -n databases
@@ -38,7 +96,7 @@ promotion PostgreSQL first *looks up* the new timeline's history file in the
 archive and expects "does not exist". Confirm the file was then archived:
 `wals/0000000N.history.gz` in the bucket (step 3).
 
-## 2. Take an on-demand base backup
+### 2. Take an on-demand base backup
 
 Before risky changes (upgrades, migrations):
 
@@ -52,7 +110,7 @@ Expected: a new Backup `pg-openbao-<timestamp>` that goes to `PHASE completed`
 (about 15 s for a small database). This creates a Backup object outside Git;
 that is fine, it is a record of an action, not configuration.
 
-## 3. Look into the bucket
+### 3. Look into the bucket
 
 From a temporary pod with the AWS CLI and the PostgreSQL S3 credentials
 (delete it afterwards):
@@ -71,7 +129,7 @@ kubectl -n databases delete pod s3-list
 Expected: `pg-openbao/base/<id>/backup.info`, `pg-openbao/base/<id>/data.tar.gz`
 and a continuous series of `pg-openbao/wals/.../*.gz`.
 
-## 4. Point-in-time restore into a new cluster (tested)
+### 4. Point-in-time restore into a new cluster (tested)
 
 This restores into a **new** cluster `pg-restore` next to the running one, to
 inspect or recover data. The source cluster is not touched.
@@ -124,7 +182,7 @@ inspect or recover data. The source cluster is not touched.
 The restored cluster has **no WAL archiving** on purpose: it must never write
 into `s3://pg-backups/pg-openbao/`, which belongs to the source cluster.
 
-## 5. Replace production with a restore (not tested)
+### 5. Replace production with a restore (not tested)
 
 Outline only; to be tested once OpenBao uses the database.
 
@@ -138,7 +196,23 @@ Outline only; to be tested once OpenBao uses the database.
    recovery bootstrap under the original name after deleting the old cluster.
 4. Take an on-demand backup of the new cluster (step 2) and start OpenBao.
 
-## Troubleshooting
+## Example
+
+A photo album and a diary. Every day at noon you take a photo of your room
+(the base backup), and you write down every change in a diary as it happens
+(the WAL). To see the room as it was yesterday at 15:30, you take yesterday's
+noon photo and redo the diary entries up to 15:30 (point-in-time recovery).
+
+## What can go wrong
+
+- Backups live in SeaweedFS inside the same cluster: losing the Codespace
+  loses the data and its backups together (risk R05).
+- The daily backup did not run while the Codespace was stopped; it runs as
+  soon as the cluster runs again (risk R06, seen on 2026-10-27).
+- A restore cluster hangs: the operator could not reach its instance manager
+  on port 8000 before failure test F6; the NetworkPolicy now allows every
+  CloudNativePG instance.
+- More symptoms with their cause and fix:
 
 | Symptom | Likely cause | Check / fix |
 | --- | --- | --- |

@@ -117,45 +117,7 @@ How ESO logs in, pulls and pushes, with a step-by-step picture: [`docs/runbooks/
 
 ## Backup and restore
 
-```mermaid
-flowchart LR
-  subgraph databases[namespace databases]
-    pg[(pg-openbao<br/>3 PostgreSQL pods,<br/>Barman Cloud plugin in each)]
-    restore[(pg-restore<br/>a NEW cluster,<br/>only when you restore)]
-  end
-  s3[(SeaweedFS S3<br/>bucket pg-backups<br/>kept 7 days)]
-  pg -->|"WAL: every change, all the time"| s3
-  pg -->|"base backup: a full copy, daily 12:00 UTC"| s3
-  restore -->|"reads a base backup and the WAL<br/>up to the chosen time"| s3
-```
-
-How to read it: an arrow points from the pod that starts the call to the one
-that is asked. The live cluster only writes to S3; a restore cluster only
-reads from it (it has no WAL archiving of its own, so it can never overwrite
-the live cluster's backups). Example restore cluster:
-[`docs/runbooks/restore-example.yaml`](docs/runbooks/restore-example.yaml).
-
-- The `ScheduledBackup` `pg-openbao-daily` takes a base backup every day at
-  12:00 UTC (13:00 Berlin in winter), cron `"0 0 12 * * *"`
-  ([`apps/database/backups.yaml`](apps/database/backups.yaml)). A slot missed
-  while the Codespace is stopped runs as soon as the cluster runs again.
-- Backups go through the Barman Cloud plugin to `s3://pg-backups/` on
-  SeaweedFS; WAL is archived continuously; retention 7 days
-  ([`apps/database/objectstore.yaml`](apps/database/objectstore.yaml)).
-- Point-in-time recovery always goes into a **new** cluster, never over the
-  live one. Runbook:
-  [`docs/runbooks/postgres-backup-restore.md`](docs/runbooks/postgres-backup-restore.md).
-
-```bash
-bash scripts/failure-f6-restore.sh                                # tested PITR into a temporary cluster
-kubectl -n databases get backups --sort-by=.metadata.creationTimestamp
-```
-
-A restore cluster needs NetworkPolicy access for the CloudNativePG operator to
-its instance manager (port 8000): `allow-instance-manager` in
-[`apps/database/networkpolicy.yaml`](apps/database/networkpolicy.yaml) now
-selects every CloudNativePG instance (`cnpg.io/podRole: instance`), not only
-`pg-openbao`.
+Daily backups, continuous WAL archiving and point-in-time restore, with a picture: [`docs/runbooks/postgres-backup-restore.md`](docs/runbooks/postgres-backup-restore.md).
 
 ## Operations
 

@@ -20,34 +20,6 @@ Apps in Kubernetes read normal Kubernetes Secrets, not OpenBao. Without ESO
 someone would have to copy every value by hand, and a changed value in
 OpenBao would never reach the app.
 
-## How it is set up
-
-External Secrets Operator (chart 2.14.0) connects to OpenBao through one
-`ClusterSecretStore` `openbao`: HTTPS to `openbao-active.openbao.svc:8200`
-(listener certificate from the demo CA), login with Kubernetes auth as service
-account `external-secrets/external-secrets` (role `external-secrets`,
-policies in [`openbao/policies/`](../../openbao/policies/)). No root or static token.
-Manifests: [`apps/external-secrets/`](../../apps/external-secrets/), layer
-`apps-external-secrets`.
-
-- **Pull**: `ExternalSecret eso-demo/hello` copies `secret/demo/hello` (field
-  `message`) to the Secret `eso-demo/hello-from-openbao` every 30 s.
-- **Push**: `PushSecret eso-demo/push-demo` copies the demo Secret
-  `eso-demo/push-demo` to `secret/pushed/push-demo` (`updatePolicy: Replace`,
-  `deletionPolicy: Delete`).
-- **Least privilege**: the ESO login can read `secret/`, write only below
-  `secret/pushed/`; the refresh test changes values with a separate
-  `demo-writer` login.
-
-Objects:
-- `ClusterSecretStore/openbao`: where OpenBao is
-  (`https://openbao-active.openbao.svc:8200`), which CA to trust, how to log in
-  (Kubernetes auth, role `external-secrets`). Only namespace `eso-demo` may use it.
-- `ExternalSecret eso-demo/hello` (pull): `secret/demo/hello` field `message`
-  -> Secret `eso-demo/hello-from-openbao`, every 30 s.
-- `PushSecret eso-demo/push-demo` (push): Secret `eso-demo/push-demo` key
-  `message` -> `secret/pushed/push-demo`.
-
 ## The picture: how one sync works
 
 How one sync works, step by step (the ESO controller logs in again for every sync):
@@ -78,6 +50,34 @@ Words in the picture: a service account is the identity a pod has in
 Kubernetes. TokenRequest is the API call that gives a short-lived token for
 it; TokenReview is the call that answers "is this token real, and whose is
 it?".
+
+## How it is set up
+
+External Secrets Operator (chart 2.14.0) connects to OpenBao through one
+`ClusterSecretStore` `openbao`: HTTPS to `openbao-active.openbao.svc:8200`
+(listener certificate from the demo CA), login with Kubernetes auth as service
+account `external-secrets/external-secrets` (role `external-secrets`,
+policies in [`openbao/policies/`](../../openbao/policies/)). No root or static token.
+Manifests: [`apps/external-secrets/`](../../apps/external-secrets/), layer
+`apps-external-secrets`.
+
+- **Pull**: `ExternalSecret eso-demo/hello` copies `secret/demo/hello` (field
+  `message`) to the Secret `eso-demo/hello-from-openbao` every 30 s.
+- **Push**: `PushSecret eso-demo/push-demo` copies the demo Secret
+  `eso-demo/push-demo` to `secret/pushed/push-demo` (`updatePolicy: Replace`,
+  `deletionPolicy: Delete`).
+- **Least privilege**: the ESO login can read `secret/`, write only below
+  `secret/pushed/`; the refresh test changes values with a separate
+  `demo-writer` login.
+
+Objects:
+- `ClusterSecretStore/openbao`: where OpenBao is
+  (`https://openbao-active.openbao.svc:8200`), which CA to trust, how to log in
+  (Kubernetes auth, role `external-secrets`). Only namespace `eso-demo` may use it.
+- `ExternalSecret eso-demo/hello` (pull): `secret/demo/hello` field `message`
+  -> Secret `eso-demo/hello-from-openbao`, every 30 s.
+- `PushSecret eso-demo/push-demo` (push): Secret `eso-demo/push-demo` key
+  `message` -> `secret/pushed/push-demo`.
 
 ## Step by step
 
