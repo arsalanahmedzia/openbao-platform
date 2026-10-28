@@ -71,11 +71,11 @@ bash scripts/openbao-failover-test.sh  # deletes the active pod (asks first)
 
 | Component | Purpose | Version |
 | --- | --- | --- |
-| kind | Local multi-node Kubernetes cluster | v0.33.0 as used (recorded in `docs/evidence/06-hardening.txt`); `scripts/install-tools.sh` installs the latest release, not pinned |
-| kind node image | Kubernetes inside each node container | kind's default for v0.33.0 (no image set in `scripts/kind-config.yaml`); exact tag not verified |
-| Flux | GitOps engine | v2.9.6 (`clusters/demo/flux-system/gotk-components.yaml`); CLI installed as latest |
-| SOPS | Encrypted bootstrap secrets in Git | 3.13.3 (recorded in the `*.sops.yaml` files); installed as latest |
-| age | Key for SOPS | Ubuntu 24.04 package (`apt-get install age`); version not verified |
+| kind | Local multi-node Kubernetes cluster | v0.33.0 |
+| kind node image | Kubernetes inside each node container | `kindest/node:v1.37.0` (Kubernetes 1.37.0, kind v0.33.0 default) |
+| Flux | GitOps engine | v2.9.6 |
+| SOPS | Encrypted bootstrap secrets in Git | 3.13.3 |
+| age | Key for SOPS | 1.1.1 (Ubuntu package) |
 | cert-manager | TLS certificates (self-signed CA) | v1.21.3 |
 | Traefik | HTTPS entry point (ingress) | chart 42.1.3 |
 | SeaweedFS | In-cluster S3 for PostgreSQL backups | 4.48 (image) |
