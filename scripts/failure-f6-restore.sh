@@ -43,7 +43,10 @@ ts()   { date -u +%T; }
 pass() { echo "$(ts) PASS  $*"; }
 fail() { echo "$(ts) FAIL  $*"; FAILS=$((FAILS + 1)); }
 info() { echo "$(ts) INFO  $*"; }
-sql()  { local c=$1; shift; kubectl cnpg psql "$c" -n "$NS" -- -d postgres -tA -c "$*"; }
+# kubectl cnpg psql runs psql through a terminal, which ends lines with a
+# carriage return: strip it, or it ends up inside values (first F6 run: an
+# invalid targetTime "...Z\r").
+sql()  { local c=$1; shift; kubectl cnpg psql "$c" -n "$NS" -- -d postgres -tA -c "$*" | tr -d '\r'; }
 phase() { kubectl -n "$NS" get cluster "$1" -o jsonpath='{.status.phase}' 2>/dev/null; }
 
 echo "==> 1. Start state"
