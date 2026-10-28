@@ -74,9 +74,18 @@ fi
 echo
 echo "==> 4. Prometheus targets (expected down until M3)"
 if forward monitoring svc/kube-prometheus-stack-prometheus 19090:9090; then
-  curl -s 'http://127.0.0.1:19090/api/v1/targets?state=active' |
-    jq -r '.data.activeTargets[] | select(.labels.namespace=="external-secrets")
-           | "        \(.labels.pod)  health=\(.health)  \(.lastError)"'
+  # A new PodMonitor needs up to ~1 min: the operator rewrites the Prometheus
+  # config, then the config-reloader loads it.
+  for _ in $(seq 1 12); do
+    curl -s 'http://127.0.0.1:19090/api/v1/targets?state=active' |
+      jq -r '.data.activeTargets[] | select(.labels.namespace=="external-secrets")
+             | "        \(.labels.pod)  health=\(.health)  \(.lastError)"' > "$TMP/targets"
+    [[ -s $TMP/targets ]] && break
+    sleep 10
+  done
+  cat "$TMP/targets"
+  [[ -s $TMP/targets ]] && pass "Prometheus discovered the ESO controller target" \
+    || fail "no external-secrets target in Prometheus after 2 min"
 else
   info "port-forward to Prometheus did not start"
 fi
