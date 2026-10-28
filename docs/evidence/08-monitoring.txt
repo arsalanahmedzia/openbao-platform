@@ -119,3 +119,40 @@ $ bash scripts/test-gate.sh  ->  GATE PASSED (8 layers Ready at b7377270)
 # Notes: targets down = NetworkPolicy in openbao (M3). vault_core_unsealed
 # appears twice, once with an empty cluster label (for M4).
 # Time for the TLS change: 13:35 (start) to 13:42 (passed), 30 min box kept.
+
+================================================================================
+M2 (CloudNativePG metrics), 2026-10-28, revision b737727
+================================================================================
+PodMonitor monitoring/pg-openbao: port 9187 "metrics" (plain HTTP, instance
+manager exporter), selector cnpg.io/cluster=pg-openbao. No pod restarts.
+
+$ bash scripts/monitoring-cnpg-metrics.sh   (excerpt)
+13:44:18 PASS  PodMonitor monitoring/pg-openbao exists
+==> 2. Metrics from the primary pg-openbao-2 (port-forward 19187 -> 9187)
+13:44:19 INFO  GET :9187/metrics -> HTTP 200, 502 sample lines
+13:44:19 PASS  exporter answers
+13:44:19 INFO  distinct metric names: 119
+13:44:19 PASS  cnpg_collector_up{cluster="pg-openbao"} 1
+13:44:19 PASS  Barman Cloud plugin backup metrics present:
+        barman_cloud_cloudnative_pg_io_first_recoverability_point 1.793026559e+09      (2026-10-26 14:55:59 UTC)
+        barman_cloud_cloudnative_pg_io_last_available_backup_timestamp 1.793188805e+09 (2026-10-28 12:00:05 UTC)
+        barman_cloud_cloudnative_pg_io_last_failed_backup_timestamp 0
+13:44:19 INFO  last available backup: 1970-01-01 00:00:01 UTC
+        ^ script bug (cut the value at the "." of 1.79e+09); fixed afterwards
+          with printf '%.0f'. Real value: 2026-10-28 12:00:05 UTC, the same as
+          "Last Successful Backup" in the test gate.
+13:44:19 INFO  other names useful for alerts (excerpt):
+        cnpg_collector_up  cnpg_collector_nodes_used  cnpg_collector_sync_replicas
+        cnpg_collector_fencing_on  cnpg_collector_manual_switchover_required
+        cnpg_pg_replication_in_recovery  cnpg_pg_replication_lag
+        cnpg_pg_replication_streaming_replicas  cnpg_pg_replication_is_wal_receiver_up
+        cnpg_pg_stat_archiver_failed_count  cnpg_pg_stat_archiver_seconds_since_last_archival
+==> 4. Prometheus targets (expected down until M3)
+        pg-openbao-3  health=down  Get "http://10.244.1.7:9187/metrics": context deadline exceeded
+        pg-openbao-1  health=down  Get "http://10.244.4.11:9187/metrics": context deadline exceeded
+        pg-openbao-2  health=down  Get "http://10.244.2.5:9187/metrics": context deadline exceeded
+13:44:20 RESULT  M2 CloudNativePG passed
+
+$ bash scripts/test-gate.sh  ->  GATE PASSED (8 layers Ready at b7377270)
+# Note: the old cnpg_collector_last_*_backup_timestamp metrics are deprecated
+# and not used; backups go through the Barman Cloud plugin (v0.15.0 docs).

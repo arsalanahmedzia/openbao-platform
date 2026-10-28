@@ -62,7 +62,7 @@ if forward "$NS" "pod/$PRIMARY" 19187:9187; then
     pass "Barman Cloud plugin backup metrics present:"
     grep -v '^#' "$TMP/metrics" | grep 'barman_cloud' | sed 's/^/        /'
     last=$(grep -v '^#' "$TMP/metrics" | grep 'last_available_backup_timestamp' | grep '^barman' | awk '{print $NF}' | head -1)
-    [[ -n $last ]] && info "last available backup: $(date -u -d "@${last%.*}" '+%F %T UTC' 2>/dev/null)"
+    [[ -n $last ]] && info "last available backup: $(date -u -d "@$(printf '%.0f' "$last")" '+%F %T UTC' 2>/dev/null)"
   else
     info "barman_cloud_* metrics not found; backup-related names:"
     grep -i 'backup\|recoverab' "$TMP/names" | sed 's/^/        /'
