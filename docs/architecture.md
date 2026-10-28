@@ -15,6 +15,20 @@ underneath.
 The README is short on purpose. Without this file, a reader could not check
 why a part exists, in which folder it is, or who trusts whom.
 
+## Overview in one paragraph
+
+Flux applies this Git repository to the cluster in layers, each waiting for
+the one before: `flux-system` → `infra-controllers` → `infra-configs` →
+`infra-storage` → `apps-database` → `apps-openbao` → `apps-external-secrets`.
+`apps-monitoring` (Prometheus, Alertmanager, alert rules) only waits for
+`infra-controllers` and `infra-configs`. OpenBao runs as 3 pods in HA mode (one active, two standby) and stores its
+data in PostgreSQL. PostgreSQL is run by CloudNativePG with 3 instances and
+backs up to S3 on SeaweedFS. The External Secrets Operator syncs between
+OpenBao and Kubernetes Secrets in both directions (pull and push). Traefik is
+the HTTPS entry point. Prometheus scrapes OpenBao, PostgreSQL and the ESO
+controller and raises alerts (sealed OpenBao, failed syncs, unhealthy
+PostgreSQL, old backups, lost nodes).
+
 ## How it gets built
 
 ```mermaid

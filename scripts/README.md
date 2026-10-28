@@ -2,8 +2,41 @@
 
 Every script explains at the top what it does, step by step, with the real
 commands. They print PASS / FAIL / INFO lines with UTC times and never print
-keys or tokens. Scripts for daily use are listed in the README section
-"Operations"; failure tests in `docs/runbooks/failure-tests.md`.
+keys or tokens. Scripts for daily use are listed in
+[`docs/operations.md`](../docs/operations.md); failure tests in
+[`docs/runbooks/failure-tests.md`](../docs/runbooks/failure-tests.md).
+
+## Start the platform, full order
+
+The README shows the five main commands. This is the full order, as it was
+used (demo environment: a GitHub Codespace, see `docs/environment.md`).
+
+```bash
+# in a Codespace created from this repo (tools install automatically);
+# secrets SOPS_AGE_KEY, FLUX_GITHUB_TOKEN, GITHUB_USER set as Codespaces secrets
+bash scripts/bootstrap.sh                            # kind + SOPS key + Flux
+flux get kustomizations --watch
+```
+
+OpenBao (once Flux shows `apps-openbao` Ready; details in
+`docs/runbooks/openbao-init-unseal.md`):
+
+```bash
+bash scripts/openbao-deploy-check.sh   # 3 pods Running, sealed, tables in PostgreSQL
+bash scripts/openbao-init.sh           # once: keys to ~/openbao-init.json + Codespaces secrets
+bash scripts/openbao-unseal.sh         # after every pod/Codespace restart
+bash scripts/openbao-configure.sh      # once: KV v2, Kubernetes auth, ESO policies and role
+bash scripts/openbao-evidence.sh       # evidence in docs/evidence/04-*.txt
+bash scripts/openbao-failover-test.sh  # deletes the active pod (asks first)
+```
+
+Check everything (read-only; includes monitoring: targets up, alert rules
+loaded, nothing firing; details in `docs/runbooks/monitoring.md`):
+
+```bash
+bash scripts/test-gate.sh
+bash scripts/monitoring-check.sh
+```
 
 ## Monitoring
 
