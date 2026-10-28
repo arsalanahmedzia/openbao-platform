@@ -125,7 +125,9 @@ OUTAGE=$(awk -v t="$T0" '$2>t && $3!="200"' "$PROBE_LOG" | wc -l)
 info "OpenBao health probes without 200 after the stop: $OUTAGE (codes: $(awk -v t="$T0" '$2>t && $3!="200"{print $3}' "$PROBE_LOG" | sort | uniq -c | tr -s ' ' | tr '\n' ' '))"
 [[ -n "$T_BAO" ]] && pass "OpenBao answered again through a standby after $T_BAO s" || fail "OpenBao did not answer 200 again within 10 min"
 [[ "$NEED_PRIMARY" == no || -n "$T_PRIMARY" ]] && pass "PostgreSQL primary available (${T_PRIMARY:-no failover needed})" || fail "no new PostgreSQL primary within 10 min"
-[[ "$NEED_ESO" == no || -n "$T_ESO" ]] && pass "ESO controller running (${T_ESO:+replaced after $T_ESO s}${T_ESO:-was not on this node})" || fail "ESO controller not replaced within 10 min"
+if [[ "$NEED_ESO" == no ]]; then pass "ESO controller running (was not on this node)"
+elif [[ -n "$T_ESO" ]]; then pass "ESO controller replaced on another node after $T_ESO s"
+else fail "ESO controller not replaced within 10 min"; fi
 kubectl -n eso-demo get secret hello-from-openbao -o jsonpath='{.data.message}' | base64 -d | grep -qx hello-from-openbao \
   && pass "Secret hello-from-openbao kept its value" || fail "Secret hello-from-openbao changed"
 
