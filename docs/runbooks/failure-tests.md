@@ -10,6 +10,7 @@ Evidence: `docs/evidence/07-f<N>-*.txt`.
 | F2 | PostgreSQL primary pod deleted | Replica promoted; OpenBao writes failed only ~4-6 s; old primary back as replica | Failover 187 s; healthy after 213 s |
 | F3 | All 3 OpenBao pods restarted (sealed) while ESO runs | Secret kept its value; ESO errors after ~90 s; recovered by itself after unseal, no ESO restart | ExternalSecret 16 s after unseal |
 | F4 | PushSecret deleted (Flux paused) | Value and all versions deleted in OpenBao; Flux recreated the PushSecret, value back | Deleted after 1 s; back 2 s after Flux resumed |
+| F5 | ESO controller pod deleted | New pod logged in with new tokens (audit log), synced; Secret untouched | New pod 1 s; synced 6 s |
 
 ## F1. A worker node dies
 
@@ -154,3 +155,25 @@ PushSecret from Git; ESO pushes the value again.
 where Kubernetes is the source of truth (R21), and review PushSecret deletions
 in pull requests: a removed PushSecret deletes the value and its history in
 OpenBao for good.
+
+## F5. ESO restarts
+
+**What we broke:** `bash scripts/failure-f5-eso-restart.sh` deleted the ESO
+controller pod; the Deployment started a new one.
+
+**What we expected:** the Kubernetes Secret is untouched; the new pod logs in
+to OpenBao again with a new token; the store is `Valid` again.
+
+**What really happened:** the new pod was Ready after 1 s and synced
+`hello` 6 s after the delete. The Secret was not changed (same
+resourceVersion). The OpenBao audit log shows logins by `external-secrets`
+from the new pod's IP with new tokens (only hashes in the log). The gate
+passed. As expected.
+
+**Also seen:** ESO logs in on every sync (about two logins per 30 s cycle),
+creating a new short-lived token each time, not one token per pod.
+
+**What we would change in production:** run 2 ESO controller replicas (only
+one is active, the other takes over without waiting for a new pod); with many
+ExternalSecrets, use a longer refresh interval or ESO's client caching to cut
+logins to OpenBao (check the ESO docs for the option before enabling it).

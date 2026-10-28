@@ -1,0 +1,52 @@
+# F5: ESO restarts   2026-10-28
+# Command: bash scripts/failure-f5-eso-restart.sh
+
+10:53:45 INFO  start: ESO controller external-secrets-76ccc4969-gmsdt (10.244.1.4); store True Valid; ExternalSecret True SecretSynced; Secret value hello-from-openbao (resourceVersion 69966)
+
+==> 3. Break: delete the ESO controller pod
+10:53:45 INFO  deleting external-secrets-76ccc4969-gmsdt
+pod "external-secrets-76ccc4969-gmsdt" deleted from external-secrets namespace
+
+==> 4. New pod
+Waiting for deployment "external-secrets" rollout to finish: 0 of 1 updated replicas are available...
+Waiting for deployment "external-secrets" rollout to finish: 0 of 1 updated replicas are available...
+deployment "external-secrets" successfully rolled out
+10:53:46 PASS  new ESO controller external-secrets-76ccc4969-5kmhc (10.244.2.9) Ready after 1 s
+10:53:46 INFO  Secret while ESO restarted: hello-from-openbao rv=69966
+
+==> 5. Sync by the new pod
+10:53:51 PASS  ExternalSecret hello synced by the new pod (refreshTime 2026-10-28T10:53:47Z, 6 s after the delete)
+10:53:51 PASS  store openbao True Valid
+
+==> 6. New login in the OpenBao audit log (tokens shown only as hashes)
+2026-10-28T10:53:36.061775686Z kubernetes-external-secrets-external-secrets from 10.244.1.4 policies=default,eso-read,eso-write token=hmac-sha256:694d2d034cef...
+2026-10-28T10:53:36.116730742Z kubernetes-external-secrets-external-secrets from 10.244.1.4 policies=default,eso-read,eso-write token=hmac-sha256:8c4655b12b75...
+2026-10-28T10:53:46.695028493Z kubernetes-external-secrets-external-secrets from 10.244.2.9 policies=default,eso-read,eso-write token=hmac-sha256:712f9716bfc2...
+2026-10-28T10:53:47.021495841Z kubernetes-external-secrets-external-secrets from 10.244.2.9 policies=default,eso-read,eso-write token=hmac-sha256:fe41e12192d8...
+10:53:56 INFO  logins since the restart: 4, from the new pod's IP 10.244.2.9: 2
+10:53:56 PASS  the new ESO pod logged in to OpenBao with a new token (audit log, openbao-0)
+
+==> 7. Secret
+10:53:57 PASS  Secret hello-from-openbao still hello-from-openbao
+10:53:57 INFO  Secret resourceVersion before 69966, now 69966
+
+10:53:57 RESULT  F5 passed
+
+################################################################################
+# Test gate afterwards (bash scripts/test-gate.sh): GATE PASSED (10 checks)
+#
+# Reading of the result:
+# - New controller Ready 1 s after the delete (image already on the node);
+#   ExternalSecret hello synced by it 6 s after the delete; store Valid.
+# - The Kubernetes Secret was not touched (resourceVersion 69966 before and
+#   after), so apps reading it saw nothing of the restart.
+# - Audit log: logins by external-secrets from the NEW pod IP 10.244.2.9 at
+#   10:53:46 and 10:53:47, each with a different token (different hashes).
+# - The two logins at 10:53:36 come from the OLD pod (10.244.1.4), 9 s before
+#   the delete: the script reads the log from 10 s before the restart, so
+#   "logins since the restart: 4" includes them (script flaw in the label;
+#   the PASS only counts the new pod's IP).
+# - ESO logs in on every sync (about two logins per 30 s cycle here), each
+#   creating a new short-lived token (TTL 15 m); it does not keep one token per
+#   pod. Fine for one demo secret, more load on OpenBao with many.
+################################################################################
