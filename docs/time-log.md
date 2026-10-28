@@ -12,5 +12,6 @@ Time spent per task, recorded as the work happened.
 | 2026-10-26 | Hardening | Backup schedule, GitHub token check, OpenBao audit device, root-token scripts, NetworkPolicies in 5 namespaces (enforcement tested), risk assessment | |
 | 2026-10-27 to 2026-10-28 | Failure tests | F1 worker node, F2 PostgreSQL primary, F3 sealed OpenBao, F4 PushSecret delete, F5 ESO restart, F6 point-in-time restore; pod-network repair after a Codespace restart; failure-test runbook and scripts | |
 | 2026-10-28 | Docs | README sections, risk assessment update | |
+| 2026-10-28 | Monitoring | kube-prometheus-stack layer; metrics from OpenBao (TLS listener 9101), PostgreSQL, ESO (TLS); NetworkPolicies for Prometheus; 8 alert rules (promtool-tested); check script; alert proven with an F3 re-run; runbook, ADR 0007, risk update | |
 
 **Total:** _TODO_
