@@ -18,39 +18,63 @@ the HTTPS entry point. Prometheus scrapes OpenBao, PostgreSQL and the ESO
 controller and raises alerts (sealed OpenBao, failed syncs, unhealthy
 PostgreSQL, old backups, lost nodes).
 
+### How it gets built
+
 ```mermaid
 flowchart LR
-  git[GitHub repo] --> flux[Flux]
-  flux -->|layers| cluster
-
-  subgraph cluster[kind cluster]
-    traefik[Traefik HTTPS] --> bao
-    subgraph openbao[namespace openbao]
-      bao[OpenBao 3 pods HA]
-    end
-    subgraph databases[namespace databases]
-      pg[(PostgreSQL 3 instances CloudNativePG)]
-    end
-    subgraph storage[namespace storage]
-      s3[(SeaweedFS S3)]
-    end
-    subgraph eso[External Secrets]
-      esoctl[ESO controller]
-    end
-    subgraph monitoring[namespace monitoring]
-      prom[Prometheus + Alertmanager]
-    end
-    k8s[Kubernetes Secrets]
-    bao --> pg
-    pg -->|base backups + WAL| s3
-    esoctl -->|pull| bao
-    esoctl -->|push| bao
-    esoctl --> k8s
-    prom -.->|metrics| bao
-    prom -.->|metrics| pg
-    prom -.->|metrics| esoctl
-  end
+  git[(GitHub repo<br/>the wanted state)]
+  flux[Flux<br/>runs inside the cluster]
+  l1[1 flux-system]
+  l2[2 infra-controllers<br/>the tools]
+  l3[3 infra-configs<br/>demo CA, settings]
+  l4[4 infra-storage<br/>SeaweedFS S3]
+  l5[5 apps-database<br/>PostgreSQL]
+  l6[6 apps-openbao<br/>OpenBao]
+  l7[7 apps-external-secrets<br/>ESO]
+  l8[8 apps-monitoring<br/>Prometheus]
+  flux -->|"fetches every minute"| git
+  flux -->|"applies in this order,<br/>each waits for the one before"| l1
+  l1 --> l2 --> l3 --> l4 --> l5 --> l6 --> l7
+  l3 --> l8
 ```
+
+### How it runs
+
+```mermaid
+flowchart TB
+  user([Person with a browser])
+  traefik[Traefik<br/>HTTPS entry point]
+  bao[OpenBao x3<br/>keeps the secrets<br/>1 active, 2 standby]
+  pg[(PostgreSQL x3<br/>OpenBao saves its data here)]
+  s3[(SeaweedFS S3<br/>backup storage)]
+  eso[ESO controller<br/>copies secrets between<br/>OpenBao and Kubernetes]
+  ksec[Kubernetes Secret<br/>what apps really read]
+  prom[Prometheus + Alertmanager<br/>measures and raises alerts]
+
+  user -->|"A opens https"| traefik
+  traefik -->|"B forwards"| bao
+  bao -->|"C saves data"| pg
+  pg -->|"D sends backups and WAL"| s3
+  eso -->|"E pull: reads a secret"| bao
+  eso -->|"F push: writes a secret"| bao
+  eso -->|"G creates or updates"| ksec
+  prom -.->|"H asks for metrics"| bao
+  prom -.->|"H"| pg
+  prom -.->|"H"| eso
+  classDef store fill:#e8f1ff,stroke:#4a6fa5
+  classDef main fill:#fff4d6,stroke:#b8860b
+  class pg,s3 store
+  class bao,eso main
+```
+
+How to read it: an arrow points from the one who starts the call to the one who is asked. Letters A to G follow a
+secret through the platform. Dotted arrows (H) are monitoring. Everything runs inside one kind cluster.
+
+Words used: ESO is the External Secrets Operator. S3 is a common way to store
+files over HTTP; SeaweedFS provides it inside the cluster. WAL (write-ahead
+log) is PostgreSQL's running record of every change; with the backups it allows
+a restore to any point in time. Layer 8 does not wait for layers 4 to 7: it
+only needs the tools (2) and the demo CA (3).
 
 ## Quick start
 
