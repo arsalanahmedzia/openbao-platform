@@ -237,3 +237,39 @@ $ bash scripts/monitoring-netpol-check.sh
 $ bash scripts/test-gate.sh  ->  GATE PASSED (8 layers Ready at 1b5a6918)
 # The OpenBao targets are up over https with ca_file + server_name and
 # insecure_skip_verify false: Prometheus verified the certificate.
+
+================================================================================
+ESO metrics over TLS, 2026-10-28, revisions cd2187e (certificate) and 2c43451
+================================================================================
+Pushed in two steps: the certificate first (infra-configs creates it, the ESO
+pod mounts it), then the ESO values. In one push the ESO upgrade would have
+waited for a Secret that infra-configs only creates after infra-controllers.
+
+$ kubectl -n external-secrets get certificate external-secrets-metrics
+NAME                       READY   SECRET                         AGE
+external-secrets-metrics   True    external-secrets-metrics-tls   72s
+
+$ bash scripts/monitoring-eso-metrics.sh   (excerpt)
+16:36:20 PASS  Certificate external-secrets/external-secrets-metrics Ready
+deployment "external-secrets" successfully rolled out
+16:36:22 PASS  controller runs with --metrics-secure=true --metrics-cert-name=tls.crt
+16:36:26 INFO  GET https://external-secrets-metrics.external-secrets.svc:8080/metrics -> HTTP 200, 695 sample lines
+16:36:26 PASS  metrics over HTTPS, certificate verified (demo CA, external-secrets-metrics.external-secrets.svc)
+16:36:27 PASS  plain HTTP on 8080 -> HTTP 400 (no metrics without TLS)
+16:36:27 PASS  externalsecret_status_condition / clustersecretstore_status_condition / pushsecret_status_condition present
+          scheme: https
+          tls_config:
+            ca_file: /etc/prometheus/certs/0_monitoring_prometheus-client-tls_ca.crt
+            server_name: external-secrets-metrics.external-secrets.svc
+            insecure_skip_verify: false
+16:37:19 PASS  scrape config: https, CA file, server_name external-secrets-metrics.external-secrets.svc
+16:37:19 PASS  scrape config verifies certificates (no insecure_skip_verify: true)
+        https://10.244.2.9:8080/metrics  health=up
+16:37:19 PASS  Prometheus scrapes the ESO controller over verified HTTPS (up)
+16:37:19 RESULT  ESO metrics TLS passed
+
+$ bash scripts/test-gate.sh  ->  GATE PASSED (8 layers Ready at 2c434511)
+# Time box: 16:24 (start of the TLS check) to 16:37 (passed).
+# CloudNativePG metrics stay plain HTTP + NetworkPolicy (known gap R30).
+# The gate shows the OpenBao pods restarted once ~16:21 with new IPs
+# (Codespace restart); all unsealed and Ready.
