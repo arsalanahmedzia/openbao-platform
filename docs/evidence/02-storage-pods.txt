@@ -1,12 +1,11 @@
 # Storage layer (SeaweedFS), captured 2026-10-25T12:37:48Z
-# Flux revisions are shown as <rev>; the revision was the commit of 2026-10-25 12:35 ("Add ADR 0002: in-cluster S3 with SeaweedFS").
 
 $ flux get kustomizations
 NAME             	REVISION          	SUSPENDED	READY	MESSAGE                              
-flux-system      	main@sha1:<rev>	False    	True 	Applied revision: main@sha1:<rev>	
-infra-configs    	main@sha1:<rev>	False    	True 	Applied revision: main@sha1:<rev>	
-infra-controllers	main@sha1:<rev>	False    	True 	Applied revision: main@sha1:<rev>	
-infra-storage    	main@sha1:<rev>	False    	True 	Applied revision: main@sha1:<rev>	
+flux-system      	main@sha1:f9ff231b	False    	True 	Applied revision: main@sha1:f9ff231b	
+infra-configs    	main@sha1:f9ff231b	False    	True 	Applied revision: main@sha1:f9ff231b	
+infra-controllers	main@sha1:f9ff231b	False    	True 	Applied revision: main@sha1:f9ff231b	
+infra-storage    	main@sha1:f9ff231b	False    	True 	Applied revision: main@sha1:f9ff231b	
 
 $ kubectl -n storage get pods,pvc,svc -o wide
 NAME                                 READY   STATUS      RESTARTS   AGE   IP           NODE                       NOMINATED NODE   READINESS GATES

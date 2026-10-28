@@ -167,12 +167,12 @@ PASS  expected ok, got ok
 RESULT: NetworkPolicies are enforced (deny and allow both work)
 ==> Cleanup: deleting namespace netpol-test
 
-==> Test gate (afterwards, Git state of 2026-10-26 23:03): GATE PASSED (all 9 checks)
+==> Test gate (afterwards, revision c81bb36d): GATE PASSED (all 9 checks)
 
 ################################################################################
 # B2a NetworkPolicies: namespace storage   2026-10-26
 # Commands: bash scripts/netpol-test-storage.sh ; bash scripts/test-gate.sh
-# Policies: infrastructure/storage/networkpolicy.yaml
+# Policies: infrastructure/storage/networkpolicy.yaml (revision b8d71c70)
 ################################################################################
 
 NAME                   POD-SELECTOR                       AGE
@@ -199,10 +199,10 @@ RESULT: storage policies work as intended
 ################################################################################
 # B2b NetworkPolicies: namespace databases   2026-10-26
 # Commands: bash scripts/netpol-test-databases.sh ; bash scripts/test-gate.sh
-# Policies: apps/database/networkpolicy.yaml
+# Policies: apps/database/networkpolicy.yaml (revision 311b4325)
 ################################################################################
 
-First attempt (Git state of 2026-10-26 23:15) used ipBlock 172.18.0.0/16, taken from
+First attempt (revision c11ea9c0/c7d87446) used ipBlock 172.18.0.0/16, taken from
 old evidence of the previous cluster. The rebuilt cluster's nodes are on
 172.19.0.x, so the test script stopped before applying. Flux applied the
 commit by itself on its interval; the next test-gate run then hung at
@@ -249,7 +249,7 @@ RESULT: databases policies work as intended
 ################################################################################
 # B2c NetworkPolicies: namespace openbao   2026-10-26
 # Commands: bash scripts/netpol-test-openbao.sh ; bash scripts/test-gate.sh
-# Policies: apps/openbao/networkpolicy.yaml
+# Policies: apps/openbao/networkpolicy.yaml (revision 69998f8a)
 ################################################################################
 
 NAME                   POD-SELECTOR                     AGE
@@ -285,7 +285,7 @@ RESULT: openbao policies work as intended
 ################################################################################
 # B2d NetworkPolicies: namespace external-secrets   2026-10-26
 # Commands: bash scripts/netpol-test-external-secrets.sh ; bash scripts/test-gate.sh
-# Policies: infrastructure/controllers/external-secrets-networkpolicy.yaml
+# Policies: infrastructure/controllers/external-secrets-networkpolicy.yaml (revision 632e7c1b)
 ################################################################################
 
 NAME                           POD-SELECTOR                                      AGE
@@ -311,13 +311,13 @@ external-secrets-cert-controller-6f58665688-rj79g   1/1  Running  1 (140m ago)  
 external-secrets-webhook-745bbf55b6-tg2fs           1/1  Running  1 (140m ago)  8h
 # (restarts are from the Codespace restart, before this change)
 openbao   114m   Valid    ReadWrite      True
-apps-external-secrets: applied revision main@sha1:<rev> (Git state of 2026-10-26 23:29) (through the webhook)
+apps-external-secrets: applied revision main@sha1:632e7c1b (through the webhook)
 
 RESULT: external-secrets policies work as intended
 
 ==> Test gate (afterwards): GATE PASSED (10 checks; PushSecret synced 3 s before)
 
-# B2d re-run with the changed test (Git state of 2026-10-26 23:34): renamed copies, no warning
+# B2d re-run with the changed test (revision 5ef14092): renamed copies, no warning
 externalsecret.external-secrets.io/netpol-dryrun-hello created (server dry run)
 PASS  webhook reached for apps/external-secrets/externalsecret-hello.yaml
 clustersecretstore.external-secrets.io/netpol-dryrun-openbao created (server dry run)
@@ -329,7 +329,7 @@ RESULT: external-secrets policies work as intended
 ################################################################################
 # B2e NetworkPolicies: namespace eso-demo   2026-10-26
 # Commands: bash scripts/netpol-test-eso-demo.sh ; bash scripts/test-gate.sh
-# Policy: apps/external-secrets/networkpolicy.yaml
+# Policy: apps/external-secrets/networkpolicy.yaml (revision fbb36976)
 ################################################################################
 
 NAME                   POD-SELECTOR   AGE
