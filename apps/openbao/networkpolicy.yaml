@@ -9,6 +9,8 @@
 #     - the OpenBao pods themselves (in-pod checks through the Service)
 #   8201 (cluster port: standby -> active request forwarding) only between the
 #     OpenBao pods
+#   9101 (metrics listener) only from the Prometheus pod in namespace
+#     monitoring (allow-prometheus-metrics at the end, monitoring M3)
 # Ports as in the chart's own optional policy (server.networkPolicy, which
 # opens 8200/8201 to every namespace). The readiness probe is an exec
 # (`bao status` inside the container), so it needs no network rule.
@@ -73,3 +75,28 @@ spec:
       ports:
         - protocol: TCP
           port: 8201
+---
+# 9101 (metrics listener, HTTPS, metrics only) only from the Prometheus pod
+# (namespace monitoring AND app.kubernetes.io/name=prometheus). Monitoring M3.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-metrics
+  namespace: openbao
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: openbao
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: 9101
