@@ -8,6 +8,7 @@ Evidence: `docs/evidence/07-f<N>-*.txt`.
 | --- | --- | --- | --- |
 | F1 | Worker node with the active OpenBao pod and the PostgreSQL primary | OpenBao answered again through a standby; one pod sealed after the restart | OpenBao 76 s; ESO ~6 min; node rejoin 20 s |
 | F2 | PostgreSQL primary pod deleted | Replica promoted; OpenBao writes failed only ~4-6 s; old primary back as replica | Failover 187 s; healthy after 213 s |
+| F3 | All 3 OpenBao pods restarted (sealed) while ESO runs | Secret kept its value; ESO errors after ~90 s; recovered by itself after unseal, no ESO restart | ExternalSecret 16 s after unseal |
 
 ## F1. A worker node dies
 
@@ -94,3 +95,35 @@ failover after a crash-like deletion matters, set a shorter
 `.spec.smartShutdownTimeout`, at the cost of cutting open sessions earlier.
 Synchronous replication (`minSyncReplicas: 1`) closes the data-loss window at
 the cost of write latency.
+
+## F3. OpenBao is sealed while ESO runs
+
+**What we broke:** `bash scripts/failure-f3-sealed.sh` deleted all three
+OpenBao pods. They came back sealed after 20 s; the script unsealed them after
+153 s (keys via stdin).
+
+**What we expected:** the Kubernetes Secret keeps its last value; ESO reports
+errors while OpenBao is sealed; after unsealing everything recovers by itself
+without restarting ESO, possibly only after minutes (retry pauses).
+
+**What really happened:**
+
+| Time | Event |
+| --- | --- |
+| +20 s | All OpenBao pods back, sealed |
+| up to +82 s | ExternalSecret `hello` still `SecretSynced` |
+| ~+97 s | ExternalSecret `SecretSyncedError`; ESO log: login to OpenBao times out |
+| whole outage | Store shows `True Valid`; Secret value unchanged and not rewritten |
+| unseal +11 s / +16 s | Store and ExternalSecret Ready again, no ESO restart |
+
+**Different from the expectation:**
+- The store status never showed the outage; only the ExternalSecret did.
+- ESO reported the error only after ~90 s (reason not verified).
+- Recovery took 16 s, not minutes: after a short outage ESO's retry pauses
+  are still short. After a long outage (seen the same morning) they grow to
+  ~7 minutes, and recovery waits for the next retry.
+
+**What we would change in production:** alert on ExternalSecret conditions
+(`Ready=False`), not on the store status; auto-unseal (R03) so a restart does
+not need a person; apps should read the Kubernetes Secret, which survives an
+OpenBao outage.

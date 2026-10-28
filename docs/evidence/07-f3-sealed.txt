@@ -1,0 +1,68 @@
+# F3: OpenBao sealed while ESO runs   2026-10-28
+# Command: bash scripts/failure-f3-sealed.sh
+
+10:43:12 INFO  start: store True Valid; ExternalSecret True SecretSynced; Secret value hello-from-openbao (resourceVersion 69966); ESO controller external-secrets-76ccc4969-gmsdt restarts=1
+
+==> 3. Break: restart all OpenBao pods
+10:43:12 INFO  deleting the 3 OpenBao pods
+pod "openbao-0" deleted from openbao namespace
+pod "openbao-1" deleted from openbao namespace
+pod "openbao-2" deleted from openbao namespace
+10:43:32 INFO  pods: openbao-0=true openbao-1=true openbao-2=true 
+10:43:32 PASS  OpenBao pods are back SEALED
+
+==> 4. Watch while sealed (about 2 minutes)
+10:43:32 INFO  t+20s | store: True Valid | ExternalSecret: True SecretSynced | Secret: hello-from-openbao rv=69966
+10:43:48 INFO  t+35s | store: True Valid | ExternalSecret: True SecretSynced | Secret: hello-from-openbao rv=69966
+10:44:04 INFO  t+51s | store: True Valid | ExternalSecret: True SecretSynced | Secret: hello-from-openbao rv=69966
+10:44:19 INFO  t+67s | store: True Valid | ExternalSecret: True SecretSynced | Secret: hello-from-openbao rv=69966
+10:44:34 INFO  t+82s | store: True Valid | ExternalSecret: True SecretSynced | Secret: hello-from-openbao rv=69966
+10:44:50 INFO  t+97s | store: True Valid | ExternalSecret: False SecretSyncedError | Secret: hello-from-openbao rv=69966
+10:45:05 INFO  t+113s | store: True Valid | ExternalSecret: False SecretSyncedError | Secret: hello-from-openbao rv=69966
+10:45:20 INFO  t+128s | store: True Valid | ExternalSecret: False SecretSyncedError | Secret: hello-from-openbao rv=69966
+--- latest ESO errors (last 60 s):
+2026-10-28T10:45:21Z could not get provider client: unable to log in to auth method: unable to log in with Kubernetes auth: context deadline exceeded
+2026-10-28T10:45:22Z could not get secrets client for store openbao: unable to log in to auth method: unable to log in with Kubernetes auth: context deadline exceeded
+10:45:35 PASS  Secret hello-from-openbao kept its value while OpenBao was sealed
+
+==> 5. Unseal
+10:45:35 INFO  running scripts/openbao-unseal.sh (keys via stdin, not shown)
+openbao-0: unsealed
+openbao-1: unsealed
+openbao-2: unsealed
+==> Waiting for all pods to be Ready (readiness = unsealed)
+HA Mode         active
+HA Mode                standby
+HA Mode                standby
+10:45:45 INFO  unsealed after 153 s sealed
+
+==> 6. Recovery without restarting ESO (up to 15 min)
+10:45:46 INFO  store Ready again after 11 s
+10:45:51 INFO  ExternalSecret Ready again after 16 s
+10:45:51 PASS  store Valid/Ready again by itself (11 s after unseal)
+10:45:51 PASS  ExternalSecret hello Ready again by itself (16 s after unseal)
+10:45:51 PASS  Secret value still hello-from-openbao
+10:45:51 INFO  Secret resourceVersion before 69966, now 69966
+10:45:51 PASS  ESO controller not restarted (external-secrets-76ccc4969-gmsdt restarts=1)
+
+10:45:51 RESULT  F3 passed
+
+################################################################################
+# Test gate afterwards (bash scripts/test-gate.sh): GATE PASSED (10 checks)
+#
+# Reading of the result:
+# - The store kept showing "True Valid" while all pods were sealed: ESO only
+#   re-validates the store now and then, so the store status does not show an
+#   outage; the ExternalSecret status does.
+# - The ExternalSecret switched to SecretSyncedError only ~90 s after the
+#   pods were sealed (reason not verified: 30 s refresh plus ESO's own retries
+#   and the login timeout "context deadline exceeded").
+# - The Kubernetes Secret kept its value and was not even rewritten
+#   (resourceVersion 69966 before and after).
+# - Recovery after the unseal: store 11 s, ExternalSecret 16 s, no ESO
+#   restart. After the long outage on 2026-10-28 morning the same recovery
+#   took several minutes (ESO's retry pauses had grown to ~7 min): the
+#   longer OpenBao is down, the slower ESO recovers afterwards.
+# - The OpenBao pods came back on other workers (openbao-0 now on worker);
+#   anti-affinity still keeps one per worker.
+################################################################################
