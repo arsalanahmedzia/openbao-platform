@@ -82,17 +82,20 @@ bash scripts/openbao-failover-test.sh  # deletes the active pod (asks first)
 | CloudNativePG | HA PostgreSQL with backups | operator 1.30.1 (chart 0.29.1), PostgreSQL 18.6, plugin-barman-cloud 0.15.1 (chart 0.8.1) |
 | OpenBao | Secrets management (HA, PostgreSQL backend) | 2.7.1 (chart 0.30.4) |
 | External Secrets Operator | Secret sync OpenBao <-> Kubernetes | 2.14.0 (chart and app) |
+| kube-prometheus-stack | Metrics and alerts: Prometheus, Alertmanager, Prometheus Operator, kube-state-metrics | chart 92.3.1 (Prometheus v3.15.0, Alertmanager v0.34.1, operator v0.94.1, kube-state-metrics 2.20.0) |
 
 ## Architecture and design decisions
 
-All decisions are in [`docs/adr/`](docs/adr/) (ADRs 0001 to 0005; there is no
-0006 or later):
+All decisions are in [`docs/adr/`](docs/adr/) (ADRs 0001 to 0005 and 0007;
+0006, the security-hardening decisions, is referenced in the NetworkPolicy
+files but not written yet):
 
 - [ADR 0001](docs/adr/0001-pinned-versions.md): pin exact chart and image versions.
 - [ADR 0002](docs/adr/0002-in-cluster-s3.md): in-cluster S3 with SeaweedFS for PostgreSQL backups.
 - [ADR 0003](docs/adr/0003-cloudnativepg-ha.md): HA PostgreSQL with CloudNativePG, backups through the Barman Cloud plugin.
 - [ADR 0004](docs/adr/0004-openbao-ha-postgresql.md): OpenBao HA on PostgreSQL, manual Shamir unseal, TLS at Traefik.
 - [ADR 0005](docs/adr/0005-external-secrets-openbao.md): External Secrets with one ClusterSecretStore, TLS on the OpenBao listener, Kubernetes auth, push/pull policies.
+- [ADR 0007](docs/adr/0007-monitoring.md): monitoring with kube-prometheus-stack, metrics over verified TLS (OpenBao, ESO; PostgreSQL plain HTTP as a known gap), alert rules.
 
 ## Production-ready vs simplified for the demo
 
@@ -173,6 +176,7 @@ Scripts for daily use:
 | [`scripts/resume.sh`](scripts/resume.sh) | After a Codespace restart: starts the nodes, fixes the network, checks the pod network |
 | [`scripts/openbao-unseal.sh`](scripts/openbao-unseal.sh) | After every OpenBao pod restart (pods start sealed) |
 | [`scripts/test-gate.sh`](scripts/test-gate.sh) | Is everything OK? Read-only check of Flux, OpenBao, PostgreSQL, External Secrets |
+| [`scripts/monitoring-check.sh`](scripts/monitoring-check.sh) | Read-only: all scrape targets up, alert rules loaded, which alerts are pending or firing |
 | [`scripts/eso-debug.sh`](scripts/eso-debug.sh) | Why is an ExternalSecret or PushSecret not Ready? |
 | `scripts/failure-f1-worker.sh` … `scripts/failure-f6-restore.sh` | One failure test each; asks before it breaks anything and puts everything back at the end |
 
@@ -186,9 +190,29 @@ Outputs of all tests are in [`docs/evidence/`](docs/evidence/). Runbooks:
 > [`scripts/kind-fix-pod-network.sh`](scripts/kind-fix-pod-network.sh), which
 > restarts kindnet and recreates the affected pods (it asks first).
 
-Monitoring and alerting: none is deployed (no Prometheus, no alerts). The
-OpenBao audit log goes to the pod log. There is no `docs/operations.md`;
-operations are described in the runbooks above.
+**Monitoring and alerting** (namespace `monitoring`, layer `apps-monitoring`,
+[ADR 0007](docs/adr/0007-monitoring.md), runbook
+[`docs/runbooks/monitoring.md`](docs/runbooks/monitoring.md)): Prometheus
+scrapes OpenBao (HTTPS, port 9101), the 3 PostgreSQL instances (port 9187)
+and the External Secrets controller (HTTPS, port 8080), plus
+kube-state-metrics for pod and node state. Alerts:
+
+| Alert | Fires when |
+| --- | --- |
+| OpenBaoSealed | an OpenBao pod is sealed or not ready for 2 min |
+| ExternalSecretNotReady / PushSecretNotReady | a sync has failed for 5 min |
+| ClusterSecretStoreNotReady | the store is not Valid for 5 min |
+| ExternalSecretsControllerDown | the ESO controller cannot be scraped for 5 min |
+| PostgresNotHealthy | fewer than 3 PostgreSQL instances up, or no primary, for 5 min |
+| BackupFailedOrTooOld | no successful backup for 26 h, or the last backup failed |
+| NodeNotReady | a node is not Ready for 2 min |
+
+Proven on 2026-10-28: with OpenBao sealed (F3 re-run), OpenBaoSealed fired
+after 2 min 22 s and reached Alertmanager
+([`08-monitoring.txt`](docs/evidence/08-monitoring.txt)). No receiver is
+configured: alerts are visible in the UIs (port-forward, see the runbook) and
+in `scripts/monitoring-check.sh`, nothing is sent. The OpenBao audit log goes
+to the pod log.
 
 ## Failure tests
 
@@ -211,7 +235,7 @@ Risk assessment with risk matrix: [`docs/risk-assessment.md`](docs/risk-assessme
 - Unseal is manual: every OpenBao pod restart needs `scripts/openbao-unseal.sh`.
 - Backup storage is inside the same cluster: losing the Codespace loses data and backups.
 - Single cluster in one Codespace; the HA design only covers pod and node-container failures.
-- No monitoring or alerting.
+- Monitoring is minimal: one Prometheus and one Alertmanager, no receiver (nobody is notified), 2 days of metrics, PostgreSQL metrics unencrypted on the pod network (R30, R31).
 - The OpenBao root token is still valid: revoke it with `scripts/openbao-revoke-root.sh`.
 - Flux and GitHub tokens, Codespaces secrets and the deploy key must be revoked after the review (checklist in [`docs/environment.md`](docs/environment.md)).
 - Nothing was load-tested.
