@@ -1,0 +1,57 @@
+# F6: restore from backup (point-in-time recovery)   2026-10-28
+# Command: bash scripts/failure-f6-restore.sh
+
+11:06:43 PASS  scheduled backups from pg-openbao-daily: 1
+11:06:43 INFO  newest completed base backup: pg-openbao-20261028110140 stopped 2026-10-28T11:01:48Z
+
+==> 3. Marker rows in pg-openbao (database postgres)
+11:06:44 INFO  row A written at 2026-10-28 11:06:43.931587
+11:06:49 INFO  target time (restore up to here): 2026-10-28T11:06:49Z
+11:06:55 INFO  row B written at 2026-10-28 11:06:54.814298
+11:06:55 INFO  WAL switched; waiting until 000000040000000000000061 is archived in S3
+11:07:01 PASS  WAL up to 000000040000000000000061 archived (last archived: 000000040000000000000061)
+11:07:02 INFO  live cluster has: 1=row A: before the target time; 2=row B: after the target time
+
+==> 4. Restore cluster pg-restore-test up to 2026-10-28T11:06:49Z (temporary, not in Git)
+cluster.postgresql.cnpg.io/pg-restore-test created
+
+==> 5. Wait until pg-restore-test is healthy (up to 15 min)
+11:07:02 INFO  t+0s phase: 
+11:08:03 INFO  t+61s phase: Primary instance is being restarted without a switchover
+NAME                READY   STATUS    RESTARTS   AGE   IP            NODE                       NOMINATED NODE   READINESS GATES
+pg-restore-test-1   1/1     Running   0          20s   10.244.1.16   openbao-platform-worker3   <none>           <none>
+11:08:13 PASS  pg-restore-test healthy after 71 s
+
+==> 6. Restored data
+11:08:13 INFO  rows in pg-restore-test: 1
+11:08:13 PASS  row A exists and row B does not: restored exactly to 2026-10-28T11:06:49Z
+11:08:14 INFO  databases in pg-restore-test: postgres, openbao
+
+11:08:14 RESULT  F6 passed
+11:08:14 INFO  cleanup: deleting cluster pg-restore-test and the marker table in pg-openbao
+11:08:25 INFO  cleanup: nothing named pg-restore-test left
+
+################################################################################
+# Test gate afterwards (bash scripts/test-gate.sh): GATE PASSED (10 checks)
+#
+# Before this run:
+# - NetworkPolicy fix (commit 5d6a0c2): allow-instance-manager selected only
+#   pg-openbao; a restore cluster's instance manager (:8000) would have been
+#   unreachable for the operator and the restore would have hung. It now
+#   selects every CloudNativePG instance (cnpg.io/podRole=instance), same
+#   sources as before; scripts/netpol-test-databases.sh still passed.
+# - First run at 11:04 failed before creating anything: `kubectl cnpg psql`
+#   runs psql through a terminal, the target time got a trailing carriage
+#   return and Kubernetes rejected it ("The format of TargetTime is invalid").
+#   The cleanup removed the marker table; the script now strips "\r".
+#
+# Reading of the result:
+# - Point-in-time recovery from the S3 backup (base backup 11:01:48 + WAL)
+#   into a new cluster: healthy after 71 s, row A (11:06:43) present, row B
+#   (11:06:54) absent, target 11:06:49. The live cluster was only used for the
+#   marker rows (database postgres, not openbao); the restore cluster does not
+#   archive WAL, so it never wrote to the backups.
+# - Scheduled backup: pg-openbao-daily-20261027120000 is the 12:00 UTC slot of
+#   2026-10-27, completed at 14:51:24 UTC, when the Codespace had been started
+#   again: a missed slot runs late, not never (risk R06, now seen in practice).
+################################################################################

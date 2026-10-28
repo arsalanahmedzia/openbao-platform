@@ -11,6 +11,7 @@ Evidence: `docs/evidence/07-f<N>-*.txt`.
 | F3 | All 3 OpenBao pods restarted (sealed) while ESO runs | Secret kept its value; ESO errors after ~90 s; recovered by itself after unseal, no ESO restart | ExternalSecret 16 s after unseal |
 | F4 | PushSecret deleted (Flux paused) | Value and all versions deleted in OpenBao; Flux recreated the PushSecret, value back | Deleted after 1 s; back 2 s after Flux resumed |
 | F5 | ESO controller pod deleted | New pod logged in with new tokens (audit log), synced; Secret untouched | New pod 1 s; synced 6 s |
+| F6 | Point-in-time restore into a new cluster | Restored exactly to the target time: row A present, row B absent; cleaned up | Restore cluster healthy after 71 s |
 
 ## F1. A worker node dies
 
@@ -177,3 +178,33 @@ creating a new short-lived token each time, not one token per pod.
 one is active, the other takes over without waiting for a new pod); with many
 ExternalSecrets, use a longer refresh interval or ESO's client caching to cut
 logins to OpenBao (check the ESO docs for the option before enabling it).
+
+## F6. Restore from backup (point-in-time recovery)
+
+**What we did:** `bash scripts/failure-f6-restore.sh` wrote row A into the
+live cluster (database `postgres`), noted a target time, wrote row B, forced
+a WAL switch and waited until it was archived, then created a temporary
+cluster `pg-restore-test` from the S3 backup with `recoveryTarget.targetTime`
+(same spec as `docs/runbooks/restore-example.yaml`), checked the data and
+deleted the restore cluster again.
+
+**What we expected:** the restored cluster starts and contains the data up to
+the target time, nothing after it.
+
+**What really happened:** healthy after 71 s; row A present, row B absent;
+both databases (`postgres`, `openbao`) restored. Nothing named
+`pg-restore-test` left afterwards; the gate passed. As expected.
+
+**Found on the way:**
+- The B2 NetworkPolicy only allowed the operator to reach `pg-openbao`'s
+  instance manager, so any restore cluster would have hung. Fixed in Git
+  before the test: the rule now covers every CloudNativePG instance.
+- The daily backup of 2026-10-27 12:00 UTC ran at 14:51 UTC, when the
+  Codespace was started again: missed slots run late (R06).
+- `kubectl cnpg psql` output ends lines with a carriage return; strip it
+  before using values in scripts.
+
+**What we would change in production:** run a restore test regularly
+(e.g. monthly) and alert on its result; keep the backups outside the cluster
+(R05); measure restore time against the recovery-time goal as the database
+grows.
