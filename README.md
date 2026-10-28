@@ -111,59 +111,9 @@ bash scripts/monitoring-check.sh
 | Monitoring and alerting | Prometheus and Alertmanager (1 replica each), 8 alerts (seal status, ESO sync and store, PostgreSQL health, backup age, nodes); no receiver, alerts are only visible (done) | 2 replicas, a receiver (mail/on-call), longer retention, dashboards; also certificate-expiry alerts |
 | Secrets in Git | SOPS + age (done); the age key is a Codespaces secret | age key in a KMS or an external secret manager |
 
-## Secret synchronization demo
+## Secret synchronization
 
-External Secrets Operator (chart 2.14.0) connects to OpenBao through one
-`ClusterSecretStore` `openbao`: HTTPS to `openbao-active.openbao.svc:8200`
-(listener certificate from the demo CA), login with Kubernetes auth as service
-account `external-secrets/external-secrets` (role `external-secrets`,
-policies in [`openbao/policies/`](openbao/policies/)). No root or static token.
-Manifests: [`apps/external-secrets/`](apps/external-secrets/), layer
-`apps-external-secrets`.
-
-- **Pull**: `ExternalSecret eso-demo/hello` copies `secret/demo/hello` (field
-  `message`) to the Secret `eso-demo/hello-from-openbao` every 30 s.
-- **Push**: `PushSecret eso-demo/push-demo` copies the demo Secret
-  `eso-demo/push-demo` to `secret/pushed/push-demo` (`updatePolicy: Replace`,
-  `deletionPolicy: Delete`).
-- **Least privilege**: the ESO login can read `secret/`, write only below
-  `secret/pushed/`; the refresh test changes values with a separate
-  `demo-writer` login.
-
-How one sync works, step by step (the ESO controller logs in again for every sync):
-
-```mermaid
-sequenceDiagram
-  participant ESO as ESO controller
-  participant API as Kubernetes API
-  participant Bao as OpenBao (active pod)
-  ESO->>API: give me a 10-minute token for service account external-secrets
-  API-->>ESO: token
-  ESO->>Bao: log in with this token, role external-secrets
-  Bao->>API: is this token real? (TokenReview, as OpenBao's own service account)
-  API-->>Bao: yes, it is external-secrets/external-secrets
-  Bao-->>ESO: OpenBao token with the policies eso-read and eso-write
-  Note over ESO,Bao: pull (every 30 s)
-  ESO->>Bao: read secret/demo/hello
-  ESO->>API: create or update Secret eso-demo/hello-from-openbao
-  Note over ESO,Bao: push (every 30 s)
-  ESO->>API: read Secret eso-demo/push-demo
-  ESO->>Bao: write secret/pushed/push-demo
-```
-
-How to read it: time runs from top to bottom. A solid arrow is a call, a dashed
-arrow is its answer.
-
-```bash
-bash scripts/eso-store-check.sh      # store Valid / Ready
-bash scripts/eso-pull-check.sh       # pulled value
-bash scripts/eso-refresh-test.sh     # change in OpenBao reaches Kubernetes
-bash scripts/eso-push-check.sh       # pushed value read back from OpenBao
-bash scripts/eso-evidence.sh         # all of it -> docs/evidence/05-external-secrets.txt
-```
-
-Evidence: [`docs/evidence/05-external-secrets.txt`](docs/evidence/05-external-secrets.txt).
-Runbook: [`docs/runbooks/external-secrets.md`](docs/runbooks/external-secrets.md).
+How ESO logs in, pulls and pushes, with a step-by-step picture: [`docs/runbooks/external-secrets.md`](docs/runbooks/external-secrets.md).
 
 ## Backup and restore
 
