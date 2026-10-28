@@ -78,3 +78,44 @@ $ bash scripts/test-gate.sh  ->  GATE PASSED (8 layers Ready at 9a8dc576,
 OpenBao 3/3 unsealed, one active; PostgreSQL healthy 3/3; ESO store, pull, push Ready)
 # Note: the targets are down because the default-deny NetworkPolicy in
 # namespace openbao blocks Prometheus; M3 adds the allow rule.
+
+================================================================================
+M2 (OpenBao metrics over TLS), 2026-10-28, revision b737727
+================================================================================
+Change: the metrics listener 9101 uses the OpenBao listener certificate
+(signed by demo-ca). Prometheus verifies it: PodMonitor scheme https,
+tlsConfig.ca from Secret monitoring/prometheus-client-tls (ca.crt written by
+cert-manager), serverName openbao.openbao.svc. No insecureSkipVerify.
+
+$ bash scripts/monitoring-openbao-metrics.sh   (excerpt)
+target StatefulSet revision: openbao-8687fd8f69
+--- restarting openbao-0 / openbao-2 / openbao-1: unsealed and Ready
+13:42:40 PASS  Certificate monitoring/prometheus-client Ready
+13:42:40 PASS  PodMonitor monitoring/openbao exists
+13:42:41 INFO  CA in monitoring: subject=CN = demo-root-ca sha256 Fingerprint=5D:18:41:A0:1E:6C:39:A6:A7:20:6F:03:B2:37:1E:7C:22:87:B6:DD:13:87:D8:04:DF:B7:6E:3C:C8:77:02:86
+13:42:41 PASS  CA in monitoring/prometheus-client-tls verifies the OpenBao certificate
+13:42:41 PASS  OpenBao certificate covers the name openbao.openbao.svc
+13:42:43 INFO  GET https://openbao.openbao.svc:9101/v1/sys/metrics?format=prometheus -> HTTP 200, 189 sample lines
+13:42:43 PASS  metrics over HTTPS, certificate verified, no token
+13:42:43 PASS  vault_core_unsealed present: vault_core_unsealed{cluster=""} 1
+                                            vault_core_unsealed{cluster="vault-cluster-06f4adea"} 1
+13:42:44 PASS  plain HTTP on 9101 -> HTTP 400 (no metrics without TLS)
+13:42:44 PASS  GET :9101/v1/sys/health -> HTTP 404 (not served)
+13:42:44 PASS  GET https://openbao.demo.local/v1/sys/metrics -> HTTP 403, no metrics through Traefik
+==> 5. Prometheus: generated scrape config
+          scheme: https
+          tls_config:
+            ca_file: /etc/prometheus/certs/0_monitoring_prometheus-client-tls_ca.crt
+            server_name: openbao.openbao.svc
+            insecure_skip_verify: false
+13:42:45 PASS  scrape config: https, CA file, server_name openbao.openbao.svc
+13:42:45 PASS  scrape config verifies certificates (no insecure_skip_verify: true)
+  https://10.244.4.14:9101/...  health=down  context deadline exceeded
+  https://10.244.1.26:9101/...  health=unknown
+  https://10.244.2.11:9101/...  health=down  context deadline exceeded
+13:42:45 RESULT  M2 OpenBao passed
+
+$ bash scripts/test-gate.sh  ->  GATE PASSED (8 layers Ready at b7377270)
+# Notes: targets down = NetworkPolicy in openbao (M3). vault_core_unsealed
+# appears twice, once with an empty cluster label (for M4).
+# Time for the TLS change: 13:35 (start) to 13:42 (passed), 30 min box kept.
