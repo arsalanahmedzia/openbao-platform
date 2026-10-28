@@ -1,0 +1,56 @@
+# F3: OpenBao sealed while ESO runs   2026-10-28
+# Command: bash scripts/failure-f3-sealed.sh
+
+16:49:01 INFO  start: store True Valid; ExternalSecret True SecretSynced; Secret value hello-from-openbao (resourceVersion 69966); ESO controller external-secrets-7b64c6dbb9-c4pgv restarts=0
+
+==> 3. Break: restart all OpenBao pods
+16:49:01 INFO  deleting the 3 OpenBao pods
+pod "openbao-0" deleted from openbao namespace
+pod "openbao-1" deleted from openbao namespace
+pod "openbao-2" deleted from openbao namespace
+16:49:21 INFO  pods: openbao-0=true openbao-1=true openbao-2=true 
+16:49:21 PASS  OpenBao pods are back SEALED
+
+==> 4. Watch while sealed (16 x 15 s)
+16:49:21 INFO  t+20s | store: True Valid | ExternalSecret: True SecretSynced | Secret: hello-from-openbao rv=69966
+16:49:37 INFO  t+35s | store: True Valid | ExternalSecret: True SecretSynced | Secret: hello-from-openbao rv=69966
+16:49:52 INFO  t+51s | store: True Valid | ExternalSecret: True SecretSynced | Secret: hello-from-openbao rv=69966
+16:50:07 INFO  t+66s | store: True Valid | ExternalSecret: True SecretSynced | Secret: hello-from-openbao rv=69966
+16:50:22 INFO  t+81s | store: True Valid | ExternalSecret: True SecretSynced | Secret: hello-from-openbao rv=69966
+16:50:38 INFO  t+96s | store: True Valid | ExternalSecret: False SecretSyncedError | Secret: hello-from-openbao rv=69966
+16:50:53 INFO  t+112s | store: True Valid | ExternalSecret: False SecretSyncedError | Secret: hello-from-openbao rv=69966
+16:51:08 INFO  t+127s | store: True Valid | ExternalSecret: False SecretSyncedError | Secret: hello-from-openbao rv=69966
+16:51:24 INFO  t+142s | store: False InvalidProviderConfig | ExternalSecret: False SecretSyncedError | Secret: hello-from-openbao rv=69966
+16:51:39 INFO  t+158s | store: False InvalidProviderConfig | ExternalSecret: False SecretSyncedError | Secret: hello-from-openbao rv=69966
+16:51:54 INFO  t+173s | store: False InvalidProviderConfig | ExternalSecret: False SecretSyncedError | Secret: hello-from-openbao rv=69966
+16:52:09 INFO  t+188s | store: False InvalidProviderConfig | ExternalSecret: False SecretSyncedError | Secret: hello-from-openbao rv=69966
+16:52:25 INFO  t+203s | store: False InvalidProviderConfig | ExternalSecret: False SecretSyncedError | Secret: hello-from-openbao rv=69966
+16:52:40 INFO  t+219s | store: False InvalidProviderConfig | ExternalSecret: False SecretSyncedError | Secret: hello-from-openbao rv=69966
+16:52:55 INFO  t+234s | store: False InvalidProviderConfig | ExternalSecret: False SecretSyncedError | Secret: hello-from-openbao rv=69966
+16:53:10 INFO  t+249s | store: False InvalidProviderConfig | ExternalSecret: False SecretSyncedError | Secret: hello-from-openbao rv=69966
+--- latest ESO errors (last 60 s):
+2026-10-28T16:53:19Z could not get provider client: unable to log in to auth method: unable to log in with Kubernetes auth: context deadline exceeded
+2026-10-28T16:53:19Z could not get provider client: unable to log in to auth method: unable to log in with Kubernetes auth: context deadline exceeded
+16:53:26 PASS  Secret hello-from-openbao kept its value while OpenBao was sealed
+
+==> 5. Unseal
+16:53:26 INFO  running scripts/openbao-unseal.sh (keys via stdin, not shown)
+openbao-0: unsealed
+openbao-1: unsealed
+openbao-2: unsealed
+==> Waiting for all pods to be Ready (readiness = unsealed)
+HA Mode         active
+HA Mode                standby
+HA Mode                standby
+16:53:35 INFO  unsealed after 274 s sealed
+
+==> 6. Recovery without restarting ESO (up to 15 min)
+16:53:35 INFO  store Ready again after 9 s
+16:53:40 INFO  ExternalSecret Ready again after 14 s
+16:53:40 PASS  store Valid/Ready again by itself (9 s after unseal)
+16:53:40 PASS  ExternalSecret hello Ready again by itself (14 s after unseal)
+16:53:40 PASS  Secret value still hello-from-openbao
+16:53:40 INFO  Secret resourceVersion before 69966, now 69966
+16:53:40 PASS  ESO controller not restarted (external-secrets-7b64c6dbb9-c4pgv restarts=0)
+
+16:53:40 RESULT  F3 passed

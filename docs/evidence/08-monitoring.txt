@@ -315,3 +315,74 @@ $ bash scripts/monitoring-check.sh   (16:46)
 16:46:11 RESULT  monitoring check passed
 
 $ bash scripts/test-gate.sh  ->  GATE PASSED (8 layers Ready at 7325cef0)
+
+================================================================================
+M6 (prove an alert fires): F3 re-run, 2026-10-28, revision 92d1765
+================================================================================
+Terminal 1: bash scripts/monitoring-check.sh --wait-firing OpenBaoSealed 8
+Terminal 2: F3_WATCH_ROUNDS=16 F3_OUT=docs/evidence/08-m6-f3-sealed.txt \
+              bash scripts/failure-f3-sealed.sh
+(full F3 output: docs/evidence/08-m6-f3-sealed.txt; the original F3 evidence
+07-f3-sealed.txt is untouched)
+
+Timeline (UTC):
+16:49:01  F3 deletes the 3 OpenBao pods
+16:49:21  pods back SEALED (openbao-0/1/2 sealed=true)
+16:49:23  OpenBaoSealed pending (activeAt, 22 s after the delete)
+16:50:38  ExternalSecret hello: False SecretSyncedError (t+96 s)
+16:50:53  ExternalSecretNotReady and PushSecretNotReady pending
+16:51:23  OpenBaoSealed firing (2 min "for"), received by Alertmanager
+16:51:24  ClusterSecretStore openbao: False InvalidProviderConfig (t+142 s)
+16:53:35  unsealed after 274 s sealed
+16:53:35  store Ready again (9 s after unseal), 16:53:40 ExternalSecret Ready (14 s)
+16:55:49  monitoring-check: no pending or firing alerts, all 13 targets up
+
+$ bash scripts/monitoring-check.sh --wait-firing OpenBaoSealed 8   (excerpt)
+16:49:23 OpenBaoSealed: inactive
+16:49:33 OpenBaoSealed: pending
+16:51:33 OpenBaoSealed: firing
+        up  monitoring/openbao  openbao-0  https://10.244.4.11:9101/v1/sys/metrics?format=prometheus
+        up  monitoring/openbao  openbao-1  https://10.244.2.10:9101/v1/sys/metrics?format=prometheus
+        up  monitoring/openbao  openbao-2  https://10.244.1.11:9101/v1/sys/metrics?format=prometheus
+16:51:33 PASS  all 13 targets up
+        firing  OpenBaoSealed  critical  since 2026-10-28T16:49:23.857520036Z  OpenBao pod openbao-2 is sealed (or not ready)
+        firing  OpenBaoSealed  critical  since 2026-10-28T16:49:23.857520036Z  OpenBao pod openbao-0 is sealed (or not ready)
+        firing  OpenBaoSealed  critical  since 2026-10-28T16:49:23.857520036Z  OpenBao pod openbao-1 is sealed (or not ready)
+        pending  ExternalSecretNotReady  warning  since 2026-10-28T16:50:53.857520036Z  ExternalSecret external-secrets/hello is not Ready
+        pending  PushSecretNotReady  warning  since 2026-10-28T16:50:53.857520036Z  PushSecret external-secrets/push-demo is not Ready
+        alertmanager: active  OpenBaoSealed  openbao-0  since 2026-10-28T16:51:23.857Z
+        alertmanager: active  OpenBaoSealed  openbao-1  since 2026-10-28T16:51:23.857Z
+        alertmanager: active  OpenBaoSealed  openbao-2  since 2026-10-28T16:51:23.857Z
+16:51:33 PASS  OpenBaoSealed is firing (expected)
+16:51:33 RESULT  monitoring check passed
+
+$ F3 (excerpt, from 08-m6-f3-sealed.txt)
+16:53:26 PASS  Secret hello-from-openbao kept its value while OpenBao was sealed
+16:53:35 INFO  unsealed after 274 s sealed
+16:53:40 PASS  store Valid/Ready again by itself (9 s after unseal)
+16:53:40 PASS  ExternalSecret hello Ready again by itself (14 s after unseal)
+16:53:40 PASS  ESO controller not restarted (external-secrets-7b64c6dbb9-c4pgv restarts=0)
+16:53:40 RESULT  F3 passed
+
+$ bash scripts/monitoring-check.sh   (16:55, after the unseal)
+16:55:48 PASS  all 13 targets up
+16:55:49 INFO  no pending or firing alerts
+16:55:49 PASS  no firing alerts
+16:55:49 RESULT  monitoring check passed
+
+Findings:
+- The OpenBao targets stayed up while sealed: the metrics listener answers
+  when sealed, so the metric signal is available, not only pod readiness.
+- Bug found: the ESO alerts named namespace "external-secrets" (the scraped
+  pod's) instead of "eso-demo" (the object's). Prometheus replaces a metric's
+  namespace label with the target's unless honorLabels is set. Fixed in
+  04c56dd (PodMonitor honorLabels: true); not yet seen in a firing alert.
+- Different from the earlier F3 (R11): the store went to False
+  InvalidProviderConfig after 142 s sealed (the first F3, 2 min sealed, never
+  saw this). ClusterSecretStoreNotReady (5 min) can fire in a longer outage.
+- Alert delay: pending 22 s after the break, firing after 2 min 22 s.
+
+Token/key scan of 08-monitoring.txt and 08-m6-f3-sealed.txt (2026-10-28):
+  grep -i -E 'hvs\.|s\.[A-Za-z0-9]{20,}|BEGIN [A-Z ]*PRIVATE|AGE-SECRET-KEY|unseal key|root token:|ghp_|github_pat_|password'
+    -> no match
+  grep -o -E '[A-Za-z0-9+/=_-]{40,}'  -> only pod names and separator lines
