@@ -31,8 +31,21 @@ fi
 status_field() { kubectl -n "$NS" exec "$1" -- bao status -format=json 2>/dev/null | jq -r ".$2" || true; }
 
 for pod in $(kubectl -n "$NS" get pods -l "$SELECTOR" -o jsonpath='{.items[*].metadata.name}'); do
-  if [[ "$(status_field "$pod" initialized)" != "true" ]]; then
+  # No answer is not the same as "not initialised": right after a restart the
+  # pod may still be starting, or PostgreSQL (which holds the init state) may
+  # not be ready yet. Wait up to 3 minutes for a real answer.
+  init=""
+  for _ in $(seq 36); do
+    init=$(status_field "$pod" initialized)
+    [[ "$init" == true || "$init" == false ]] && break
+    sleep 5
+  done
+  if [[ "$init" == false ]]; then
     echo "$pod: not initialised (run scripts/openbao-init.sh first)"; exit 1
+  elif [[ "$init" != true ]]; then
+    echo "$pod: no answer from bao status after 3 minutes (pod starting, or PostgreSQL not ready). Last error:"
+    kubectl -n "$NS" exec "$pod" -- bao status 2>&1 | tail -3 || true
+    exit 1
   fi
   if [[ "$(status_field "$pod" sealed)" == "false" ]]; then
     echo "$pod: already unsealed"; continue
