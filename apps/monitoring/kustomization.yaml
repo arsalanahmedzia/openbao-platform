@@ -7,3 +7,4 @@ resources:
   - podmonitor-openbao.yaml
   - podmonitor-cnpg.yaml
   - podmonitor-external-secrets.yaml
+  - prometheusrule.yaml

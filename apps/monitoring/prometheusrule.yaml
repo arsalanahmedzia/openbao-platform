@@ -1,0 +1,154 @@
+# Alert rules for the platform (monitoring M4, ADR 0007). Every metric name was
+# checked in the real exporter output (docs/evidence/08-monitoring.txt) or the
+# official docs of the pinned version:
+#   vault_core_unsealed                     OpenBao 2.7.1 metrics listener (seen: 1)
+#   kube_pod_status_ready, kube_node_status_condition
+#                                           kube-state-metrics v2.20.0 docs
+#                                           (scraped with honorLabels: the
+#                                           namespace/pod labels are the object's)
+#   cnpg_collector_up, cnpg_pg_replication_in_recovery
+#                                           CloudNativePG 1.30 docs + seen
+#   barman_cloud_cloudnative_pg_io_last_available_backup_timestamp,
+#   barman_cloud_cloudnative_pg_io_last_failed_backup_timestamp
+#                                           Barman Cloud plugin v0.15.0 docs + seen
+#   externalsecret_/pushsecret_/clustersecretstore_status_condition
+#                                           ESO v2.14.0 docs + seen
+# No Alertmanager receiver is configured: alerts are visible in Prometheus and
+# Alertmanager (scripts/monitoring-check.sh), nothing is sent anywhere.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: platform-alerts
+  namespace: monitoring
+spec:
+  groups:
+    - name: platform
+      rules:
+        # Two signals per pod, so one fires even if the other is missing:
+        # the pod's own metric (0 = sealed) and the pod's readiness (the
+        # readiness probe is `bao status`, which fails while sealed). Both are
+        # reduced to {namespace, pod}, so one pod gives one alert.
+        - alert: OpenBaoSealed
+          expr: |
+            min by (namespace, pod) (vault_core_unsealed{namespace="openbao"}) == 0
+            or
+            max by (namespace, pod) (kube_pod_status_ready{namespace="openbao", pod=~"openbao-[0-9]+", condition="true"}) == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "OpenBao pod {{ $labels.pod }} is sealed (or not ready)"
+            description: >-
+              {{ $labels.pod }} has been sealed or not ready for more than 2 minutes.
+              A sealed pod serves no secrets. Unseal it: bash scripts/openbao-unseal.sh
+              (runbook docs/runbooks/monitoring.md).
+
+        - alert: ExternalSecretNotReady
+          expr: |
+            max by (namespace, name) (externalsecret_status_condition{condition="Ready", status="False"}) == 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "ExternalSecret {{ $labels.namespace }}/{{ $labels.name }} is not Ready"
+            description: >-
+              The ExternalSecret has not synced for more than 5 minutes, so its
+              Kubernetes Secret may be outdated. Check: kubectl -n {{ $labels.namespace }}
+              describe externalsecret {{ $labels.name }}; often OpenBao is sealed or unreachable.
+
+        - alert: PushSecretNotReady
+          expr: |
+            max by (namespace, name) (pushsecret_status_condition{condition="Ready", status="False"}) == 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "PushSecret {{ $labels.namespace }}/{{ $labels.name }} is not Ready"
+            description: >-
+              The PushSecret has not written its value to OpenBao for more than
+              5 minutes. Check: kubectl -n {{ $labels.namespace }} describe pushsecret {{ $labels.name }}.
+
+        # The store's "Valid" status is the reason of its Ready condition;
+        # ESO exports only the condition, so "not Valid" = Ready False.
+        # Known limit (R11): the store stays Valid while OpenBao is sealed;
+        # that case shows up as ExternalSecretNotReady and OpenBaoSealed.
+        - alert: ClusterSecretStoreNotReady
+          expr: |
+            max by (name) (clustersecretstore_status_condition{condition="Ready", status="False"}) == 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "ClusterSecretStore {{ $labels.name }} is not Valid"
+            description: >-
+              External Secrets cannot use the store for more than 5 minutes (login
+              or configuration fails); no secret syncs. Check: kubectl describe
+              clustersecretstore {{ $labels.name }}.
+
+        # Without the controller's metrics the three ESO alerts above cannot
+        # fire, so its absence is an alert of its own.
+        - alert: ExternalSecretsControllerDown
+          expr: |
+            absent(up{job="monitoring/external-secrets"} == 1)
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "External Secrets controller is down or not scraped"
+            description: >-
+              Prometheus has not scraped the External Secrets controller for more
+              than 5 minutes: no secret syncs, and the ESO alerts cannot fire.
+              Check: kubectl -n external-secrets get pods.
+
+        # 3 instances with PostgreSQL up, and exactly one primary
+        # (in_recovery 0). "or vector(0)" makes the count 0 instead of empty
+        # when no instance reports at all. 5 minutes covers a normal failover
+        # and the 180 s smart shutdown (R28).
+        - alert: PostgresNotHealthy
+          expr: |
+            (count(cnpg_collector_up{job="monitoring/pg-openbao"} == 1) or vector(0)) < 3
+            or
+            (count(cnpg_pg_replication_in_recovery{job="monitoring/pg-openbao"} == 0) or vector(0)) < 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "PostgreSQL pg-openbao: fewer than 3 instances up or no primary"
+            description: >-
+              For more than 5 minutes fewer than 3 PostgreSQL instances are up or no
+              instance is primary. OpenBao stores all data there. Check:
+              kubectl cnpg status pg-openbao -n databases.
+
+        # Backup daily at 12:00 UTC (apps/database/backups.yaml): 26 h = one
+        # missed run plus 2 hours. Also fires if the last failed backup is
+        # newer than the last good one, or if the metric is missing.
+        - alert: BackupFailedOrTooOld
+          expr: |
+            (time() - max(barman_cloud_cloudnative_pg_io_last_available_backup_timestamp{job="monitoring/pg-openbao"})) > 26 * 3600
+            or
+            max(barman_cloud_cloudnative_pg_io_last_failed_backup_timestamp{job="monitoring/pg-openbao"})
+              > max(barman_cloud_cloudnative_pg_io_last_available_backup_timestamp{job="monitoring/pg-openbao"})
+            or
+            absent(barman_cloud_cloudnative_pg_io_last_available_backup_timestamp{job="monitoring/pg-openbao"})
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "PostgreSQL backup failed or older than 26 hours"
+            description: >-
+              No successful backup of pg-openbao for more than 26 hours, or the last
+              backup failed. Point-in-time recovery needs a recent base backup. Check:
+              kubectl -n databases get backups; kubectl cnpg status pg-openbao -n databases.
+
+        - alert: NodeNotReady
+          expr: |
+            kube_node_status_condition{condition="Ready", status="true"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Node {{ $labels.node }} is not Ready"
+            description: >-
+              {{ $labels.node }} has not been Ready for more than 2 minutes. Its pods
+              are not rescheduled (no spare node, R16); OpenBao on it stays down.
+              Check: kubectl get nodes; in kind: docker ps -a.
