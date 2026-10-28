@@ -1,0 +1,131 @@
+# Small monitoring stack: Prometheus Operator, Prometheus (1 replica),
+# Alertmanager (1 replica) and kube-state-metrics (Kubernetes object state,
+# e.g. "node not ready"). Everything else in the chart is switched off.
+# Chart 92.3.1 (2026-10-13); images: Prometheus v3.15.0, Alertmanager v0.34.1,
+# operator/config-reloader v0.94.1, kube-state-metrics 2.20.0 (all older than
+# a few weeks, ADR 0001). Value names checked in the chart's values.yaml.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kube-prometheus-stack
+  namespace: monitoring
+spec:
+  interval: 30m
+  timeout: 10m
+  chart:
+    spec:
+      chart: kube-prometheus-stack
+      version: "92.3.1"
+      sourceRef:
+        kind: HelmRepository
+        name: prometheus-community
+        namespace: flux-system
+  # The CRDs (ServiceMonitor, PodMonitor, PrometheusRule, ...) are in the
+  # chart's "crds" subchart; CreateReplace also updates them on chart upgrades.
+  install:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  values:
+    crds:
+      enabled: true
+    # Our own 5 alerts come in M4 (PrometheusRule in apps/monitoring/).
+    defaultRules:
+      create: false
+    grafana:
+      enabled: false
+    nodeExporter:
+      enabled: false
+    windowsMonitoring:
+      enabled: false
+    # Control-plane and kubelet/cAdvisor scrapes off: cAdvisor alone is many
+    # thousands of series, and in kind etcd, scheduler and controller manager
+    # only listen inside the node (targets would show as down).
+    kubeApiServer:
+      enabled: false
+    kubelet:
+      enabled: false
+    kubeControllerManager:
+      enabled: false
+    coreDns:
+      enabled: false
+    kubeDns:
+      enabled: false
+    kubeEtcd:
+      enabled: false
+    kubeScheduler:
+      enabled: false
+    kubeProxy:
+      enabled: false
+    kubeStateMetrics:
+      enabled: true
+    kube-state-metrics:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 64Mi
+        limits:
+          memory: 256Mi
+
+    prometheusOperator:
+      # Only validates rules on creation and needs an extra certificate Job.
+      admissionWebhooks:
+        enabled: false
+      resources:
+        requests:
+          cpu: 10m
+          memory: 64Mi
+        limits:
+          memory: 256Mi
+      # Sidecar in the Prometheus and the Alertmanager pod.
+      prometheusConfigReloader:
+        resources:
+          requests:
+            cpu: 5m
+            memory: 16Mi
+          limits:
+            memory: 64Mi
+
+    alertmanager:
+      alertmanagerSpec:
+        replicas: 1
+        # + config-reloader 16Mi/64Mi = 48Mi request / 160Mi limit per pod
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 96Mi
+
+    prometheus:
+      prometheusSpec:
+        replicas: 1
+        scrapeInterval: 30s
+        retention: 2d
+        # Hard cap: kind's local-path storage does not enforce the 2Gi size.
+        retentionSize: 1GB
+        # + config-reloader 16Mi/64Mi = 320Mi request / 1Gi limit per pod
+        resources:
+          requests:
+            cpu: 100m
+            memory: 304Mi
+          limits:
+            memory: 960Mi
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: standard
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 2Gi
+        # Pick up ServiceMonitors, PodMonitors and PrometheusRules without the
+        # Helm release label (ours in apps/monitoring/ are not made by Helm).
+        serviceMonitorSelectorNilUsesHelmValues: false
+        podMonitorSelectorNilUsesHelmValues: false
+        ruleSelectorNilUsesHelmValues: false

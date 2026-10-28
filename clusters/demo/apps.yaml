@@ -5,6 +5,8 @@
 #   Pods start sealed; init/unseal are done by scripts, not by Flux (ADR 0004).
 #   apps-external-secrets: ClusterSecretStore "openbao" and the External Secrets
 #   demo in namespace eso-demo (ADR 0005). Not Ready while OpenBao is sealed.
+#   apps-monitoring: Prometheus, Alertmanager, operator, kube-state-metrics in
+#   namespace monitoring (kube-prometheus-stack, most parts off).
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -73,4 +75,26 @@ spec:
   prune: true
   # Waits until the ClusterSecretStore reports Ready (logged in to OpenBao)
   # and the ExternalSecrets have synced. No secrets in this folder: no SOPS.
+  wait: true
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: apps-monitoring
+  namespace: flux-system
+spec:
+  # Needs only the chart repository (infra-controllers). The ServiceMonitors,
+  # PodMonitors and PrometheusRules for the other namespaces will live in
+  # apps/monitoring/ too, so no other layer depends on the new CRDs.
+  dependsOn:
+    - name: infra-controllers
+  interval: 10m
+  retryInterval: 1m
+  # First install: CRDs and four new images.
+  timeout: 15m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./apps/monitoring
+  prune: true
   wait: true
