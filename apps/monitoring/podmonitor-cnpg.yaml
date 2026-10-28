@@ -1,0 +1,20 @@
+# Scrapes the 3 PostgreSQL instances of pg-openbao on the instance manager's
+# exporter (port 9187 "metrics", plain HTTP; CloudNativePG 1.30.0
+# pkg/specs/pods.go). Same form as the PodMonitor in the CloudNativePG
+# monitoring docs. The exporter also serves the Barman Cloud plugin's backup
+# metrics (barman_cloud_cloudnative_pg_io_*, plugin v0.15.0 docs).
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: pg-openbao
+  namespace: monitoring
+spec:
+  namespaceSelector:
+    matchNames:
+      - databases
+  selector:
+    matchLabels:
+      cnpg.io/cluster: pg-openbao
+  podMetricsEndpoints:
+    - port: metrics
+      interval: 30s

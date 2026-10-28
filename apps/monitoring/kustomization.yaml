@@ -4,3 +4,4 @@ resources:
   - namespace.yaml
   - helmrelease.yaml
   - podmonitor-openbao.yaml
+  - podmonitor-cnpg.yaml
