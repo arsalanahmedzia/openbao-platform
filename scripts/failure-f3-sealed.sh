@@ -9,9 +9,9 @@
 #   3. Breaks: deletes the 3 OpenBao pods. They are recreated by the
 #      StatefulSet and come back SEALED (no root token needed).
 #        kubectl -n openbao delete pod -l app.kubernetes.io/name=openbao,component=server
-#   4. Watches for about 2 minutes, every 15 s: seal state of the pods, store
-#      and ExternalSecret status, the Secret's value and resourceVersion, the
-#      latest ESO errors.
+#   4. Watches F3_WATCH_ROUNDS x 15 s (default 8 = about 2 minutes): seal state
+#      of the pods, store and ExternalSecret status, the Secret's value and
+#      resourceVersion, the latest ESO errors.
 #        kubectl get clustersecretstore openbao
 #        kubectl -n eso-demo get externalsecret hello
 #        kubectl -n external-secrets logs deploy/external-secrets
@@ -23,13 +23,17 @@
 #      sealed, runs the unseal script.
 #
 # Output: PASS / FAIL / INFO lines with UTC times, also written to
-# docs/evidence/07-f3-sealed.txt. No token or key is printed; only the demo
-# value hello-from-openbao is shown.
+# docs/evidence/07-f3-sealed.txt (F3_OUT to write elsewhere). No token or key
+# is printed; only the demo value hello-from-openbao is shown.
 #   bash scripts/failure-f3-sealed.sh
+# Monitoring M6 (OpenBaoSealed must fire: sealed > 2 min after Prometheus
+# notices, so about 4 min sealed):
+#   F3_WATCH_ROUNDS=16 F3_OUT=docs/evidence/08-m6-f3-sealed.txt bash scripts/failure-f3-sealed.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-OUT=docs/evidence/07-f3-sealed.txt
+OUT=${F3_OUT:-docs/evidence/07-f3-sealed.txt}
+ROUNDS=${F3_WATCH_ROUNDS:-8}
 SELECTOR=app.kubernetes.io/name=openbao,component=server
 FAILS=0
 
@@ -83,8 +87,8 @@ info "pods: $(sealed_pods)"
 [[ "$(sealed_pods)" == *=true* ]] && pass "OpenBao pods are back SEALED" || info "no sealed label yet (pods may still be starting)"
 
 echo
-echo "==> 4. Watch while sealed (about 2 minutes)"
-for _ in 1 2 3 4 5 6 7 8; do
+echo "==> 4. Watch while sealed ($ROUNDS x 15 s)"
+for _ in $(seq 1 "$ROUNDS"); do
   info "t+$(( $(date +%s) - T0 ))s | store: $(store) | ExternalSecret: $(extsec) | Secret: $(value) rv=$(rv)"
   sleep 15
 done
