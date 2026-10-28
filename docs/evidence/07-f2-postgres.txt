@@ -1,0 +1,64 @@
+# F2: the PostgreSQL primary dies   2026-10-28
+# Command: bash scripts/failure-f2-postgres.sh
+
+10:35:49 INFO  start: primary pg-openbao-1 on openbao-platform-worker2, 3 ready instances; active OpenBao pod openbao-0
+
+==> 3. ESO login and write probe (every 2 s)
+10:35:50 INFO  logged in as external-secrets (token not shown)
+10:35:56 PASS  write probe works before the break
+
+==> 4. Break: delete the primary pod pg-openbao-1
+10:35:56 INFO  deleting pod pg-openbao-1
+pod "pg-openbao-1" deleted from databases namespace
+
+==> 5. Watch the failover
+10:39:03 PASS  new primary pg-openbao-2 after 187 s
+10:39:03 INFO  promoted at 2026-10-28T10:39:02.873152Z
+10:39:29 PASS  cluster healthy with 3 ready instances after 213 s
+NAME           READY   STATUS    RESTARTS      AGE   IP            NODE                       NOMINATED NODE   READINESS GATES   INSTANCEROLE
+pg-openbao-1   2/2     Running   0             26s   10.244.4.11   openbao-platform-worker2   <none>           <none>            replica
+pg-openbao-2   2/2     Running   2 (17m ago)   9h    10.244.2.5    openbao-platform-worker    <none>           <none>            primary
+pg-openbao-3   2/2     Running   2 (17m ago)   9h    10.244.1.7    openbao-platform-worker3   <none>           <none>            replica
+10:39:29 PASS  old primary pg-openbao-1 is back as a replica
+
+==> 6. OpenBao
+10:39:33 INFO  write probe: 93 ok, 2 failed (one attempt every ~2 s)
+10:39:33 INFO  first failed write 10:39:03 (187 s after delete), last failed write 10:39:07 (191 s after delete)
+10:39:33 PASS  OpenBao writes work again
+10:39:33 PASS  read secret/demo/hello as the ESO login: hello-from-openbao
+
+Status:                  Cluster in healthy state 
+Instances:               3
+Ready instances:         3
+Current Write LSN:       0/5B02B178 (Timeline: 4 - WAL File: 00000004000000000000005B)
+Instances status
+Name          Current LSN  Replication role  Status  QoS        Manager Version  Node
+----          -----------  ----------------  ------  ---        ---------------  ----
+pg-openbao-2  0/5B02B178   Primary           OK      Burstable  1.30.1           openbao-platform-worker
+pg-openbao-1  0/5B02B178   Standby (async)   OK      Burstable  1.30.1           openbao-platform-worker2
+pg-openbao-3  0/5B02B178   Standby (async)   OK      Burstable  1.30.1           openbao-platform-worker3
+
+
+10:39:34 INFO  replication is asynchronous: a transaction confirmed by the old primary in its last moment may not have reached a replica, so a small data-loss window is possible in theory (ADR 0003)
+
+10:39:34 RESULT  F2 passed
+10:39:34 INFO  cleanup done: probe stopped, secret/pushed/f2-probe deleted, ESO token revoked
+
+################################################################################
+# Test gate afterwards (bash scripts/test-gate.sh): GATE PASSED (10 checks)
+# OpenBao active pod changed from openbao-0 (before) to openbao-1 (after);
+# not seen in the script output, visible in the gate. Likely cause: openbao-0
+# could not renew its HA lock row during the database switch and stepped down
+# (not verified from the logs).
+#
+# Reading of the result:
+# - Failover took 187 s = the default smartShutdownTimeout (180 s) + 7 s: on a
+#   deleted primary pod PostgreSQL first refuses new connections but lets open
+#   ones work for up to 180 s; OpenBao keeps a connection pool, so it kept
+#   writing to the old primary (93 writes ok) until the fast shutdown.
+# - Real OpenBao write outage: 2 failed writes, 10:39:03 to 10:39:07 (~4-6 s).
+# - Expected "seconds to about half a minute": wrong; the 180 s worst case
+#   noted before the test happened.
+# - Async replication: a write confirmed by the old primary in its last moment
+#   may not have reached the new primary; not measured, possible in theory.
+################################################################################
