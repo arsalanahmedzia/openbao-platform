@@ -393,3 +393,36 @@ as the README says. Earlier notes here said 1.30.0 / v0.15.0 (a misread of the
 chart index). The docs used are the same at both versions (CNPG monitoring.md
 1.30.0 vs 1.30.1: only example version strings differ; plugin observability.md
 identical; pods.go port 9187 "metrics" unchanged).
+
+================================================================================
+Final state, 2026-10-28 ~17:10 UTC, revision f13742e
+================================================================================
+$ bash scripts/test-gate.sh   (now includes the monitoring check)
+PASS  all Flux layers Ready (8 layers at f13742ec)
+PASS  3 OpenBao pods Ready (unsealed) / exactly one active OpenBao pod
+PASS  kubectl cnpg status answers within 30 s / PostgreSQL cluster healthy / 3 instances ready
+PASS  ClusterSecretStore openbao Ready / ExternalSecret hello Ready / pulled value / PushSecret Ready
+PASS  monitoring: all targets up, 8 alert rules ok, no alert firing
+GATE PASSED
+
+Memory and disk AFTER (no BEFORE measurement was taken at M1):
+$ docker stats --no-stream --format 'table {{.Name}}\t{{.MemUsage}}\t{{.CPUPerc}}'
+NAME                             MEM USAGE / LIMIT     CPU %
+openbao-platform-worker3         1.145GiB / 15.62GiB   7.41%
+openbao-platform-worker          769.8MiB / 15.62GiB   6.67%
+openbao-platform-worker2         873.4MiB / 15.62GiB   11.55%
+openbao-platform-control-plane   1.444GiB / 15.62GiB   19.21%
+(sum of the 4 node containers: about 4.2 GiB)
+
+$ free -h
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi       5.5Gi       261Mi       167Mi        10Gi        10Gi
+
+$ df -h /
+Filesystem      Size  Used Avail Use% Mounted on
+overlay          32G   18G   13G  58% /
+
+# Estimate, not measured: all 4 monitoring pods run on worker3, which uses
+# about 300-380 MiB more than the other workers. Requested for monitoring:
+# about 500 MiB (limits about 1.7 GiB). Prometheus' 2 Gi volume is on the
+# same disk (kind local-path), capped at 1 GB of data by retentionSize.
