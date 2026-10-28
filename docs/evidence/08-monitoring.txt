@@ -44,3 +44,37 @@ prometheus-kube-prometheus-stack-prometheus-0              prometheus,config-rel
 RESULT  M1 passed
 # Observation: all 4 monitoring pods run on worker3 (no spreading): losing
 # that node stops monitoring until the pods are rescheduled.
+
+================================================================================
+M2 (OpenBao metrics), 2026-10-28, revision 9a8dc57
+================================================================================
+Change: metrics-only listener on port 9101 (plain HTTP, no token), metrics
+disallowed on the main listener 8200, telemetry prometheus_retention_time 30s.
+Port 8202 (first plan) was already declared by the chart (https-rep).
+
+$ bash scripts/monitoring-openbao-metrics.sh   (excerpt)
+target StatefulSet revision: openbao-78cb96cd87
+--- restarting openbao-1 / openbao-2 / openbao-0: unsealed and Ready
+openbao-0   1/1  Running  worker    active=false  sealed=false
+openbao-1   1/1  Running  worker3   active=true   sealed=false
+openbao-2   1/1  Running  worker2   active=false  sealed=false
+13:27:00 PASS  3 OpenBao pods Ready (unsealed)
+13:27:00 INFO  metrics container port per pod: openbao-0=9101 openbao-1=9101 openbao-2=9101
+13:27:00 PASS  all 3 pods declare port 9101 (metrics)
+13:27:02 PASS  PodMonitor monitoring/openbao exists
+13:27:03 INFO  GET :9101/v1/sys/metrics?format=prometheus -> HTTP 200, 165 sample lines
+13:27:03 PASS  metrics listener answers without a token
+13:27:03 PASS  vault_core_unsealed present: vault_core_unsealed{cluster=""} 1
+13:27:03 INFO  distinct metric names: 121
+13:27:03 PASS  GET :9101/v1/sys/health -> HTTP 404 (not served)
+13:27:03 PASS  GET https://openbao.demo.local/v1/sys/metrics -> HTTP 403, no metrics through Traefik
+==> 5. Prometheus target (expected down until M3)
+        openbao-1  health=down  ... context deadline exceeded
+        openbao-2  health=down  ... context deadline exceeded
+        openbao-0  health=unknown
+13:27:04 RESULT  M2 OpenBao passed
+
+$ bash scripts/test-gate.sh  ->  GATE PASSED (8 layers Ready at 9a8dc576,
+OpenBao 3/3 unsealed, one active; PostgreSQL healthy 3/3; ESO store, pull, push Ready)
+# Note: the targets are down because the default-deny NetworkPolicy in
+# namespace openbao blocks Prometheus; M3 adds the allow rule.
