@@ -385,4 +385,4 @@ Findings:
 Token/key scan of 08-monitoring.txt and 08-m6-f3-sealed.txt (2026-10-28):
   grep -i -E 'hvs\.|s\.[A-Za-z0-9]{20,}|BEGIN [A-Z ]*PRIVATE|AGE-SECRET-KEY|unseal key|root token:|ghp_|github_pat_|password'
     -> no match
-  grep -o -E '[A-Za-z0-9+/=_-]{40,}'  -> only pod names and separator lines
+  grep -o -E '[A-Za-z0-9+/=_-]{40,}'  -> only pod, metric and object names and separator lines
