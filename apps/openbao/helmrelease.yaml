@@ -83,6 +83,11 @@ spec:
       # the bao CLI inside the pods (our scripts) would reject the certificate.
       extraEnvironmentVars:
         BAO_CACERT: /openbao/tls/ca.crt
+      # Metrics listener (see config below), scraped by the PodMonitor in
+      # apps/monitoring/. Not 8202: the chart already uses it (https-rep).
+      extraPorts:
+        - containerPort: 9101
+          name: metrics
       service:
         active:
           annotations:
@@ -118,6 +123,29 @@ spec:
             cluster_address = "[::]:8201"
             tls_cert_file   = "/openbao/tls/tls.crt"
             tls_key_file    = "/openbao/tls/tls.key"
+            # Metrics only on the listener below, not through Traefik.
+            telemetry {
+              disallow_metrics = true
+            }
+          }
+
+          # Metrics listener for Prometheus (ADR 0007): plain HTTP, serves only
+          # /v1/sys/metrics, no token needed. Only the Prometheus pod may reach
+          # it (NetworkPolicy allow-prometheus-metrics).
+          listener "tcp" {
+            address     = "[::]:9101"
+            tls_disable = 1
+            telemetry {
+              metrics_only                   = true
+              unauthenticated_metrics_access = true
+            }
+          }
+
+          # Keep metrics 30s for the Prometheus format (default 0 = off); no
+          # host name prefix in metric names.
+          telemetry {
+            prometheus_retention_time = "30s"
+            disable_hostname          = true
           }
 
           # connection_url is not set here: it comes from BAO_PG_CONNECTION_URL.
