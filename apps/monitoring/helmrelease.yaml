@@ -75,6 +75,12 @@ spec:
       # Only validates rules on creation and needs an extra certificate Job.
       admissionWebhooks:
         enabled: false
+      # The operator's TLS (port 10250) is only for the admission webhook and
+      # mounts the Secret <release>-admission, which only the webhook's
+      # certificate Job creates: with the webhook off the operator pod would
+      # hang in ContainerCreating (seen on the first install).
+      tls:
+        enabled: false
       resources:
         requests:
           cpu: 10m
