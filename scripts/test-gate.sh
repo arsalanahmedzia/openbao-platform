@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Test gate for the hardening stage: run after every change. Read-only: writes
 # no files, uses no OpenBao token, prints no secrets (only the demo values).
-# Checks Flux, OpenBao, PostgreSQL and External Secrets and ends with
+# Checks Flux, OpenBao, PostgreSQL, External Secrets and monitoring
+# (scripts/monitoring-check.sh) and ends with
 # "GATE PASSED" or a list of failures.
 #   bash scripts/test-gate.sh
 set -uo pipefail
@@ -49,6 +50,11 @@ check "pulled value is hello-from-openbao" \
   sh -c 'test "$(kubectl -n eso-demo get secret hello-from-openbao -o jsonpath="{.data.message}" | base64 -d)" = hello-from-openbao'
 check "PushSecret push-demo Ready" \
   kubectl -n eso-demo wait pushsecret/push-demo --for=condition=Ready --timeout=30s
+
+echo
+echo "==> Monitoring"
+check "monitoring: all targets up, 8 alert rules ok, no alert firing" \
+  bash "$(dirname "$0")/monitoring-check.sh"
 
 echo
 if (( ${#FAILS[@]} == 0 )); then
