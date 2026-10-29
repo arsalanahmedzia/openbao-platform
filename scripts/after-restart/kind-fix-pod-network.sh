@@ -1,5 +1,22 @@
 #!/usr/bin/env bash
 # kind-fix-pod-network.sh - repairs the kind pod network after the node containers got new IP addresses.
+#
+# In plain words:
+#   After a Codespace restart Docker can give the node containers different IP
+#   addresses. kindnet, the program that hands out pod IPs in kind, then keeps
+#   using the old ranges: pods get addresses that belong to another node, DNS
+#   stops working and OpenBao crashes because it cannot find PostgreSQL. This
+#   script finds that state and repairs it.
+#
+#   First it compares, on every node, the range kindnet hands out with the
+#   range Kubernetes gave the node, and restarts kindnet if they differ. Then
+#   it lists the pods whose IP is outside their node's range. If there are
+#   none, it stops and changes nothing. Otherwise it asks y/N and recreates
+#   those pods, because a new pod gets a new, correct IP: first CoreDNS (names
+#   must work first), then the other pods, then all affected PostgreSQL pods
+#   together, then OpenBao. OpenBao comes back sealed, so unseal it
+#   afterwards.
+#
 # Run it: bash scripts/after-restart/kind-fix-pod-network.sh (resume.sh runs it; also by hand when DNS or pods fail after a restart)
 # Changes the cluster: yes: may restart kindnet and recreate pods, asks first
 #   before it recreates any pod. OpenBao pods come back sealed.

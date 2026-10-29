@@ -1,5 +1,20 @@
 #!/usr/bin/env bash
 # resume.sh - brings the kind cluster back after the Codespace was stopped and started.
+#
+# In plain words:
+#   When the Codespace stops, the four kind node containers stop with it, and
+#   some settings are lost. This script brings the cluster back so you can
+#   work again. It starts the node containers, points kubectl at the cluster,
+#   adds back a firewall rule the host forgets on every restart (without it
+#   the nodes cannot reach the internet), and repairs DNS inside a node if
+#   that node cannot resolve names.
+#
+#   Then it waits until all nodes are Ready and runs kind-fix-pod-network.sh,
+#   because Docker can give the nodes new IP addresses on a restart, which
+#   breaks the pod network (risk R27). It does not unseal OpenBao: the OpenBao
+#   pods come back sealed, so the last line tells you to run
+#   openbao-unseal.sh.
+#
 # Run it: bash scripts/after-restart/resume.sh (at the start of every work session after a Codespace restart)
 # Changes the cluster: yes: starts the node containers, re-adds a firewall rule,
 #   may fix DNS in the nodes, and runs the pod-network fix (which asks first).
