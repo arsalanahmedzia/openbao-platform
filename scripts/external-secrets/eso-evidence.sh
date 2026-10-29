@@ -1,17 +1,16 @@
 #!/usr/bin/env bash
 # eso-evidence.sh - collects the External Secrets evidence into docs/evidence/05-external-secrets.txt.
 #
-# In plain words:
-#   This script records everything the External Secrets stage proved, in one
-#   file, docs/evidence/05-external-secrets.txt, and on the screen. It shows
-#   the Flux layers, the store status, the pulled value, a full refresh test
-#   (the value is changed in OpenBao and changed back), and the pushed value
-#   read back from OpenBao.
+# This script records everything the External Secrets stage proved, in one
+# file, docs/evidence/05-external-secrets.txt, and on the screen. It shows
+# the Flux layers, the store status, the pulled value, a full refresh test
+# (the value is changed in OpenBao and changed back), and the pushed value
+# read back from OpenBao.
 #
-#   Last, it checks least privilege: the ESO login may read secret/ and write
-#   only below secret/pushed/, and it must be refused on other paths. A login
-#   that may do more than it should stops the script. At the end it scans the
-#   file for anything that looks like a token.
+# Last, it checks least privilege: the ESO login may read secret/ and write
+# only below secret/pushed/, and it must be refused on other paths. A login
+# that may do more than it should stops the script. At the end it scans the
+# file for anything that looks like a token.
 #
 # Run it: bash scripts/external-secrets/eso-evidence.sh (after the ESO stage; prints the same on screen)
 # Changes the cluster: yes: runs the refresh test (demo value changed and

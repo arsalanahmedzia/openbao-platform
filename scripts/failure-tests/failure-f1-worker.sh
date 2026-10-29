@@ -1,20 +1,19 @@
 #!/usr/bin/env bash
 # failure-f1-worker.sh - failure test F1: stops a worker node and measures how the platform recovers.
 #
-# In plain words:
-#   This test answers: what happens when a whole worker node dies? It picks
-#   the worker that runs the active OpenBao pod (or the node you name) and
-#   stops its Docker container, which is how a node failure looks in kind.
-#   If that node also runs the PostgreSQL primary (it did in the recorded
-#   run), PostgreSQL fails over too.
+# This test answers: what happens when a whole worker node dies? It picks
+# the worker that runs the active OpenBao pod (or the node you name) and
+# stops its Docker container, which is how a node failure looks in kind.
+# If that node also runs the PostgreSQL primary (it did in the recorded
+# run), PostgreSQL fails over too.
 #
-#   While the node is gone, a background check calls OpenBao through Traefik
-#   every 2 seconds, and the script notes the time of each event: the node
-#   marked NotReady, a new PostgreSQL primary, OpenBao answering again. Then
-#   it starts the node again, repairs the pod network if the node got a new
-#   IP, and unseals the OpenBao pod that came back sealed. If you stop the
-#   script early, it still starts the node again. The output also goes to
-#   docs/evidence/07-f1-worker-script.txt.
+# While the node is gone, a background check calls OpenBao through Traefik
+# every 2 seconds, and the script notes the time of each event: the node
+# marked NotReady, a new PostgreSQL primary, OpenBao answering again. Then
+# it starts the node again, repairs the pod network if the node got a new
+# IP, and unseals the OpenBao pod that came back sealed. If you stop the
+# script early, it still starts the node again. The output also goes to
+# docs/evidence/07-f1-worker-script.txt.
 #
 # Run it: bash scripts/failure-tests/failure-f1-worker.sh [node-name] (default: the node with the active OpenBao pod; run test-gate.sh before and after)
 # Changes the cluster: breaks something on purpose, asks first: stops a worker node container,

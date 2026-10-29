@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
 # netpol-test-external-secrets.sh - applies and proves the NetworkPolicies of namespace external-secrets (hardening B2d).
 #
-# In plain words:
-#   Namespace external-secrets holds ESO. Its only allow rule lets the
-#   Kubernetes API server reach the ESO webhook on port 10250. The webhook
-#   checks every new or changed ESO object before it is saved; if the API
-#   server cannot reach it, every such change fails, and Flux could no longer
-#   apply them. This script applies the rules and proves that path.
+# Namespace external-secrets holds ESO. Its only allow rule lets the
+# Kubernetes API server reach the ESO webhook on port 10250. The webhook
+# checks every new or changed ESO object before it is saved; if the API
+# server cannot reach it, every such change fails, and Flux could no longer
+# apply them. This script applies the rules and proves that path.
 #
-#   It sends renamed copies of the ExternalSecret and the store to the API
-#   server as a dry run: the webhook is asked, but nothing is saved, so the
-#   live objects are not touched. Then short-lived test pods from default must
-#   be blocked from the webhook and from the controller's metrics port. Last,
-#   it checks that the store still works and Flux still applies the layer.
+# It sends renamed copies of the ExternalSecret and the store to the API
+# server as a dry run: the webhook is asked, but nothing is saved, so the
+# live objects are not touched. Then short-lived test pods from default must
+# be blocked from the webhook and from the controller's metrics port. Last,
+# it checks that the store still works and Flux still applies the layer.
 #
 # Run it: bash scripts/hardening/netpol-test-external-secrets.sh (after git push of infrastructure/controllers/external-secrets-networkpolicy.yaml)
 # Changes the cluster: yes: starts temporary probe pods (kubectl run --rm).

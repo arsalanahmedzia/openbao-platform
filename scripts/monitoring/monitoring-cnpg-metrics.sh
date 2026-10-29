@@ -1,17 +1,16 @@
 #!/usr/bin/env bash
 # monitoring-cnpg-metrics.sh - applies the PostgreSQL PodMonitor and checks the primary's metrics.
 #
-# In plain words:
-#   Stage M2 told Prometheus to read the PostgreSQL metrics, using a
-#   PodMonitor (a Kubernetes object that names the pods and the port
-#   Prometheus reads). This script asks Flux to apply it now and then reads
-#   the metrics of the primary itself, through a port-forward, to see that
-#   they are there.
+# Stage M2 told Prometheus to read the PostgreSQL metrics, using a
+# PodMonitor (a Kubernetes object that names the pods and the port
+# Prometheus reads). This script asks Flux to apply it now and then reads
+# the metrics of the primary itself, through a port-forward, to see that
+# they are there.
 #
-#   It shows the metrics the alerts use: whether PostgreSQL is up, the
-#   replication, and the backup timestamps that the Barman Cloud plugin
-#   publishes. It changes nothing apart from the Flux step and restarts no
-#   pod. Run it again only when you change the PostgreSQL monitoring.
+# It shows the metrics the alerts use: whether PostgreSQL is up, the
+# replication, and the backup timestamps that the Barman Cloud plugin
+# publishes. It changes nothing apart from the Flux step and restarts no
+# pod. Run it again only when you change the PostgreSQL monitoring.
 #
 # Run it: bash scripts/monitoring/monitoring-cnpg-metrics.sh (after git push of the PodMonitor; stage M2)
 # Changes the cluster: no. It asks Flux to apply what is in Git now; then it

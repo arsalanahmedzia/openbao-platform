@@ -1,17 +1,16 @@
 #!/usr/bin/env bash
 # failure-f5-eso-restart.sh - failure test F5: deletes the External Secrets controller pod and proves the new pod logs in and syncs.
 #
-# In plain words:
-#   This test answers: does External Secrets recover by itself when its
-#   controller pod is lost? It deletes the controller pod; Kubernetes starts a
-#   new one at once, because a Deployment always keeps one running.
+# This test answers: does External Secrets recover by itself when its
+# controller pod is lost? It deletes the controller pod; Kubernetes starts a
+# new one at once, because a Deployment always keeps one running.
 #
-#   The script waits for the new pod and for the next sync, and checks that
-#   the Kubernetes Secret kept its value. Then it proves the new pod logged in
-#   to OpenBao on its own: the OpenBao audit log shows logins from the new
-#   pod's IP address, with the token stored only as a hash. This script does
-#   not log in to OpenBao itself, so every such login is ESO's. The output
-#   also goes to docs/evidence/07-f5-eso-restart.txt.
+# The script waits for the new pod and for the next sync, and checks that
+# the Kubernetes Secret kept its value. Then it proves the new pod logged in
+# to OpenBao on its own: the OpenBao audit log shows logins from the new
+# pod's IP address, with the token stored only as a hash. This script does
+# not log in to OpenBao itself, so every such login is ESO's. The output
+# also goes to docs/evidence/07-f5-eso-restart.txt.
 #
 # Run it: bash scripts/failure-tests/failure-f5-eso-restart.sh (run test-gate.sh before and after)
 # Changes the cluster: breaks something on purpose, asks first: deletes the ESO controller

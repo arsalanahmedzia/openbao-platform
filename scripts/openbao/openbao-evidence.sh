@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
 # openbao-evidence.sh - writes the OpenBao evidence files into docs/evidence/.
 #
-# In plain words:
-#   This script records the state of OpenBao as proof, in four files in
-#   docs/evidence/, so a reviewer can see the results without access to the
-#   cluster. It writes the pods and their active and sealed labels, the bao
-#   status of every pod, an HTTPS request through Traefik checked against the
-#   demo CA, and the OpenBao tables in PostgreSQL with their row counts.
+# This script records the state of OpenBao as proof, in four files in
+# docs/evidence/, so a reviewer can see the results without access to the
+# cluster. It writes the pods and their active and sealed labels, the bao
+# status of every pod, an HTTPS request through Traefik checked against the
+# demo CA, and the OpenBao tables in PostgreSQL with their row counts.
 #
-#   It uses no key and no token. It only reads, with one exception: it takes a
-#   fresh base backup of PostgreSQL, to show that backups work with OpenBao's
-#   data in the database.
+# It uses no key and no token. It only reads, with one exception: it takes a
+# fresh base backup of PostgreSQL, to show that backups work with OpenBao's
+# data in the database.
 #
 # Run it: bash scripts/openbao/openbao-evidence.sh (after init, unseal and configure)
 # Changes the cluster: yes: takes one base backup of pg-openbao. Otherwise it

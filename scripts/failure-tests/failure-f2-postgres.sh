@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
 # failure-f2-postgres.sh - failure test F2: deletes the PostgreSQL primary and measures the failover and the write outage.
 #
-# In plain words:
-#   This test answers: what happens to OpenBao when the PostgreSQL primary
-#   (the copy that accepts writes) dies? It deletes the primary pod.
-#   CloudNativePG then promotes one of the replicas to be the new primary and
-#   recreates the deleted pod as a replica.
+# This test answers: what happens to OpenBao when the PostgreSQL primary
+# (the copy that accepts writes) dies? It deletes the primary pod.
+# CloudNativePG then promotes one of the replicas to be the new primary and
+# recreates the deleted pod as a replica.
 #
-#   While that happens, a background check writes a small test value into
-#   OpenBao every 2 seconds, logged in as External Secrets. A write must reach
-#   PostgreSQL, so the log shows exactly how long OpenBao could not write. The
-#   script measures the time until a new primary exists and until all 3
-#   instances are ready again. At the end it deletes the test value and the
-#   token. The output also goes to docs/evidence/07-f2-postgres.txt.
+# While that happens, a background check writes a small test value into
+# OpenBao every 2 seconds, logged in as External Secrets. A write must reach
+# PostgreSQL, so the log shows exactly how long OpenBao could not write. The
+# script measures the time until a new primary exists and until all 3
+# instances are ready again. At the end it deletes the test value and the
+# token. The output also goes to docs/evidence/07-f2-postgres.txt.
 #
 # Run it: bash scripts/failure-tests/failure-f2-postgres.sh (run test-gate.sh before and after)
 # Changes the cluster: breaks something on purpose, asks first: deletes the primary pod;

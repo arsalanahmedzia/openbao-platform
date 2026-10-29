@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
 # monitoring-netpol-check.sh - applies and proves the NetworkPolicies that let Prometheus reach the metrics ports.
 #
-# In plain words:
-#   In five namespaces every incoming connection is blocked unless a
-#   NetworkPolicy (a Kubernetes rule for which pods may connect to which)
-#   allows it. Stage M3 added one rule per namespace so that only Prometheus
-#   may reach the metrics ports 9101, 9187 and 8080. This script applies those
-#   rules and proves them.
+# In five namespaces every incoming connection is blocked unless a
+# NetworkPolicy (a Kubernetes rule for which pods may connect to which)
+# allows it. Stage M3 added one rule per namespace so that only Prometheus
+# may reach the metrics ports 9101, 9187 and 8080. This script applies those
+# rules and proves them.
 #
-#   For each port it starts short-lived test pods (deleted right after): one
-#   with Prometheus' label in namespace monitoring must get through; one
-#   without the label, and one in namespace default, must be blocked. Then it
-#   waits until Prometheus itself reports every target up, which also proves
-#   that Prometheus accepts the OpenBao certificate. Run it again only when
-#   you change these rules.
+# For each port it starts short-lived test pods (deleted right after): one
+# with Prometheus' label in namespace monitoring must get through; one
+# without the label, and one in namespace default, must be blocked. Then it
+# waits until Prometheus itself reports every target up, which also proves
+# that Prometheus accepts the OpenBao certificate. Run it again only when
+# you change these rules.
 #
 # Run it: bash scripts/monitoring/monitoring-netpol-check.sh (after git push of the allow-prometheus-metrics policies; stage M3)
 # Changes the cluster: yes: starts temporary probe pods (kubectl run --rm,

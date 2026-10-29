@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
 # openbao-tls-rollout.sh - applies a new OpenBao config and restarts only the outdated pods, one by one.
 #
-# In plain words:
-#   OpenBao reads its configuration only when a pod starts. The chart is set
-#   to OnDelete: when the configuration in Git changes, Kubernetes updates the
-#   template, but running pods keep the old configuration until someone
-#   deletes them. This script does that safely, one pod at a time.
+# OpenBao reads its configuration only when a pod starts. The chart is set
+# to OnDelete: when the configuration in Git changes, Kubernetes updates the
+# template, but running pods keep the old configuration until someone
+# deletes them. This script does that safely, one pod at a time.
 #
-#   It asks Flux to apply the change now, waits for the listener certificate,
-#   then compares each pod with the newest template (the StatefulSet
-#   revision). Only outdated pods are deleted: the two standbys first, the
-#   active pod last, so there is always an active pod. Each new pod starts
-#   sealed and the script unseals it before it moves on. At the end it checks
-#   the TLS name ESO uses and HTTPS through Traefik. Pods that are already up
-#   to date are skipped, so it is safe to run again.
+# It asks Flux to apply the change now, waits for the listener certificate,
+# then compares each pod with the newest template (the StatefulSet
+# revision). Only outdated pods are deleted: the two standbys first, the
+# active pod last, so there is always an active pod. Each new pod starts
+# sealed and the script unseals it before it moves on. At the end it checks
+# the TLS name ESO uses and HTTPS through Traefik. Pods that are already up
+# to date are skipped, so it is safe to run again.
 #
 # Run it: bash scripts/openbao/openbao-tls-rollout.sh (after git push of a change to the OpenBao config; safe to run again)
 # Changes the cluster: yes: restarts OpenBao pods (they come back sealed) and

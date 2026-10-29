@@ -1,17 +1,16 @@
 #!/usr/bin/env bash
 # github-access-check.sh - shows which GitHub access this setup uses, without printing any token.
 #
-# In plain words:
-#   This script answers one question for risk R08: which GitHub access does
-#   this setup use, and how much may it do? Write access to the repository is
-#   enough to change the cluster, because Flux applies whatever is in Git.
+# This script answers one question for risk R08: which GitHub access does
+# this setup use, and how much may it do? Write access to the repository is
+# enough to change the cluster, because Flux applies whatever is in Git.
 #
-#   It looks at two tokens, FLUX_GITHUB_TOKEN and your gh login, and shows for
-#   each only the type (from the first letters of the token), the rights
-#   GitHub reports for it and its expiry date; the token itself is never
-#   printed. Then it lists the deploy keys of the repository (Flux bootstrap
-#   creates one) and the branch protection on main. It only reads from the
-#   GitHub API and does not touch the cluster.
+# It looks at two tokens, FLUX_GITHUB_TOKEN and your gh login, and shows for
+# each only the type (from the first letters of the token), the rights
+# GitHub reports for it and its expiry date; the token itself is never
+# printed. Then it lists the deploy keys of the repository (Flux bootstrap
+# creates one) and the branch protection on main. It only reads from the
+# GitHub API and does not touch the cluster.
 #
 # Run it: bash scripts/checks/github-access-check.sh (to review access, risk R08)
 # Changes the cluster: no. It calls only the GitHub API.

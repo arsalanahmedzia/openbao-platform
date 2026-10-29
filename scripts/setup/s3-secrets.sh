@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
 # s3-secrets.sh - generates the S3 keys for SeaweedFS and writes them as two SOPS-encrypted files.
 #
-# In plain words:
-#   PostgreSQL stores its backups in SeaweedFS, which speaks S3 (a common way
-#   to store files over HTTP). Both sides need the same access key and secret
-#   key: SeaweedFS to accept them, PostgreSQL to use them. This script makes
-#   up one random key pair and writes it into two Kubernetes Secret files, one
-#   for each side.
+# PostgreSQL stores its backups in SeaweedFS, which speaks S3 (a common way
+# to store files over HTTP). Both sides need the same access key and secret
+# key: SeaweedFS to accept them, PostgreSQL to use them. This script makes
+# up one random key pair and writes it into two Kubernetes Secret files, one
+# for each side.
 #
-#   Both files are encrypted with SOPS before they are saved, so they can be
-#   committed to Git safely. Flux decrypts them in the cluster after a push.
-#   The keys are never printed. Because new keys would make old backups
-#   unreadable, the script refuses to overwrite existing files unless you pass
-#   --force.
+# Both files are encrypted with SOPS before they are saved, so they can be
+# committed to Git safely. Flux decrypts them in the cluster after a push.
+# The keys are never printed. Because new keys would make old backups
+# unreadable, the script refuses to overwrite existing files unless you pass
+# --force.
 #
 # Run it: bash scripts/setup/s3-secrets.sh (once; --force replaces the files)
 # Changes the cluster: no. It writes repo files; Flux applies them after a push.

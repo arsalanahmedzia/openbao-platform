@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
 # sops-demo.sh - proves the age key pair works: writes an encrypted demo Secret for Flux to decrypt.
 #
-# In plain words:
-#   This script proves that secrets in Git work end to end, with a value that
-#   protects nothing. It writes a Kubernetes Secret with a random demo
-#   password, encrypts it with the age public key from .sops.yaml (anyone with
-#   the repository can encrypt), and adds the file to the infra-configs layer.
+# This script proves that secrets in Git work end to end, with a value that
+# protects nothing. It writes a Kubernetes Secret with a random demo
+# password, encrypts it with the age public key from .sops.yaml (anyone with
+# the repository can encrypt), and adds the file to the infra-configs layer.
 #
-#   After you commit and push, Flux decrypts it with the private key that only
-#   the cluster holds (the Secret sops-age) and creates the Secret
-#   default/sops-demo. The script only writes files; it prints the git command
-#   but does not run it.
+# After you commit and push, Flux decrypts it with the private key that only
+# the cluster holds (the Secret sops-age) and creates the Secret
+# default/sops-demo. The script only writes files; it prints the git command
+# but does not run it.
 #
 # Run it: bash scripts/setup/sops-demo.sh (once, to show SOPS end to end)
 # Changes the cluster: no. It writes infrastructure/configs/sops-demo.sops.yaml and

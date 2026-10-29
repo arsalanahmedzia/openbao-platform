@@ -1,20 +1,19 @@
 #!/usr/bin/env bash
 # openbao-configure.sh - configures OpenBao for External Secrets (storage, login, policies, roles).
 #
-# In plain words:
-#   A freshly unsealed OpenBao is empty: it has no place for secrets, no way
-#   for External Secrets to log in, and no rules. This script sets all of that
-#   up, using the root token for the last planned time.
+# A freshly unsealed OpenBao is empty: it has no place for secrets, no way
+# for External Secrets to log in, and no rules. This script sets all of that
+# up, using the root token for the last planned time.
 #
-#   It switches on the secret storage at secret/ (KV v2, which keeps older
-#   versions of each value). It switches on the Kubernetes login, so a pod can
-#   log in with its Kubernetes identity (its service account) instead of a
-#   stored password; OpenBao checks that identity by asking the Kubernetes
-#   API. It loads the three policies from openbao/policies/ (what a login may
-#   read or write), creates the roles that tie the ESO service account and the
-#   demo writer to those policies, and writes the demo secret
-#   secret/demo/hello. Last, it logs in as External Secrets to prove the login
-#   works. Every step checks first, so running it again changes nothing.
+# It switches on the secret storage at secret/ (KV v2, which keeps older
+# versions of each value). It switches on the Kubernetes login, so a pod can
+# log in with its Kubernetes identity (its service account) instead of a
+# stored password; OpenBao checks that identity by asking the Kubernetes
+# API. It loads the three policies from openbao/policies/ (what a login may
+# read or write), creates the roles that tie the ESO service account and the
+# demo writer to those policies, and writes the demo secret
+# secret/demo/hello. Last, it logs in as External Secrets to prove the login
+# works. Every step checks first, so running it again changes nothing.
 #
 # Run it: bash scripts/openbao/openbao-configure.sh (once after the first unseal; safe to run again)
 # Changes the cluster: yes: writes OpenBao's configuration with the root token

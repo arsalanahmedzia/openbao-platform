@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
 # netpol-test-databases.sh - applies and proves the NetworkPolicies of namespace databases (hardening B2b).
 #
-# In plain words:
-#   Namespace databases holds PostgreSQL. Its rules allow port 5432 (the
-#   database) only from OpenBao and from the other PostgreSQL instances, and
-#   port 8000 (the CloudNativePG instance manager, which reports status and
-#   takes commands) only from the operator, the other instances and the
-#   Kubernetes API server. This script applies the rules and proves them.
+# Namespace databases holds PostgreSQL. Its rules allow port 5432 (the
+# database) only from OpenBao and from the other PostgreSQL instances, and
+# port 8000 (the CloudNativePG instance manager, which reports status and
+# takes commands) only from the operator, the other instances and the
+# Kubernetes API server. This script applies the rules and proves them.
 #
-#   First it checks that the node addresses lie in 172.16.0.0/12, because the
-#   rule for the API server depends on that range. Then short-lived test pods
-#   show that OpenBao gets through and everything else is blocked. As real
-#   proof it runs kubectl cnpg status (the API server reaching port 8000),
-#   shows replication, and takes a base backup with
-#   database/pg-backup-check.sh.
+# First it checks that the node addresses lie in 172.16.0.0/12, because the
+# rule for the API server depends on that range. Then short-lived test pods
+# show that OpenBao gets through and everything else is blocked. As real
+# proof it runs kubectl cnpg status (the API server reaching port 8000),
+# shows replication, and takes a base backup with
+# database/pg-backup-check.sh.
 #
 # Run it: bash scripts/hardening/netpol-test-databases.sh (after git push of apps/database/networkpolicy.yaml)
 # Changes the cluster: yes: starts temporary probe pods (kubectl run --rm,

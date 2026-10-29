@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
 # install-tools.sh - installs the command-line tools the platform needs on Ubuntu 24.04.
 #
-# In plain words:
-#   A fresh machine has none of the programs this project uses. This script
-#   installs them all in one go, so every other script can run. It installs
-#   the base packages with apt, Docker (which runs the kind nodes as
-#   containers), kubectl (talks to Kubernetes), kind (creates the cluster),
-#   the Flux CLI, SOPS and age (encrypt secrets in Git) and the kubectl-cnpg
-#   plugin (talks to the PostgreSQL operator).
+# A fresh machine has none of the programs this project uses. This script
+# installs them all in one go, so every other script can run. It installs
+# the base packages with apt, Docker (which runs the kind nodes as
+# containers), kubectl (talks to Kubernetes), kind (creates the cluster),
+# the Flux CLI, SOPS and age (encrypt secrets in Git) and the kubectl-cnpg
+# plugin (talks to the PostgreSQL operator).
 #
-#   It does not touch any cluster. In a Codespace it runs by itself when the
-#   Codespace is created (postCreateCommand in
-#   .devcontainer/devcontainer.json). On a VM you log out and in again
-#   afterwards, so the docker group applies.
+# It does not touch any cluster. In a Codespace it runs by itself when the
+# Codespace is created (postCreateCommand in
+# .devcontainer/devcontainer.json). On a VM you log out and in again
+# afterwards, so the docker group applies.
 #
 # Run it: bash scripts/setup/install-tools.sh (once; the devcontainer runs it when a Codespace is created)
 # Changes the cluster: no. It installs programs on this machine (sudo).

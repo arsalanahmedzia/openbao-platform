@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
 # pin-versions.sh - writes the newest stable chart versions into the HelmRelease files.
 #
-# In plain words:
-#   Every Helm chart in this repository is pinned to one exact version, so the
-#   cluster never changes by itself when a new chart is published (ADR 0001).
-#   When the files were first written they held placeholders such as
-#   __CERT_MANAGER_VERSION__. This script asks each chart repository for its
-#   newest stable version and writes that number in place of the placeholder.
+# Every Helm chart in this repository is pinned to one exact version, so the
+# cluster never changes by itself when a new chart is published (ADR 0001).
+# When the files were first written they held placeholders such as
+# __CERT_MANAGER_VERSION__. This script asks each chart repository for its
+# newest stable version and writes that number in place of the placeholder.
 #
-#   It only edits files in the repository. Nothing happens in the cluster
-#   until you review the diff, commit and push. A file that already has a
-#   version is left alone.
+# It only edits files in the repository. Nothing happens in the cluster
+# until you review the diff, commit and push. A file that already has a
+# version is left alone.
 #
 # Run it: bash scripts/setup/pin-versions.sh (once, when the __PLACEHOLDER__ markers are still in the files)
 # Changes the cluster: no. It changes repo files; review the diff, then commit.

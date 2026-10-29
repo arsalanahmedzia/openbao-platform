@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
 # monitoring-openbao-metrics.sh - rolls out the OpenBao metrics listener and checks it like Prometheus does.
 #
-# In plain words:
-#   Stage M2 gave OpenBao a second listener on port 9101 that serves only
-#   metrics, over HTTPS, without a token. This script rolls that change out
-#   and checks it the same way Prometheus reads it. The rollout restarts the
-#   OpenBao pods one at a time (through openbao-tls-rollout.sh), and each pod
-#   comes back sealed and is unsealed.
+# Stage M2 gave OpenBao a second listener on port 9101 that serves only
+# metrics, over HTTPS, without a token. This script rolls that change out
+# and checks it the same way Prometheus reads it. The rollout restarts the
+# OpenBao pods one at a time (through openbao-tls-rollout.sh), and each pod
+# comes back sealed and is unsealed.
 #
-#   Then it checks the certificate: Prometheus has a copy of the demo CA, and
-#   that CA must be the one that signed OpenBao's certificate, for the name
-#   openbao.openbao.svc. It reads the metrics over verified HTTPS, checks that
-#   plain HTTP gets nothing and that the metrics are not reachable through
-#   Traefik, and shows the scrape configuration Prometheus generated. Run it
-#   again only when you change the OpenBao metrics setup.
+# Then it checks the certificate: Prometheus has a copy of the demo CA, and
+# that CA must be the one that signed OpenBao's certificate, for the name
+# openbao.openbao.svc. It reads the metrics over verified HTTPS, checks that
+# plain HTTP gets nothing and that the metrics are not reachable through
+# Traefik, and shows the scrape configuration Prometheus generated. Run it
+# again only when you change the OpenBao metrics setup.
 #
 # Run it: bash scripts/monitoring/monitoring-openbao-metrics.sh (after git push of the OpenBao metrics config; stage M2)
 # Changes the cluster: yes: restarts outdated OpenBao pods one at a time and

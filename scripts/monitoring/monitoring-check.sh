@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
 # monitoring-check.sh - read-only health check of monitoring: targets, alert rules, alerts.
 #
-# In plain words:
-#   This is the daily check of monitoring. Prometheus collects numbers
-#   (metrics) from the platform and checks 8 alert rules; Alertmanager
-#   receives the alerts that fire. Both run inside the cluster with no outside
-#   address, so the script opens two port-forwards (a local port that leads
-#   into the pod) and asks their HTTP APIs, then closes the port-forwards
-#   again.
+# This is the daily check of monitoring. Prometheus collects numbers
+# (metrics) from the platform and checks 8 alert rules; Alertmanager
+# receives the alerts that fire. Both run inside the cluster with no outside
+# address, so the script opens two port-forwards (a local port that leads
+# into the pod) and asks their HTTP APIs, then closes the port-forwards
+# again.
 #
-#   It checks that every target (every place Prometheus reads metrics from) is
-#   up, that all 8 rules are loaded and healthy, and that no alert is firing;
-#   a firing alert counts as a failure, because it means something is broken.
-#   It changes nothing. With --wait-firing <alert> it instead waits until that
-#   alert fires, for failure tests that prove an alert works.
+# It checks that every target (every place Prometheus reads metrics from) is
+# up, that all 8 rules are loaded and healthy, and that no alert is firing;
+# a firing alert counts as a failure, because it means something is broken.
+# It changes nothing. With --wait-firing <alert> it instead waits until that
+# alert fires, for failure tests that prove an alert works.
 #
 # Run it: bash scripts/monitoring/monitoring-check.sh (any time; test-gate.sh runs it)
 #         bash scripts/monitoring/monitoring-check.sh --wait-firing OpenBaoSealed [minutes]

@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
 # eso-debug.sh - shows why an External Secrets object is not Ready.
 #
-# In plain words:
-#   When an ExternalSecret or PushSecret is not Ready, the reason is spread
-#   over several places. This script collects them in one view: the object's
-#   conditions (Ready and its message), its Kubernetes events, the status of
-#   the store, and the last ten lines of the ESO controller log that mention
-#   the object.
+# When an ExternalSecret or PushSecret is not Ready, the reason is spread
+# over several places. This script collects them in one view: the object's
+# conditions (Ready and its message), its Kubernetes events, the status of
+# the store, and the last ten lines of the ESO controller log that mention
+# the object.
 #
-#   It changes nothing. ESO logs paths and errors, not secret values, so
-#   nothing secret is printed. Without arguments it shows pushsecret
-#   push-demo; give another kind and name to look at another object.
+# It changes nothing. ESO logs paths and errors, not secret values, so
+# nothing secret is printed. Without arguments it shows pushsecret
+# push-demo; give another kind and name to look at another object.
 #
 # Run it: bash scripts/external-secrets/eso-debug.sh                     (default: pushsecret push-demo)
 #         bash scripts/external-secrets/eso-debug.sh externalsecret hello

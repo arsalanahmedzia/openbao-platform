@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
 # openbao-unseal.sh - unseals every sealed OpenBao pod with 3 of the 5 key shares.
 #
-# In plain words:
-#   OpenBao keeps its data encrypted. Every OpenBao pod starts sealed: it runs
-#   but cannot read its own data, and it answers no secret requests until it
-#   is unsealed. Unsealing needs 3 of the 5 key shares (pieces of the key)
-#   created when OpenBao was first set up.
+# OpenBao keeps its data encrypted. Every OpenBao pod starts sealed: it runs
+# but cannot read its own data, and it answers no secret requests until it
+# is unsealed. Unsealing needs 3 of the 5 key shares (pieces of the key)
+# created when OpenBao was first set up.
 #
-#   This script takes the shares from the Codespaces secret
-#   OPENBAO_UNSEAL_KEYS (or from ~/openbao-init.json), finds every sealed pod
-#   and hands it shares one at a time until it is unsealed. The shares go into
-#   the pod through stdin, so they never appear on the screen, in the shell
-#   history or in the process list. Pods that are already unsealed are
-#   skipped, so it is safe to run as often as you like. At the end one pod is
-#   active and two are standby.
+# This script takes the shares from the Codespaces secret
+# OPENBAO_UNSEAL_KEYS (or from ~/openbao-init.json), finds every sealed pod
+# and hands it shares one at a time until it is unsealed. The shares go into
+# the pod through stdin, so they never appear on the screen, in the shell
+# history or in the process list. Pods that are already unsealed are
+# skipped, so it is safe to run as often as you like. At the end one pod is
+# active and two are standby.
 #
 # Run it: bash scripts/after-restart/openbao-unseal.sh (after every OpenBao pod or Codespace restart; safe to repeat)
 # Changes the cluster: yes: unseals sealed pods. Unsealed pods are skipped.

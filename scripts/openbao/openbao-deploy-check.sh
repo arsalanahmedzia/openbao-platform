@@ -1,17 +1,16 @@
 #!/usr/bin/env bash
 # openbao-deploy-check.sh - applies the OpenBao layer and shows that the 3 pods run, sealed.
 #
-# In plain words:
-#   After you push the OpenBao layer, Flux would apply it within about a
-#   minute on its own. This script asks Flux to apply it now (a reconcile) and
-#   then shows whether OpenBao came up the way it should before anyone
-#   initialises it.
+# After you push the OpenBao layer, Flux would apply it within about a
+# minute on its own. This script asks Flux to apply it now (a reconcile) and
+# then shows whether OpenBao came up the way it should before anyone
+# initialises it.
 #
-#   At this point "the way it should" means: 3 pods are Running but not Ready,
-#   because a fresh OpenBao is not initialised and is sealed. The script waits
-#   for that, prints the seal status and any error lines from each pod, and
-#   lists the tables OpenBao created in its PostgreSQL database. Those tables
-#   prove that OpenBao reached the database. It changes nothing in OpenBao.
+# At this point "the way it should" means: 3 pods are Running but not Ready,
+# because a fresh OpenBao is not initialised and is sealed. The script waits
+# for that, prints the seal status and any error lines from each pod, and
+# lists the tables OpenBao created in its PostgreSQL database. Those tables
+# prove that OpenBao reached the database. It changes nothing in OpenBao.
 #
 # Run it: bash scripts/openbao/openbao-deploy-check.sh (after git push of the OpenBao layer, before init)
 # Changes the cluster: no. It asks Flux to apply what is in Git now instead of

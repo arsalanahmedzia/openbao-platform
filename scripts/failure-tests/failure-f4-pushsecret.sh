@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
 # failure-f4-pushsecret.sh - failure test F4: deletes the PushSecret and shows the value is deleted in OpenBao, then restored by Flux.
 #
-# In plain words:
-#   This test answers: what happens to a pushed value when its PushSecret is
-#   deleted? The PushSecret push-demo is set to deletionPolicy Delete, so
-#   deleting it should also delete the value it pushed to OpenBao.
+# This test answers: what happens to a pushed value when its PushSecret is
+# deleted? The PushSecret push-demo is set to deletionPolicy Delete, so
+# deleting it should also delete the value it pushed to OpenBao.
 #
-#   To see that clearly, the script first pauses Flux for that layer;
-#   otherwise Flux would recreate the PushSecret from Git within seconds. Then
-#   it deletes the PushSecret, shows the value and all its versions are gone
-#   from OpenBao, and lets Flux run again. Flux recreates the PushSecret from
-#   Git, ESO pushes the value again, and the script shows it is back. If you
-#   stop the script early, it still resumes Flux. The output also goes to
-#   docs/evidence/07-f4-pushsecret.txt.
+# To see that clearly, the script first pauses Flux for that layer;
+# otherwise Flux would recreate the PushSecret from Git within seconds. Then
+# it deletes the PushSecret, shows the value and all its versions are gone
+# from OpenBao, and lets Flux run again. Flux recreates the PushSecret from
+# Git, ESO pushes the value again, and the script shows it is back. If you
+# stop the script early, it still resumes Flux. The output also goes to
+# docs/evidence/07-f4-pushsecret.txt.
 #
 # Run it: bash scripts/failure-tests/failure-f4-pushsecret.sh (run test-gate.sh before and after)
 # Changes the cluster: breaks something on purpose, asks first: suspends Flux for
