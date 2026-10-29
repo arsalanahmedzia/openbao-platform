@@ -311,7 +311,7 @@ All decisions are in [`adr/`](adr/):
 
 ## Other diagrams
 
-- How it runs (who calls whom): [README](../README.md#in-60-seconds)
+- How it runs (who calls whom): [README](../README.md#overview)
 - Starting and unsealing OpenBao: [runbooks/openbao-init-unseal.md](runbooks/openbao-init-unseal.md#how-init-and-unseal-work)
 - How one sync works (ESO login, pull, push): [runbooks/external-secrets.md](runbooks/external-secrets.md#how-one-sync-works)
 - Backup and restore: [runbooks/postgres-backup-restore.md](runbooks/postgres-backup-restore.md#how-backup-and-restore-work)
