@@ -1,9 +1,30 @@
 #!/usr/bin/env bash
-# Hardening A1 (risk R06): after `git push`, applies the new backup schedule,
-# shows it, shows the age of the last successful base backup, then takes a
-# manual base backup (same command as docs/runbooks/postgres-backup-restore.md)
-# and waits until it is completed. Prints no secrets.
-#   bash scripts/database/pg-backup-check.sh
+# pg-backup-check.sh - shows the backup schedule and the last backup, then takes a manual base backup.
+# Run it: bash scripts/database/pg-backup-check.sh (after a backup change; risk R06; netpol-test-storage.sh and netpol-test-databases.sh run it)
+# Changes the cluster: yes: takes one base backup of pg-openbao (a Backup object
+#   outside Git; a record of an action, not configuration). Prints no secrets.
+#
+# What it does:
+#   1. Applies Git now.
+#        flux reconcile source git flux-system
+#        flux reconcile kustomization apps-database
+#   2. Shows the ScheduledBackup (schedule, last and next run) and the age of the
+#      last completed base backup.
+#        kubectl -n databases get scheduledbackup pg-openbao-daily -o jsonpath=...
+#   3. Lists all backups; SCHEDULED-BY is empty for backups taken by hand or by Git.
+#        kubectl -n databases get backup --sort-by=.metadata.creationTimestamp
+#   4. Shows the events of the ScheduledBackup.
+#   5. Takes a manual base backup (same command as
+#      docs/runbooks/postgres-backup-restore.md, section 2) and waits up to 5 min
+#      until it is completed or failed.
+#        kubectl cnpg backup pg-openbao -n databases --method=plugin --plugin-name=barman-cloud.cloudnative-pg.io
+#
+# What you should see: "schedule=0 0 12 * * *", the last successful backup with
+#   its age, then the new Backup with phase=completed.
+# If it fails: phase=failed or no phase: kubectl cnpg status pg-openbao -n
+#   databases ("Working WAL archiving") and the Troubleshooting table in
+#   docs/runbooks/postgres-backup-restore.md.
+# Needs: flux, kubectl with the cnpg plugin, jq.
 set -euo pipefail
 
 NS=databases
