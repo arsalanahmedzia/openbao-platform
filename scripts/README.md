@@ -98,6 +98,8 @@ bash scripts/checks/monitoring-check.sh
 | Script | What it does | Changes |
 | --- | --- | --- |
 | [`pg-backup-check.sh`](database/pg-backup-check.sh) | Shows the backup schedule and the last backup, then takes a manual base backup | a new backup |
+| [`pg-check.sh`](database/pg-check.sh) | Checks 3 ready instances, the roles, streaming to both replicas, and that a row written on the primary reaches every replica | a test table in database `postgres`, dropped again |
+| [`storage-check.sh`](database/storage-check.sh) | Checks SeaweedFS, the bucket job and an S3 round trip from namespace `databases`; counts the backup files | a temporary pod and test file, deleted again |
 
 ### monitoring/ (setup checks for the monitoring stage)
 
@@ -149,7 +151,7 @@ in `docs/evidence/` are recorded outputs and keep the old paths. Each old path
 | `checks/` | test-gate, monitoring-check, github-access-check |
 | `openbao/` | openbao-deploy-check, openbao-init, openbao-configure, openbao-policy-update, openbao-tls-rollout, openbao-audit-check, openbao-evidence, openbao-generate-root, openbao-revoke-root |
 | `external-secrets/` | eso-store-check, eso-pull-check, eso-refresh-test, eso-push-check, eso-evidence, eso-debug |
-| `database/` | pg-backup-check |
+| `database/` | pg-backup-check (new on 2026-10-29: pg-check, storage-check) |
 | `monitoring/` | monitoring-deploy-check, monitoring-openbao-metrics, monitoring-cnpg-metrics, monitoring-eso-metrics, monitoring-netpol-check |
 | `hardening/` | netpol-enforcement-test, netpol-test-storage, netpol-test-databases, netpol-test-openbao, netpol-test-external-secrets, netpol-test-eso-demo |
 | `failure-tests/` | failure-f1-worker … failure-f6-restore, openbao-failover-test |

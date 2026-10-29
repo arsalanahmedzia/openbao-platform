@@ -66,6 +66,10 @@ selects every CloudNativePG instance (`cnpg.io/podRole: instance`), not only
 
 ## 1. Check backup health
 
+`bash scripts/database/pg-check.sh` checks the instances and the replication;
+`bash scripts/database/storage-check.sh` checks the S3 storage with a round trip.
+By hand:
+
 ```bash
 kubectl cnpg status pg-openbao -n databases
 kubectl -n databases get backup,scheduledbackup
