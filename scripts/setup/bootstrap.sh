@@ -1,5 +1,22 @@
 #!/usr/bin/env bash
 # bootstrap.sh - creates the kind cluster, the SOPS key Secret and installs Flux.
+#
+# In plain words:
+#   This is the only manual step of the whole platform. It creates an empty
+#   Kubernetes cluster and installs Flux; from then on Flux reads this Git
+#   repository and builds everything else by itself (that way of working is
+#   called GitOps).
+#
+#   It does three things in order. First it creates the kind cluster: four
+#   Docker containers that act as one control plane and three worker nodes.
+#   Second it stores the age private key in the cluster as the Secret
+#   sops-age, so Flux can decrypt the encrypted *.sops.yaml files; this is the
+#   only Secret ever created by hand. Third it runs flux bootstrap, which
+#   installs Flux and connects it to this repository on GitHub.
+#
+#   If the cluster already exists it is reused, so running the script twice
+#   does not create a second cluster.
+#
 # Run it: bash scripts/setup/bootstrap.sh (once per new cluster; after it every change comes through Git)
 # Changes the cluster: yes: creates the cluster, the Secret flux-system/sops-age and Flux.
 #

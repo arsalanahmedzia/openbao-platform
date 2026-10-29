@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 # openbao-db-secret.sh - generates OpenBao's PostgreSQL password and writes it as two SOPS-encrypted files.
+#
+# In plain words:
+#   OpenBao keeps all its data in PostgreSQL and needs a password to log in
+#   there. PostgreSQL must know the same password for its user openbao. This
+#   script makes up one random password and writes it into two Kubernetes
+#   Secret files: one tells CloudNativePG which password to give the user
+#   openbao, the other gives OpenBao its full connection string with that
+#   password.
+#
+#   Both files are encrypted with SOPS before they are saved, so they can be
+#   committed to Git safely. The password is never printed. With --force it
+#   makes a new password (a rotation); then the OpenBao pods must be
+#   restarted, because they read the connection string only when they start.
+#
 # Run it: bash scripts/setup/openbao-db-secret.sh (once; --force rotates the password)
 # Changes the cluster: no. It writes repo files; Flux applies them after a push.
 #   After --force the OpenBao pods must be restarted (runbook openbao-init-unseal.md, section 4).
