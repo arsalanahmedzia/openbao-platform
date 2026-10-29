@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
 # eso-pull-check.sh - applies the ExternalSecret and shows the Kubernetes Secret ESO created from OpenBao.
+#
+# In plain words:
+#   Pull means: ESO copies a value from OpenBao into a normal Kubernetes
+#   Secret, which apps can read. The ExternalSecret eso-demo/hello asks ESO to
+#   copy secret/demo/hello into the Secret hello-from-openbao, every 30 s.
+#
+#   This script asks Flux to apply it now, waits until the ExternalSecret is
+#   Ready, and shows the Secret ESO created: which object owns it, which keys
+#   it has and the decoded value. The value hello-from-openbao is a demo
+#   value, not a real secret, so it is shown on purpose.
+#
 # Run it: bash scripts/external-secrets/eso-pull-check.sh (after git push of the ExternalSecret)
 # Changes the cluster: no. It asks Flux to apply what is in Git now; then it
 #   only reads. The value hello-from-openbao is a demo value, so it is shown.

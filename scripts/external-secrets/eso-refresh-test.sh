@@ -1,5 +1,18 @@
 #!/usr/bin/env bash
 # eso-refresh-test.sh - proves that a change in OpenBao reaches the Kubernetes Secret.
+#
+# In plain words:
+#   Pull is only useful if a change in OpenBao reaches Kubernetes by itself.
+#   This script proves that. It logs in to OpenBao as a separate demo writer
+#   (not as ESO and not as root, so ESO's own rights stay read-only on that
+#   path), writes a new value hello-changed-<time> into secret/demo/hello, and
+#   waits until the Kubernetes Secret shows the new value. ESO checks every 30
+#   s, so this takes up to about half a minute.
+#
+#   Then it writes hello-from-openbao back and waits again, so the demo ends
+#   the way it started. Tokens go to the pod through stdin and are never
+#   printed.
+#
 # Run it: bash scripts/external-secrets/eso-refresh-test.sh (any time; eso-evidence.sh and netpol-test-eso-demo.sh run it)
 # Changes the cluster: yes: changes the demo value secret/demo/hello and restores
 #   it to hello-from-openbao at the end.

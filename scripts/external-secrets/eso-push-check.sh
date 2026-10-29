@@ -1,5 +1,17 @@
 #!/usr/bin/env bash
 # eso-push-check.sh - applies the PushSecret and reads the pushed value back from OpenBao as the ESO login.
+#
+# In plain words:
+#   Push is the other direction: ESO copies a Kubernetes Secret into OpenBao.
+#   The PushSecret eso-demo/push-demo copies the Secret eso-demo/push-demo to
+#   secret/pushed/push-demo.
+#
+#   This script asks Flux to apply it now, waits until the PushSecret is
+#   Ready, and then checks the result from the OpenBao side: it logs in as the
+#   ESO service account (no root) and reads the pushed value and its metadata
+#   back. The marker managed-by external-secrets shows that ESO owns the
+#   value. The token is revoked at the end.
+#
 # Run it: bash scripts/external-secrets/eso-push-check.sh (after git push of the PushSecret)
 # Changes the cluster: no. It asks Flux to apply what is in Git now, then logs
 #   in as the ESO service account (no root) and revokes that token at the end.

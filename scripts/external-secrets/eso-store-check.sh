@@ -1,5 +1,17 @@
 #!/usr/bin/env bash
 # eso-store-check.sh - applies the External Secrets layer and shows whether the store can log in to OpenBao.
+#
+# In plain words:
+#   The ClusterSecretStore openbao tells External Secrets (ESO) where OpenBao
+#   is, which certificate to trust and how to log in. Before any secret can
+#   move, ESO must be able to use this store. This script asks Flux to apply
+#   the External Secrets layer now and then shows whether ESO could log in to
+#   OpenBao with it.
+#
+#   "Valid" and Ready True mean the address, the certificate and the login all
+#   work. Otherwise the condition message says which of the three failed. The
+#   script only reads after the Flux step and prints no secrets.
+#
 # Run it: bash scripts/external-secrets/eso-store-check.sh (after git push of apps/external-secrets)
 # Changes the cluster: no. It asks Flux to apply what is in Git now; then it
 #   only reads. Prints no secrets.
