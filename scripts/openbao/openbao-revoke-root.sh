@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 # openbao-revoke-root.sh - revokes the OpenBao root token and checks it no longer works.
+#
+# In plain words:
+#   The root token can do everything in OpenBao. Daily operation does not need
+#   it: unsealing needs only key shares, and External Secrets uses its own
+#   Kubernetes login. A root token that is not needed is only a risk, so this
+#   script switches it off.
+#
+#   It shows the token's policies, asks y/N, revokes the token and then checks
+#   that OpenBao refuses it. It also offers to delete the Codespaces secret
+#   that holds it. The root token in ~/openbao-init.json is useless
+#   afterwards, but keep that file: its unseal keys are still needed. If a
+#   root token is needed later, openbao-generate-root.sh creates a new one
+#   from 3 key shares.
+#
 # Run it: bash scripts/openbao/openbao-revoke-root.sh (when OpenBao is configured; cleanup)
 # Changes the cluster: yes: revokes the root token, asks first. Offers to delete
 #   the Codespaces secret OPENBAO_ROOT_TOKEN.

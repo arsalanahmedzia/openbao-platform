@@ -1,5 +1,21 @@
 #!/usr/bin/env bash
 # openbao-init.sh - initialises OpenBao once and stores the key shares and root token without printing them.
+#
+# In plain words:
+#   A new OpenBao must be initialised once, before it can hold any secret.
+#   Initialising creates the master key, splits it into 5 key shares (any 3
+#   unlock OpenBao) and creates the root token, which may do everything.
+#   OpenBao shows these values only once, so they must be saved safely at that
+#   moment.
+#
+#   This script checks first that it is safe to run (gh can write Codespaces
+#   secrets, no old init file exists, OpenBao reports it is not initialised
+#   yet). Then it runs the init and writes the output straight into
+#   ~/openbao-init.json, outside the repository, readable only by you. Finally
+#   it stores the 5 shares and the root token as Codespaces secrets, so a new
+#   Codespace can unseal OpenBao. The values never appear on the screen.
+#   Download ~/openbao-init.json and keep it outside the Codespace.
+#
 # Run it: bash scripts/openbao/openbao-init.sh (once per new OpenBao, i.e. empty database)
 # Changes the cluster: yes: initialises OpenBao (5 key shares, threshold 3).
 #   Also writes ~/openbao-init.json and two Codespaces secrets.

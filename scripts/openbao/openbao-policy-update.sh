@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 # openbao-policy-update.sh - applies the OpenBao policy files and proves the PushSecret rights.
+#
+# In plain words:
+#   A policy says which paths a login may read or write. When you change one
+#   of the files in openbao/policies/, OpenBao does not see it until the file
+#   is loaded. This script loads all three policy files and the role
+#   demo-writer, using the root token.
+#
+#   Then it proves the result as the External Secrets login, without root: it
+#   does each step a PushSecret does on the test path
+#   secret/pushed/policy-check (read, write a marker, write data, read back,
+#   delete all versions), and checks that the same login may not change
+#   secret/demo/hello. If a step is denied that should be allowed, or allowed
+#   that should be denied, the script stops and names it.
+#
 # Run it: bash scripts/openbao/openbao-policy-update.sh (after changing a file in openbao/policies/)
 # Changes the cluster: yes: writes the policies and the role demo-writer with
 #   the root token; writes and deletes the test path secret/pushed/policy-check.

@@ -1,5 +1,18 @@
 #!/usr/bin/env bash
 # openbao-audit-check.sh - shows that the OpenBao audit log records a read with the value hashed.
+#
+# In plain words:
+#   OpenBao writes an audit log: one line for every request and its answer,
+#   with every secret value and token replaced by a hash. This script shows
+#   that the log really works and leaks nothing (risk R11).
+#
+#   First it runs openbao-tls-rollout.sh, so the pods use the configuration
+#   that contains the audit device. Then it lists the audit devices, reads the
+#   demo secret once as the External Secrets login, and looks up exactly that
+#   read in the active pod's log. It prints who asked, which path, and the
+#   hashed token and value, and it counts how often the plain demo value
+#   appears in the log; the answer must be 0.
+#
 # Run it: bash scripts/openbao/openbao-audit-check.sh (after git push of the audit config; risk R11)
 # Changes the cluster: yes: runs openbao-tls-rollout.sh, which restarts outdated
 #   pods and unseals them.

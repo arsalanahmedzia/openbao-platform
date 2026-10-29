@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 # openbao-generate-root.sh - creates a new OpenBao root token from 3 key shares and stores it as a Codespaces secret.
+#
+# In plain words:
+#   The root token can do everything in OpenBao, so it should not exist while
+#   it is not needed (see openbao-revoke-root.sh). When it is needed again,
+#   for example to change a policy, OpenBao can create a new one, but only
+#   with 3 of the 5 key shares. This script does that.
+#
+#   It asks y/N first. Then it starts the procedure with a one-time password,
+#   gives OpenBao 3 key shares through stdin, and gets back the new token in
+#   encoded form. It decodes the token and sends it straight to the Codespaces
+#   secret OPENBAO_ROOT_TOKEN, so it never appears on the screen. Revoke the
+#   new token again when you are done. This script was never run; it is
+#   written from the OpenBao source code.
+#
 # Run it: bash scripts/openbao/openbao-generate-root.sh (only when a root token is needed after openbao-revoke-root.sh)
 # Changes the cluster: yes: creates a new root token, asks first. Stores it as
 #   the Codespaces secret OPENBAO_ROOT_TOKEN; revoke it again when done.
