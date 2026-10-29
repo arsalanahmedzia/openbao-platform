@@ -59,6 +59,6 @@ Every technical word used in this repository, in plain English. Sorted A to Z.
 | TokenRequest | A Kubernetes API call that gives a short-lived token for a service account. ESO asks for a 10-minute token before it logs in. |
 | TokenReview | A Kubernetes API call that answers "is this token real, and whose is it?". OpenBao uses it to check ESO's login. |
 | Traefik | The HTTPS entry point of the cluster: it receives requests for `openbao.demo.local` and sends them to the active OpenBao pod. |
-| unseal | Giving OpenBao 3 of the 5 key shares so it can decrypt its data and start answering. Done by `scripts/openbao-unseal.sh`. |
+| unseal | Giving OpenBao 3 of the 5 key shares so it can decrypt its data and start answering. Done by `scripts/after-restart/openbao-unseal.sh`. |
 | WAL (write-ahead log) | PostgreSQL's running record of every change, written before the change itself. Archived continuously to S3 for PITR. |
 | webhook (ESO) | A small ESO server that Kubernetes asks to check every new or changed ESO object before it is saved (port 10250). |

@@ -76,7 +76,7 @@ be in Git.
 - **Required pod anti-affinity** on `kubernetes.io/hostname` (chart default):
   one pod per worker, so one node failure takes out at most one pod.
 - **Shamir unseal, 5 shares, threshold 3**, done by `scripts/openbao/openbao-init.sh`
-  and `scripts/openbao-unseal.sh`. Keys and root token go to
+  and `scripts/after-restart/openbao-unseal.sh`. Keys and root token go to
   `~/openbao-init.json` (outside the repo, `chmod 600`, in `.gitignore` as a
   safety net) and to Codespaces secrets; they are passed to pods through
   stdin, never printed or put on a command line.

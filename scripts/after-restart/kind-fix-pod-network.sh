@@ -25,7 +25,7 @@
 #        kubectl -n <ns> delete pod <pod>
 #   4. Reminds you to unseal and run the test gate.
 # Prints no secrets.
-#   bash scripts/kind-fix-pod-network.sh
+#   bash scripts/after-restart/kind-fix-pod-network.sh
 set -euo pipefail
 
 CLUSTER=openbao-platform
@@ -110,4 +110,4 @@ echo "==> 4. Check"
 LEFT=$(wrong_ip_pods)
 [[ -z "$LEFT" ]] && echo "all pods have IPs from their node's range" || { echo "still wrong:"; echo "$LEFT"; }
 echo
-echo "Next: bash scripts/openbao-unseal.sh, then bash scripts/checks/test-gate.sh"
+echo "Next: bash scripts/after-restart/openbao-unseal.sh, then bash scripts/checks/test-gate.sh"

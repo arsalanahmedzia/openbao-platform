@@ -68,10 +68,10 @@ A pod reports `vault_core_unsealed 0` or
 is not Ready (its readiness check is `bao status`). A sealed pod serves no
 secrets; if all are sealed, ESO cannot sync.
 1. `kubectl -n openbao get pods -L openbao-active,openbao-sealed`
-2. Sealed: `bash scripts/openbao-unseal.sh` (keys from the Codespaces secrets,
+2. Sealed: `bash scripts/after-restart/openbao-unseal.sh` (keys from the Codespaces secrets,
    never printed). See [openbao-init-unseal.md](openbao-init-unseal.md).
 3. Not sealed but not Ready (crash loop): `kubectl -n openbao logs <pod>`;
-   after a Codespace restart see R27 (`scripts/resume.sh`).
+   after a Codespace restart see R27 (`scripts/after-restart/resume.sh`).
 
 ### ExternalSecretNotReady / PushSecretNotReady (warning, 5 min)
 
@@ -126,8 +126,8 @@ metric is missing.
 A node has not been Ready for 2 minutes.
 Its pods are not moved (no spare node, R16).
 1. `kubectl get nodes`; in kind: `docker ps -a` (a stopped node container).
-2. `docker start <node>`, then `bash scripts/resume.sh`; OpenBao pods on it
-   come back sealed (`bash scripts/openbao-unseal.sh`).
+2. `docker start <node>`, then `bash scripts/after-restart/resume.sh`; OpenBao pods on it
+   come back sealed (`bash scripts/after-restart/openbao-unseal.sh`).
 
 ## 5. Prove that an alert fires
 

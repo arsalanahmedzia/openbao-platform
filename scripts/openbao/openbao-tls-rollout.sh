@@ -32,7 +32,7 @@ restart() {
   until kubectl -n "$NS" get pod "$pod" >/dev/null 2>&1; do sleep 2; done
   kubectl -n "$NS" wait pod "$pod" --for=jsonpath='{.status.phase}'=Running --timeout=180s
   sleep 5   # let OpenBao start its listener before unsealing
-  bash scripts/openbao-unseal.sh >/dev/null
+  bash scripts/after-restart/openbao-unseal.sh >/dev/null
   echo "$pod: unsealed and Ready"
 }
 

@@ -8,8 +8,8 @@ problem after a Codespace restart, and the alerts. Words are explained in the
 
 | Script | When |
 | --- | --- |
-| [`scripts/resume.sh`](../scripts/resume.sh) | After a Codespace restart: starts the nodes, fixes the network, checks the pod network |
-| [`scripts/openbao-unseal.sh`](../scripts/openbao-unseal.sh) | After every OpenBao pod restart (pods start sealed) |
+| [`scripts/after-restart/resume.sh`](../scripts/after-restart/resume.sh) | After a Codespace restart: starts the nodes, fixes the network, checks the pod network |
+| [`scripts/after-restart/openbao-unseal.sh`](../scripts/after-restart/openbao-unseal.sh) | After every OpenBao pod restart (pods start sealed) |
 | [`scripts/checks/test-gate.sh`](../scripts/checks/test-gate.sh) | Is everything OK? Read-only check of Flux, OpenBao, PostgreSQL, External Secrets and monitoring |
 | [`scripts/checks/monitoring-check.sh`](../scripts/checks/monitoring-check.sh) | Read-only: all scrape targets up, alert rules loaded, which alerts are pending or firing |
 | [`scripts/external-secrets/eso-debug.sh`](../scripts/external-secrets/eso-debug.sh) | Why is an ExternalSecret or PushSecret not Ready? |
@@ -20,11 +20,11 @@ Outputs of all tests are in [`evidence/`](evidence/). Runbooks:
 
 ## After a Codespace restart
 
-1. Run `bash scripts/resume.sh`. It starts the kind node containers again,
+1. Run `bash scripts/after-restart/resume.sh`. It starts the kind node containers again,
    re-adds the firewall rule that a restart removes (see
    [`environment.md`](environment.md)), checks DNS in the nodes, waits until
    the nodes are Ready and checks the pod network.
-2. Run `bash scripts/openbao-unseal.sh`. Every OpenBao pod that restarted is
+2. Run `bash scripts/after-restart/openbao-unseal.sh`. Every OpenBao pod that restarted is
    sealed (it cannot read its data); the script gives each pod 3 of its 5 key
    shares. See the [unseal runbook](runbooks/openbao-init-unseal.md).
 3. Run `bash scripts/checks/test-gate.sh`. It checks Flux, OpenBao, PostgreSQL,
@@ -36,8 +36,8 @@ Outputs of all tests are in [`evidence/`](evidence/). Runbooks:
 Docker can give the kind node containers different IP addresses after a
 Codespace restart. kindnet (kind's pod network) then hands out pod IPs from
 another node's range, DNS fails, and OpenBao crash-loops because it cannot
-reach PostgreSQL (risk R27). `scripts/resume.sh` checks this and runs
-[`scripts/kind-fix-pod-network.sh`](../scripts/kind-fix-pod-network.sh), which
+reach PostgreSQL (risk R27). `scripts/after-restart/resume.sh` checks this and runs
+[`scripts/after-restart/kind-fix-pod-network.sh`](../scripts/after-restart/kind-fix-pod-network.sh), which
 restarts kindnet and recreates the affected pods (it asks first).
 
 ## Monitoring and alerting
@@ -75,7 +75,7 @@ to the pod log.
 ## Common failures
 
 - `test-gate.sh` fails on "3 OpenBao pods Ready": the pods are sealed after a
-  restart. Fix: `bash scripts/openbao-unseal.sh`.
+  restart. Fix: `bash scripts/after-restart/openbao-unseal.sh`.
 - `test-gate.sh` fails on the monitoring check: an alert is firing or a
   target is down. `bash scripts/checks/monitoring-check.sh` shows which; the
   [monitoring runbook](runbooks/monitoring.md) says what to do.

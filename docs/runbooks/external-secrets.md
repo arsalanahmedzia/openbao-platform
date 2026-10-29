@@ -86,7 +86,7 @@ If not, the condition message names the failing link:
 
 | Message contains | Meaning | Fix |
 | --- | --- | --- |
-| `connection refused`, `503`, `sealed` | OpenBao sealed or down | `bash scripts/openbao-unseal.sh` |
+| `connection refused`, `503`, `sealed` | OpenBao sealed or down | `bash scripts/after-restart/openbao-unseal.sh` |
 | `x509: certificate signed by unknown authority` | wrong CA | `caProvider` must point at `openbao/openbao-server-tls`, key `ca.crt` |
 | `x509: certificate is valid for ..., not ...` | name not in the certificate | `server` must use a name from `apps/openbao/server-certificate.yaml` |
 | `permission denied` on `auth/kubernetes/login` | role / service account mismatch | role `external-secrets` must bind `external-secrets/external-secrets` (`scripts/openbao/openbao-configure.sh`) |
@@ -142,8 +142,8 @@ re-run of F3 the store turned `False InvalidProviderConfig` after 142 s sealed
 ([`08-monitoring.txt`](../evidence/08-monitoring.txt), risk R11).
 
 ```bash
-bash scripts/resume.sh
-bash scripts/openbao-unseal.sh
+bash scripts/after-restart/resume.sh
+bash scripts/after-restart/openbao-unseal.sh
 kubectl get clustersecretstore openbao   # back to Valid / True within about a minute
 ```
 

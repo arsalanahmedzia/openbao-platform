@@ -5,7 +5,7 @@
 # that is not set yet, from ~/openbao-init.json. They are passed to the pod
 # through stdin (`bao write sys/unseal key=-`), never printed and never on a
 # command line.
-#   bash scripts/openbao-unseal.sh
+#   bash scripts/after-restart/openbao-unseal.sh
 set -euo pipefail
 
 NS=openbao

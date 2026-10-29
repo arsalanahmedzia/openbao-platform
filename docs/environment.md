@@ -27,7 +27,7 @@ env vars, visible only to Codespaces of this repository), never in the repo:
 | `SOPS_AGE_KEY` | age private key, lets Flux decrypt SOPS secrets | age private key |
 | `FLUX_GITHUB_TOKEN` | token for `flux bootstrap` | **The `gh` CLI login token** (OAuth, prefix `gho_`), saved with `gh auth token \| gh secret set FLUX_GITHUB_TOKEN --user --app codespaces --repos <repo>`. Scopes: `repo`, `workflow`, `codespace:secrets`, `gist`, `read:org`. **No expiry. Valid for every repository of the account**, not only this one. Same token as the `gh` login the scripts use for Codespaces secrets. |
 | `GITHUB_USER` | GitHub user name | not secret |
-| `OPENBAO_UNSEAL_KEYS` | the 5 OpenBao key shares (JSON list), for `scripts/openbao-unseal.sh` | written by `scripts/openbao/openbao-init.sh` |
+| `OPENBAO_UNSEAL_KEYS` | the 5 OpenBao key shares (JSON list), for `scripts/after-restart/openbao-unseal.sh` | written by `scripts/openbao/openbao-init.sh` |
 | `OPENBAO_ROOT_TOKEN` | OpenBao root token, for the configure/policy scripts | written by `scripts/openbao/openbao-init.sh`; to be revoked (`scripts/openbao/openbao-revoke-root.sh`) |
 
 Checked with `bash scripts/checks/github-access-check.sh` (prints token types and

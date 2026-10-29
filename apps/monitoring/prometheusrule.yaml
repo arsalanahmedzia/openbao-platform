@@ -40,7 +40,7 @@ spec:
             summary: "OpenBao pod {{ $labels.pod }} is sealed (or not ready)"
             description: >-
               {{ $labels.pod }} has been sealed or not ready for more than 2 minutes.
-              A sealed pod serves no secrets. Unseal it: bash scripts/openbao-unseal.sh
+              A sealed pod serves no secrets. Unseal it: bash scripts/after-restart/openbao-unseal.sh
               (runbook docs/runbooks/monitoring.md).
 
         - alert: ExternalSecretNotReady

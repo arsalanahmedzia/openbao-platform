@@ -16,7 +16,7 @@ Words are explained in the [glossary](../glossary.md).
 flowchart TB
   you([You])
   init[scripts/openbao/openbao-init.sh<br/>once per new OpenBao]
-  unseal[scripts/openbao-unseal.sh<br/>after every restart]
+  unseal[scripts/after-restart/openbao-unseal.sh<br/>after every restart]
   conf[scripts/openbao/openbao-configure.sh<br/>once]
   keys[(Codespaces secrets<br/>and ~/openbao-init.json<br/>5 key shares, root token)]
   api[Kubernetes API]
@@ -63,7 +63,7 @@ Where the secrets are (never in Git, never printed):
 ```bash
 bash scripts/openbao/openbao-deploy-check.sh   # 3 pods Running 0/1, Initialized false
 bash scripts/openbao/openbao-init.sh           # "initialised, keys saved to ..."
-bash scripts/openbao-unseal.sh         # all pods unsealed, 1 active, 2 standby
+bash scripts/after-restart/openbao-unseal.sh         # all pods unsealed, 1 active, 2 standby
 bash scripts/openbao/openbao-configure.sh      # KV v2, Kubernetes auth, policies, role
 ```
 
@@ -74,9 +74,9 @@ click, Download) and keep it somewhere safe outside the Codespace.
 ## 2. After a restart (Codespace, node or all pods)
 
 ```bash
-bash scripts/resume.sh                 # Codespace only: nodes back
+bash scripts/after-restart/resume.sh                 # Codespace only: nodes back
 kubectl -n openbao get pods            # wait for 3 x Running (0/1 = sealed)
-bash scripts/openbao-unseal.sh
+bash scripts/after-restart/openbao-unseal.sh
 ```
 
 Expected: `openbao-N: unsealed` for each sealed pod, then all `1/1` and one
@@ -90,7 +90,7 @@ it comes back sealed (`0/1`, label `openbao-sealed=true`). Unseal it:
 
 ```bash
 kubectl -n openbao get pods -L openbao-active,openbao-sealed
-bash scripts/openbao-unseal.sh
+bash scripts/after-restart/openbao-unseal.sh
 ```
 
 Test again any time with `bash scripts/failure-tests/openbao-failover-test.sh` (deletes the
@@ -109,9 +109,9 @@ first, one at a time:
 ```bash
 kubectl -n openbao get pods -L openbao-active
 kubectl -n openbao delete pod <standby>   # wait until Running
-bash scripts/openbao-unseal.sh            # repeat for the other standby
+bash scripts/after-restart/openbao-unseal.sh            # repeat for the other standby
 kubectl -n openbao delete pod <active>    # a standby takes over
-bash scripts/openbao-unseal.sh
+bash scripts/after-restart/openbao-unseal.sh
 ```
 
 The same applies after rotating the database password

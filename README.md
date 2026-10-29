@@ -47,7 +47,7 @@ Runs in a GitHub Codespace (4 cores, 16 GB) with a 4-node kind cluster, see [`do
 ```bash
 bash scripts/bootstrap.sh            # once: kind cluster, SOPS key, Flux; Flux then builds the rest from Git
 bash scripts/openbao/openbao-init.sh         # once: creates OpenBao's 5 key shares and root token, stores them safely
-bash scripts/openbao-unseal.sh       # after every restart: unlocks (unseals) every OpenBao pod with 3 shares
+bash scripts/after-restart/openbao-unseal.sh       # after every restart: unlocks (unseals) every OpenBao pod with 3 shares
 bash scripts/openbao/openbao-configure.sh    # once: secret storage, login for ESO, policies
 bash scripts/checks/test-gate.sh            # read-only check of everything; ends with GATE PASSED
 ```
@@ -71,7 +71,7 @@ Details, timelines and evidence: [`docs/runbooks/failure-tests.md`](docs/runbook
 
 | Topic | Demo | Production |
 | --- | --- | --- |
-| Unseal | Shamir: 5 key shares, threshold 3, manual `scripts/openbao-unseal.sh` after every pod restart | Auto-unseal with a cloud KMS or an HSM |
+| Unseal | Shamir: 5 key shares, threshold 3, manual `scripts/after-restart/openbao-unseal.sh` after every pod restart | Auto-unseal with a cloud KMS or an HSM |
 | Unseal keys | All shares in one Codespaces secret (and `~/openbao-init.json`) | Shares split between different people, never in one place |
 | Cluster | One kind cluster in one Codespace (4 node containers on one VM) | Several nodes in several zones |
 | Backup storage | SeaweedFS inside the same cluster | S3 outside the cluster, in another region or account |
@@ -85,7 +85,7 @@ Details, timelines and evidence: [`docs/runbooks/failure-tests.md`](docs/runbook
 
 ## Known limits
 
-- Unseal is manual: every OpenBao pod restart needs `scripts/openbao-unseal.sh`.
+- Unseal is manual: every OpenBao pod restart needs `scripts/after-restart/openbao-unseal.sh`.
 - Backups are in the same cluster, so losing the Codespace loses the data and its backups.
 - Everything runs in one Codespace, so the high availability only covers failures of pods and node containers.
 - Monitoring is minimal: one Prometheus, one Alertmanager, no receiver, 2 days of metrics, PostgreSQL metrics unencrypted (R30, R31).

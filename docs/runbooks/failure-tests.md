@@ -37,7 +37,7 @@ What really happened:
 
 After `docker start`, worker2 was `Ready` after 20 s, `openbao-0` came back
 sealed and `pg-openbao-1` rejoined as a replica.
-`scripts/openbao-unseal.sh` unsealed it as a standby; the gate passed.
+`scripts/after-restart/openbao-unseal.sh` unsealed it as a standby; the gate passed.
 The Kubernetes Secret `hello-from-openbao` kept its value the whole time.
 
 Different from the expectation:
@@ -48,7 +48,7 @@ Different from the expectation:
 - Flux controllers were replaced about 50 s before ESO; reason not checked.
 
 How to recover by hand: start the node (`docker start <node>`, or
-`bash scripts/resume.sh`), wait for `Ready`, then `bash scripts/openbao-unseal.sh`
+`bash scripts/after-restart/resume.sh`), wait for `Ready`, then `bash scripts/after-restart/openbao-unseal.sh`
 and `bash scripts/checks/test-gate.sh`.
 
 What we would change in production:

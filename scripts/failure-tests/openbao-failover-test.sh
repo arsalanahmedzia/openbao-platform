@@ -5,7 +5,7 @@
 #   2. DELETES the active OpenBao pod (asks first)
 #   3. waits until a standby has become active, reads the secret again
 #   4. shows the replacement pod comes back SEALED
-#   5. unseals it (scripts/openbao-unseal.sh) and shows it joins as standby
+#   5. unseals it (scripts/after-restart/openbao-unseal.sh) and shows it joins as standby
 # No root token; the ESO login token stays in a shell variable.
 #   bash scripts/failure-tests/openbao-failover-test.sh
 set -euo pipefail
@@ -75,7 +75,7 @@ labels
 
 echo
 echo "==> Unseal the replacement pod"
-bash scripts/openbao-unseal.sh
+bash scripts/after-restart/openbao-unseal.sh
 
 echo
 echo "==> After: $NEW active, $OLD back as standby"

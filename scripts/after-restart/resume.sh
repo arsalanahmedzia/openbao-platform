@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Run at the start of every work session, after the Codespace was stopped and started:
-#   bash scripts/resume.sh
+#   bash scripts/after-restart/resume.sh
 # It restarts the kind node containers, re-adds the firewall rule that is lost on
 # restart (see docs/environment.md), checks DNS in the nodes and waits for Ready.
 set -euo pipefail
@@ -47,4 +47,4 @@ bash "$(dirname "$0")/kind-fix-pod-network.sh"
 echo
 echo "Cluster is back. Check Flux with: flux get kustomizations"
 echo "OpenBao pods restart SEALED. Once they are Running, unseal them with:"
-echo "  bash scripts/openbao-unseal.sh"
+echo "  bash scripts/after-restart/openbao-unseal.sh"

@@ -22,7 +22,7 @@
 #      came back SEALED, runs the pod-network check (the node may get another
 #      IP), then the unseal script.
 #        docker start <node>
-#        bash scripts/kind-fix-pod-network.sh ; bash scripts/openbao-unseal.sh
+#        bash scripts/after-restart/kind-fix-pod-network.sh ; bash scripts/after-restart/openbao-unseal.sh
 #   7. Cleanup (trap, also on failure or Ctrl+C): starts the node if it is
 #      still stopped, stops the probe.
 #
@@ -67,7 +67,7 @@ cleanup() {
   [[ -n "$PROBE_PID" ]] && kill "$PROBE_PID" 2>/dev/null || true
   if [[ "$(docker inspect -f '{{.State.Running}}' "$NODE" 2>/dev/null)" != true ]]; then
     info "cleanup: starting $NODE again"; docker start "$NODE" >/dev/null || true
-    info "cleanup: then run scripts/kind-fix-pod-network.sh and scripts/openbao-unseal.sh"
+    info "cleanup: then run scripts/after-restart/kind-fix-pod-network.sh and scripts/after-restart/openbao-unseal.sh"
   fi
   rm -rf "$TMP"
 }
@@ -142,9 +142,9 @@ if [[ -n "$BAO_ON_NODE" ]]; then
   [[ "$SEALED" == true ]] && pass "$BAO_ON_NODE came back SEALED (as expected)" || info "$BAO_ON_NODE sealed=${SEALED:-no answer yet}"
 fi
 echo "--- pod network check (the node may have another IP now)"
-bash scripts/kind-fix-pod-network.sh
+bash scripts/after-restart/kind-fix-pod-network.sh
 echo "--- unseal"
-bash scripts/openbao-unseal.sh | grep -E 'unsealed|HA Mode|no answer'
+bash scripts/after-restart/openbao-unseal.sh | grep -E 'unsealed|HA Mode|no answer'
 kubectl -n databases get pods -o wide -L cnpg.io/instanceRole
 
 echo

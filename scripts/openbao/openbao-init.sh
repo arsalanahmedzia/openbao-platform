@@ -47,4 +47,4 @@ jq -j '.root_token' "$OUT"      | gh_user secret set OPENBAO_ROOT_TOKEN  --user 
 
 echo
 echo "initialised, keys saved to $OUT"
-echo "Next: bash scripts/openbao-unseal.sh"
+echo "Next: bash scripts/after-restart/openbao-unseal.sh"

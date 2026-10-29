@@ -15,7 +15,7 @@
 #        kubectl get clustersecretstore openbao
 #        kubectl -n eso-demo get externalsecret hello
 #        kubectl -n external-secrets logs deploy/external-secrets
-#   5. Unseals: bash scripts/openbao-unseal.sh (keys via stdin, never printed).
+#   5. Unseals: bash scripts/after-restart/openbao-unseal.sh (keys via stdin, never printed).
 #   6. Watches the recovery (up to 15 min): time until the store and the
 #      ExternalSecret are Ready again by themselves; checks the Secret kept its
 #      value and the ESO controller was not restarted.
@@ -67,7 +67,7 @@ read -r -p "This restarts all 3 OpenBao pods (they come back SEALED). Continue? 
 cleanup() {
   if [[ "$(sealed_pods)" == *=true* ]]; then
     info "cleanup: OpenBao pods still sealed, unsealing"
-    bash scripts/openbao-unseal.sh >/dev/null 2>&1 || info "cleanup: unseal failed, run scripts/openbao-unseal.sh by hand"
+    bash scripts/after-restart/openbao-unseal.sh >/dev/null 2>&1 || info "cleanup: unseal failed, run scripts/after-restart/openbao-unseal.sh by hand"
   fi
 }
 trap cleanup EXIT
@@ -99,8 +99,8 @@ eso_errors || true
 
 echo
 echo "==> 5. Unseal"
-T1=$(date +%s); info "running scripts/openbao-unseal.sh (keys via stdin, not shown)"
-bash scripts/openbao-unseal.sh | grep -E 'unsealed|HA Mode'
+T1=$(date +%s); info "running scripts/after-restart/openbao-unseal.sh (keys via stdin, not shown)"
+bash scripts/after-restart/openbao-unseal.sh | grep -E 'unsealed|HA Mode'
 info "unsealed after $(( $(date +%s) - T0 )) s sealed"
 
 echo
