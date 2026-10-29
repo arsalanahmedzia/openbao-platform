@@ -18,14 +18,19 @@ monitoring.
 
 | From | To | Request | Response |
 | --- | --- | --- | --- |
-| curl (or a browser or script) | Traefik, which forwards to OpenBao | HTTPS request to `openbao.demo.local`, for example `GET /v1/sys/health` | The health status of the active OpenBao pod (JSON with `sealed: false`) |
+| curl (or a browser or script) | Traefik, which forwards to OpenBao | Login: `POST https://openbao.demo.local/v1/auth/kubernetes/login` with a service-account token and a role | An OpenBao token |
+| curl (or a browser or script) | Traefik, which forwards to OpenBao | Read: `GET https://openbao.demo.local/v1/secret/data/demo/hello` with the OpenBao token in the `X-Vault-Token` header | The secret `demo/hello` as JSON |
 | ESO | Kubernetes API | Asks for a service-account token for `external-secrets`, valid 10 minutes | The signed token |
 | ESO | OpenBao (HTTPS, port 8200) | Login with that token and the role `external-secrets` | An OpenBao token with the policies `default`, `eso-read` and `eso-write`, valid 15 minutes |
-| ESO | OpenBao | Pull: reads `secret/demo/hello`. Push: writes `secret/pushed/push-demo` | The secret value, or a confirmation of the write |
-| ESO | Kubernetes API | Pull: creates or updates the Secret `eso-demo/hello-from-openbao`. Push: reads the Secret `eso-demo/push-demo` | A confirmation, or the Secret value |
 | OpenBao | Kubernetes API | TokenReview: is this token valid, and whose is it? | Yes, it belongs to the service account `external-secrets/external-secrets` |
-| OpenBao | PostgreSQL | Its data, encrypted by OpenBao before it is saved | Stored; or the data when OpenBao reads it back |
-| PostgreSQL | SeaweedFS (S3) | A base backup every day at 12:00 UTC, and the WAL files continuously | Stored |
+| ESO | OpenBao | Pull: reads `secret/demo/hello` | The secret value |
+| ESO | Kubernetes API | Pull: creates or updates the Secret `eso-demo/hello-from-openbao` | A confirmation |
+| ESO | Kubernetes API | Push: reads the Secret `eso-demo/push-demo` | The Secret value |
+| ESO | OpenBao | Push: writes `secret/pushed/push-demo` | A confirmation of the write |
+| OpenBao | PostgreSQL | Saves its data, encrypted by OpenBao before it is saved | Stored |
+| OpenBao | PostgreSQL | Reads its data back | The data |
+| PostgreSQL | SeaweedFS (S3) | A base backup, every day at 12:00 UTC | Stored |
+| PostgreSQL | SeaweedFS (S3) | The WAL files, continuously | Stored |
 | Prometheus | OpenBao, PostgreSQL, ESO | Asks for the metrics every 30 seconds | A text list of numbers (metrics) |
 | Flux | GitHub | Fetches the repository every minute | The files |
 | Flux | Kubernetes API | Applies the manifests from Git | The status of each object |
