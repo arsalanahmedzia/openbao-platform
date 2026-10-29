@@ -77,6 +77,7 @@ bash scripts/monitoring/monitoring-check.sh
 | [`openbao-policy-update.sh`](openbao/openbao-policy-update.sh) | Applies the policy files and proves the push rights as the ESO login | the cluster |
 | [`openbao-tls-rollout.sh`](openbao/openbao-tls-rollout.sh) | Reconciles, then restarts outdated OpenBao pods one by one and unseals them | pod restarts |
 | [`openbao-audit-check.sh`](openbao/openbao-audit-check.sh) | Rolls the pods onto the audit config and shows one audit entry with hashed values | pod restarts |
+| [`openbao-traefik-check.sh`](openbao/openbao-traefik-check.sh) | Proves a secret can be read from outside through Traefik only with a valid login: refused without a token, read with a token from the ESO login, refused again after the revoke | one short-lived token, revoked at the end |
 | [`openbao-evidence.sh`](openbao/openbao-evidence.sh) | Writes pods, status, HTTPS and PostgreSQL evidence to `docs/evidence/04-*` | nothing |
 | [`openbao-generate-root.sh`](openbao/openbao-generate-root.sh) | New root token from 3 shares, stored as a Codespaces secret (untested) | OpenBao, Codespaces secret |
 | [`openbao-revoke-root.sh`](openbao/openbao-revoke-root.sh) | Revokes the root token, checks it is refused, offers to delete the secret | OpenBao |
