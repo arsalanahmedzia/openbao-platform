@@ -1,10 +1,29 @@
 #!/usr/bin/env bash
-# Test gate for the hardening stage: run after every change. Read-only: writes
-# no files, uses no OpenBao token, prints no secrets (only the demo values).
-# Checks Flux, OpenBao, PostgreSQL, External Secrets and monitoring
-# (scripts/checks/monitoring-check.sh) and ends with
-# "GATE PASSED" or a list of failures.
-#   bash scripts/checks/test-gate.sh
+# test-gate.sh - read-only check of the whole platform; ends with GATE PASSED or a list of failures.
+# Run it: bash scripts/checks/test-gate.sh (after every change and before and after every failure test)
+# Changes the cluster: no. It asks Flux to fetch Git once; writes no files, uses
+#   no OpenBao token, prints no secrets (only the demo values).
+#
+# What it does:
+#   1. Flux: fetches Git and waits up to 10 min until every layer is Ready.
+#        flux reconcile source git flux-system
+#        kubectl -n flux-system wait kustomization --all --for=condition=Ready --timeout=10m
+#   2. OpenBao: 3 pods Ready (Ready means unsealed) and exactly one active.
+#        kubectl -n openbao wait pod -l app.kubernetes.io/name=openbao,component=server --for=condition=Ready --timeout=30s
+#   3. PostgreSQL: kubectl cnpg status answers within 30 s (the API server
+#      reaches the instance manager), the cluster is healthy, 3 instances ready.
+#        timeout 30 kubectl cnpg status pg-openbao -n databases
+#   4. External Secrets: store, ExternalSecret and PushSecret Ready, and the
+#      pulled value is hello-from-openbao.
+#        kubectl wait clustersecretstore/openbao --for=condition=Ready --timeout=30s
+#   5. Monitoring: all targets up, 8 alert rules ok, no alert firing.
+#        bash "$(dirname "$0")/monitoring-check.sh"
+#
+# What you should see: one PASS line per check and GATE PASSED at the end.
+# If it fails: GATE FAILED lists the failed checks. Sealed pods: run
+#   scripts/after-restart/openbao-unseal.sh. Monitoring: run
+#   scripts/checks/monitoring-check.sh to see which target or alert.
+# Needs: kubectl with the cnpg plugin, flux, jq, curl.
 set -uo pipefail
 
 FAILS=()

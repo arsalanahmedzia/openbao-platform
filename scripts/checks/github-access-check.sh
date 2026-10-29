@@ -1,14 +1,23 @@
 #!/usr/bin/env bash
-# Hardening A3 (risk R08): shows, without printing any token, which GitHub
-# access this setup really uses:
-#   - type of FLUX_GITHUB_TOKEN and of the gh login (prefix only: gho_ = gh CLI
-#     OAuth token, ghp_ = classic PAT, github_pat_ = fine-grained token),
-#     their scopes (X-OAuth-Scopes header; fine-grained tokens send none) and
-#     expiry if GitHub reports one
-#   - deploy keys of the repository (public keys: title, read-only, created)
-#   - branch protection on main
-# Calls only the GitHub API; does not touch the cluster.
-#   bash scripts/checks/github-access-check.sh
+# github-access-check.sh - shows which GitHub access this setup uses, without printing any token.
+# Run it: bash scripts/checks/github-access-check.sh (to review access, risk R08)
+# Changes the cluster: no. It calls only the GitHub API.
+#
+# What it does:
+#   1. For FLUX_GITHUB_TOKEN and the gh login: the type prefix (gho_ = gh CLI
+#      OAuth token, ghp_ = classic PAT, github_pat_ = fine-grained token), the
+#      scopes and the expiry, from the response headers of the GitHub API.
+#        curl -sS -o /dev/null -D - -H "Authorization: token <token>" https://api.github.com/user
+#   2. The deploy keys of the repository (Flux bootstrap creates one).
+#        gh api repos/<repo>/keys
+#   3. The branch protection on main.
+#        gh api repos/<repo>/branches/main/protection
+#
+# What you should see: per token "type prefix", "status", "scopes", "expires";
+#   the deploy keys with read_only and created; the branch protection or "none".
+# If it fails: "not set in this Codespace" means the Codespaces secret appears
+#   only after a Codespace restart. gh errors: run gh auth login.
+# Needs: gh (logged in), curl.
 set -euo pipefail
 
 REPO="${GITHUB_REPOSITORY:-$(gh repo view --json nameWithOwner -q .nameWithOwner)}"
