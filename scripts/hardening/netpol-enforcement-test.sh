@@ -7,7 +7,7 @@
 #   2. deny-all ingress        -> connection must time out
 #   3. deny-all + allow client -> connection must work again
 # and deletes the namespace at the end, also if the script fails.
-#   bash scripts/netpol-enforcement-test.sh
+#   bash scripts/hardening/netpol-enforcement-test.sh
 set -euo pipefail
 
 NS=netpol-test

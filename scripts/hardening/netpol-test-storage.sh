@@ -6,9 +6,9 @@
 #   blocked: namespace default   -> seaweedfs:8333 (must time out)
 #   real:    a PostgreSQL base backup through the Barman plugin completes
 # The probe pods are temporary (kubectl run --rm), deleted right after use.
-#   bash scripts/netpol-test-storage.sh
+#   bash scripts/hardening/netpol-test-storage.sh
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 IMAGE=busybox:1.37.0
 URL=http://seaweedfs.storage.svc.cluster.local:8333/

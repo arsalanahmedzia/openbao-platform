@@ -268,7 +268,7 @@ What the ports are for:
 - The metrics ports 9101, 9187 and 8080 accept only the Prometheus pod.
 
 The rules live in the `networkpolicy.yaml` files listed in "What is where in
-the repo"; tested with `scripts/netpol-*.sh` (evidence in
+the repo"; tested with `scripts/hardening/netpol-*.sh` (evidence in
 [`evidence/06-hardening.txt`](evidence/06-hardening.txt)).
 
 Problems seen with these rules:

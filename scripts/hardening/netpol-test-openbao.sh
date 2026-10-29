@@ -10,7 +10,7 @@
 #            reads could be served by the standby itself); store still Valid
 # Probe pods are temporary (kubectl run --rm). Tokens stay in variables and go
 # to the pod via stdin; only the demo value is shown.
-#   bash scripts/netpol-test-openbao.sh
+#   bash scripts/hardening/netpol-test-openbao.sh
 set -euo pipefail
 
 IMAGE=busybox:1.37.0

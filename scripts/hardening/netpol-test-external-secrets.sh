@@ -8,9 +8,9 @@
 #   blocked: default -> webhook pod :10250, default -> controller metrics :8080
 #   real:    store still Valid, Flux still reconciles apps-external-secrets
 # Probe pods are temporary (kubectl run --rm).
-#   bash scripts/netpol-test-external-secrets.sh
+#   bash scripts/hardening/netpol-test-external-secrets.sh
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 IMAGE=busybox:1.37.0
 NS=external-secrets

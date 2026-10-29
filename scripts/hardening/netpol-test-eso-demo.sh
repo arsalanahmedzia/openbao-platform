@@ -6,9 +6,9 @@
 #   real:    the refresh test (ExternalSecret in eso-demo) still works
 # The server pod is deleted at the end, also if the script fails; probe pods
 # are temporary (kubectl run --rm).
-#   bash scripts/netpol-test-eso-demo.sh
+#   bash scripts/hardening/netpol-test-eso-demo.sh
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 IMAGE=busybox:1.37.0
 NS=eso-demo

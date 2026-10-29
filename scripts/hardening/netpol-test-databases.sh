@@ -7,9 +7,9 @@
 #   real:    kubectl cnpg status (API server -> :8000), streaming replication,
 #            a base backup (operator -> :8000), OpenBao still active
 # Probe pods are temporary (kubectl run --rm), deleted right after use.
-#   bash scripts/netpol-test-databases.sh
+#   bash scripts/hardening/netpol-test-databases.sh
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 IMAGE=busybox:1.37.0
 # Must match the ipBlock in apps/database/networkpolicy.yaml: 172.16.0.0/12,
