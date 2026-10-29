@@ -1,5 +1,20 @@
 #!/usr/bin/env bash
 # test-gate.sh - read-only check of the whole platform; ends with GATE PASSED or a list of failures.
+#
+# In plain words:
+#   A gate is a checkpoint: you pass it before you go on. Run this script
+#   before and after every change; if it ends with GATE PASSED, the platform
+#   is healthy and the change did not break anything. If it fails, you know
+#   the problem came from the last change.
+#
+#   It checks five things in order, without changing anything: every Flux
+#   layer is Ready (Git and the cluster agree); the 3 OpenBao pods are
+#   unsealed and one is active; PostgreSQL is healthy with 3 instances;
+#   External Secrets can use the store and both demo objects are synced; and
+#   monitoring has all targets up with no alert firing (it runs
+#   monitoring/monitoring-check.sh for that). Each check prints PASS or FAIL.
+#   When monitoring fails, it also prints why.
+#
 # Run it: bash scripts/checks/test-gate.sh (after every change and before and after every failure test)
 # Changes the cluster: no. It asks Flux to fetch Git once; writes no files, uses
 #   no OpenBao token, prints no secrets (only the demo values).
