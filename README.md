@@ -8,18 +8,18 @@ monitoring.
 
 Applications need secrets such as database passwords and API keys. If those sit in config files, in Git or in environment variables, anyone who can read those files can read the secrets, and changing one means editing every place that uses it. This platform keeps them in one place, OpenBao, where each client gets only the secrets its policy allows and access can be logged. Applications on Kubernetes receive them through External Secrets Operator as ordinary Kubernetes Secrets, so they need no OpenBao code. Because the secrets are the most sensitive data in the system, OpenBao and its database run as several copies with daily backups.
 
-It is made of these parts:
+It is made of these components:
 
 - **OpenBao** is the vault that keeps the secrets. It runs as 3 copies: one is active and the other two wait to take over.
-- **PostgreSQL** is the database where OpenBao saves its data. It runs as 3 copies and is backed up every day.
+- **PostgreSQL**, run by CloudNativePG, is the database where OpenBao saves its data. It runs as 3 copies and is backed up every day to S3 storage (SeaweedFS) inside the cluster.
 - **External Secrets Operator (ESO)** copies secrets between OpenBao and Kubernetes, in both directions.
-- **Traefik** is the HTTPS entry point from outside the cluster.
+- **Traefik** is the HTTPS entry point from outside the cluster. **cert-manager** issues the TLS certificates for OpenBao, Traefik, ESO and Prometheus from one demo CA.
 - **Flux** builds everything from this repository, so Git is the single source of truth (this way of working is called GitOps).
-- **Prometheus** watches the platform by collecting numbers every 30 seconds and raises alerts when something breaks.
+- **Prometheus** watches the platform by collecting numbers every 30 seconds, and **Alertmanager** shows the alerts when something breaks.
 
 ![How it runs](docs/images/how-it-runs.png)
 
-## How the parts talk to each other?
+## How the components talk to each other
 
 **1. How a client reads a secret.** A client proves who it is and gets a short-lived token. It shows that token with every later request, so the login credential is sent only once.
 
@@ -47,10 +47,11 @@ It is made of these parts:
 | --- | --- | --- | --- |
 | OpenBao | PostgreSQL | Saves its data, encrypted by OpenBao first | Stored |
 | OpenBao | PostgreSQL | Reads its data back | The data |
-| PostgreSQL | SeaweedFS (S3) | A full backup, every day at 12:00 UTC | Stored |
-| PostgreSQL | SeaweedFS (S3) | The WAL files (PostgreSQL's log of every change), continuously | Stored |
+| CloudNativePG operator | PostgreSQL pods (port 8000) | Asks each instance for its status and asks it to take a backup. | The status of each instance, or a confirmation of the backup |
+| PostgreSQL (through the Barman Cloud plugin) | SeaweedFS (S3) | A full backup, every day at 12:00 UTC | Stored |
+| PostgreSQL (through the Barman Cloud plugin) | SeaweedFS (S3) | The WAL files (PostgreSQL's log of every change), continuously | Stored |
 
-**4. How OpenBao is unlocked and gets its certificates.** OpenBao starts locked. It needs 3 of its 5 key shares, so by design no single holder can unlock it; in this demo all shares are in one place (see Production readiness). All TLS certificates come from one demo CA, so every connection can be checked against one trusted source.
+**4. How OpenBao is unlocked and gets its certificates.** OpenBao starts locked. It needs 3 of its 5 key shares, so by design no single holder can unlock it; in this demo all shares are in one place (see [Production readiness](#production-readiness)). The TLS certificates for OpenBao, Traefik, ESO and Prometheus come from one demo CA. PostgreSQL uses a certificate from CloudNativePG's own CA.
 
 | From | To | Request | Response |
 | --- | --- | --- | --- |
@@ -64,6 +65,7 @@ It is made of these parts:
 | Flux | GitHub | Fetches the repository every minute | The files |
 | Flux | Kubernetes API | Applies the manifests from Git, and decrypts the SOPS files with the age key (Secret `sops-age`) | The status of each object |
 | Prometheus | OpenBao, PostgreSQL, ESO | Asks for the metrics every 30 seconds | A text list of numbers |
+| Prometheus | kube-state-metrics | Asks for the state of nodes and pods | Numbers, for example whether each node is ready |
 | Prometheus | Alertmanager | Sends an alert when a rule has been true long enough | Alertmanager shows it; no receiver is configured |
 
 Words: [glossary](docs/glossary.md). Build order, certificates, network rules: [architecture](docs/architecture.md).
@@ -95,7 +97,7 @@ All other commands and the full order: [`scripts/README.md`](scripts/README.md).
 
 Details, timelines and evidence: [`docs/runbooks/failure-tests.md`](docs/runbooks/failure-tests.md).
 
-## How to Production?
+## Production readiness
 
 | Topic | Demo | Production |
 | --- | --- | --- |
