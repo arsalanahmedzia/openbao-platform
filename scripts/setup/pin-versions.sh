@@ -4,7 +4,7 @@
 # Run once, review the diff, then commit. Versions are then fixed in Git, so the
 # cluster does not change by itself when a new chart is published.
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 for tool in helm jq sed; do
   command -v "$tool" >/dev/null || { echo "missing tool: $tool"; exit 1; }

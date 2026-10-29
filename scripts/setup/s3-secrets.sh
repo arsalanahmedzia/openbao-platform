@@ -10,7 +10,7 @@
 # The values are never printed. Refuses to overwrite existing files unless
 # --force is given (new keys break access to backups written with the old ones).
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 for tool in sops openssl jq; do
   command -v "$tool" >/dev/null || { echo "missing tool: $tool"; exit 1; }

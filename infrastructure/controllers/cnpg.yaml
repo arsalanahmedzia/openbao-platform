@@ -19,7 +19,7 @@ spec:
   chart:
     spec:
       chart: cloudnative-pg
-      version: "0.29.1"   # pinned by scripts/pin-versions.sh
+      version: "0.29.1"   # pinned by scripts/setup/pin-versions.sh
       sourceRef:
         kind: HelmRepository
         name: cnpg
@@ -49,7 +49,7 @@ spec:
   chart:
     spec:
       chart: plugin-barman-cloud
-      version: "0.8.1"   # pinned by scripts/pin-versions.sh
+      version: "0.8.1"   # pinned by scripts/setup/pin-versions.sh
       sourceRef:
         kind: HelmRepository
         name: cnpg

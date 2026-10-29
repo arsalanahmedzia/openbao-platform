@@ -14,7 +14,7 @@ the same `devcontainer.json` reproduces the environment for anyone.
 | --- | --- | --- |
 | Environment | GitHub Codespace, 4-core / 16 GB | Enough for 4 kind nodes with all components |
 | Image | `devcontainers/base:noble` (Ubuntu 24.04) + docker-in-docker | Standard, well-supported |
-| Tools | Installed by `scripts/install-tools.sh` on creation | Reproducible |
+| Tools | Installed by `scripts/setup/install-tools.sh` on creation | Reproducible |
 | Config | [`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json) | Versioned with the repo |
 
 ## Secrets used by the environment
@@ -82,7 +82,7 @@ afterwards to confirm.
 
 ```bash
 flux check --pre
-bash scripts/bootstrap.sh
+bash scripts/setup/bootstrap.sh
 flux get kustomizations --watch
 ```
 
@@ -111,7 +111,7 @@ On the Codespace VM the legacy iptables `FORWARD` policy is `DROP` and only know
 default `docker0` bridge. The kind bridge (`br-...`) is covered only by the nftables
 rules, so traffic from the kind nodes is dropped and image pulls fail with
 `lookup ghcr.io ... i/o timeout` (pods stuck in `ImagePullBackOff`).
-`scripts/bootstrap.sh` (`fix_kind_network`) adds `ACCEPT` rules for the kind bridge
+`scripts/setup/bootstrap.sh` (`fix_kind_network`) adds `ACCEPT` rules for the kind bridge
 and, if a node cannot resolve names, points its `/etc/resolv.conf` at the host resolver.
 The iptables rules are not persistent: they are re-applied whenever `bootstrap.sh` runs.
 

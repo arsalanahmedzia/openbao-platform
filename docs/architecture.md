@@ -26,7 +26,7 @@ flowchart TB
 How to read it: an arrow from Flux points to what Flux acts on. An arrow
 between two layers means the second layer waits until the first is healthy.
 
-1. You run `scripts/bootstrap.sh` once. It creates the kind cluster, stores
+1. You run `scripts/setup/bootstrap.sh` once. It creates the kind cluster, stores
    the age key as the Secret `sops-age`, and installs Flux (`flux bootstrap`).
    This is the only manual step; everything after it comes from Git.
 2. Flux fetches the repository every minute (`interval: 1m0s` in
@@ -107,7 +107,7 @@ flowchart LR
   you([You])
   git[(GitHub repo<br/>*.sops.yaml files,<br/>values encrypted)]
   key[Codespaces secret<br/>SOPS_AGE_KEY<br/>the age private key]
-  boot[scripts/bootstrap.sh<br/>runs once]
+  boot[scripts/setup/bootstrap.sh<br/>runs once]
   agesec[Secret sops-age<br/>in namespace flux-system]
   flux[Flux]
   out[Kubernetes Secrets<br/>with the real values]
@@ -125,7 +125,7 @@ How to read it: an arrow points from the one who acts to what it acts on.
 1. You encrypt a file with `sops` before you commit it. SOPS uses the age
    public key from [`.sops.yaml`](../.sops.yaml), so anyone with the repo can
    encrypt.
-2. `scripts/bootstrap.sh` reads the age private key from the Codespaces
+2. `scripts/setup/bootstrap.sh` reads the age private key from the Codespaces
    secret `SOPS_AGE_KEY` and stores it as the Secret `sops-age` in namespace
    `flux-system`. The private key is never in Git.
 3. Flux fetches the encrypted files from Git.
@@ -149,7 +149,7 @@ public key is the slot; the private key in `sops-age` is the key.
 If the age private key is lost, nobody can decrypt the five Secrets. One key
 decrypts all of them (risk R19 in the [risk assessment](risk-assessment.md)).
 A new cluster without the Secret `sops-age` cannot create them either; running
-`scripts/bootstrap.sh` creates it (reasoning from the Flux settings, not tested).
+`scripts/setup/bootstrap.sh` creates it (reasoning from the Flux settings, not tested).
 
 ## Certificates and who checks them
 

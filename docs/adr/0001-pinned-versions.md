@@ -26,7 +26,7 @@ must be visible as a Git commit.
 ## Choice
 
 Option 2. Chart versions are written into the HelmReleases by
-`scripts/pin-versions.sh` (newest stable chart at the time of pinning, then
+`scripts/setup/pin-versions.sh` (newest stable chart at the time of pinning, then
 reviewed and committed). Image tags that are set directly in manifests are
 checked by hand: the tag must exist on the registry, be pulled successfully
 (`docker pull`), and be at least a few weeks old (not released the same day).

@@ -115,7 +115,7 @@ bash scripts/after-restart/openbao-unseal.sh
 ```
 
 The same applies after rotating the database password
-(`bash scripts/openbao-db-secret.sh --force`, commit, push): the pods only read
+(`bash scripts/setup/openbao-db-secret.sh --force`, commit, push): the pods only read
 `BAO_PG_CONNECTION_URL` at start. CloudNativePG changes the role's password
 right away, so restart all OpenBao pods promptly after Flux applied it.
 

@@ -45,7 +45,7 @@ Words: [glossary](docs/glossary.md). Build order, certificates, network rules: [
 Runs in a GitHub Codespace (4 cores, 16 GB) with a 4-node kind cluster, see [`docs/environment.md`](docs/environment.md).
 
 ```bash
-bash scripts/bootstrap.sh            # once: kind cluster, SOPS key, Flux; Flux then builds the rest from Git
+bash scripts/setup/bootstrap.sh            # once: kind cluster, SOPS key, Flux; Flux then builds the rest from Git
 bash scripts/openbao/openbao-init.sh         # once: creates OpenBao's 5 key shares and root token, stores them safely
 bash scripts/after-restart/openbao-unseal.sh       # after every restart: unlocks (unseals) every OpenBao pod with 3 shares
 bash scripts/openbao/openbao-configure.sh    # once: secret storage, login for ESO, policies

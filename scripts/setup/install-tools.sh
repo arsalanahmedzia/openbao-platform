@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Installs the CLI tools needed to run the platform on a fresh Ubuntu 24.04 host (e.g. EC2).
-# Run once:  bash scripts/install-tools.sh   (then log out and back in for the docker group)
+# Run once:  bash scripts/setup/install-tools.sh   (then log out and back in for the docker group)
 set -euo pipefail
 
 ARCH=amd64

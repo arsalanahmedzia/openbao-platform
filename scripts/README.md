@@ -14,7 +14,7 @@ used (demo environment: a GitHub Codespace, see `docs/environment.md`).
 ```bash
 # in a Codespace created from this repo (tools install automatically);
 # secrets SOPS_AGE_KEY, FLUX_GITHUB_TOKEN, GITHUB_USER set as Codespaces secrets
-bash scripts/bootstrap.sh                            # kind + SOPS key + Flux
+bash scripts/setup/bootstrap.sh                            # kind + SOPS key + Flux
 flux get kustomizations --watch
 ```
 

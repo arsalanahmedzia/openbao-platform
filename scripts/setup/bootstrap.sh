@@ -35,7 +35,7 @@ fi
 [[ -f "$AGE_KEY_FILE" ]] || { echo "age key not found: set SOPS_AGE_KEY or AGE_KEY_FILE"; exit 1; }
 
 for tool in docker kind kubectl flux; do
-  command -v "$tool" >/dev/null || { echo "missing tool: $tool (run scripts/install-tools.sh)"; exit 1; }
+  command -v "$tool" >/dev/null || { echo "missing tool: $tool (run scripts/setup/install-tools.sh)"; exit 1; }
 done
 
 # Codespaces quirk: the host's legacy iptables FORWARD policy is DROP and only

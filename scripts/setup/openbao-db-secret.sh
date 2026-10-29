@@ -11,7 +11,7 @@
 # The password is never printed. Refuses to overwrite existing files unless
 # --force is given (rotation: OpenBao pods must then be restarted, see runbook).
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 for tool in sops openssl; do
   command -v "$tool" >/dev/null || { echo "missing tool: $tool"; exit 1; }

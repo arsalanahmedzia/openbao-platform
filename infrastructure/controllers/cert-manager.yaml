@@ -16,7 +16,7 @@ spec:
   chart:
     spec:
       chart: cert-manager
-      version: "v1.21.3"   # pinned by scripts/pin-versions.sh
+      version: "v1.21.3"   # pinned by scripts/setup/pin-versions.sh
       sourceRef:
         kind: HelmRepository
         name: jetstack

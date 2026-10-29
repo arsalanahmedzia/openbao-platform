@@ -10,7 +10,7 @@ CLUSTER=openbao-platform
 echo "==> Starting kind node containers"
 ids=$(docker ps -aq --filter "name=${CLUSTER}-")
 if [[ -z "$ids" ]]; then
-  echo "No kind containers found. Create the cluster with: bash scripts/bootstrap.sh"
+  echo "No kind containers found. Create the cluster with: bash scripts/setup/bootstrap.sh"
   exit 1
 fi
 # shellcheck disable=SC2086

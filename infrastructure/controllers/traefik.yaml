@@ -1,7 +1,7 @@
 # Traefik: HTTPS entry point ("reverse proxy / L7 load balancer") of the cluster.
 # kind has no cloud load balancer, so Traefik binds the node's ports 80/443
 # directly (hostPort) on the control-plane node, which kind maps to the Codespace
-# host (see scripts/kind-config.yaml). Demo simplification: one replica, one node.
+# host (see scripts/setup/kind-config.yaml). Demo simplification: one replica, one node.
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -18,7 +18,7 @@ spec:
   chart:
     spec:
       chart: traefik
-      version: "42.1.3"   # pinned by scripts/pin-versions.sh
+      version: "42.1.3"   # pinned by scripts/setup/pin-versions.sh
       sourceRef:
         kind: HelmRepository
         name: traefik

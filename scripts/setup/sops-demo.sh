@@ -6,7 +6,7 @@
 # After you commit and push, Flux decrypts it with the PRIVATE key stored in the
 # cluster (flux-system/sops-age) and creates the Secret default/sops-demo.
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 command -v sops >/dev/null || { echo "missing tool: sops"; exit 1; }
 grep -q 'age1' .sops.yaml || { echo ".sops.yaml has no age public key yet"; exit 1; }
