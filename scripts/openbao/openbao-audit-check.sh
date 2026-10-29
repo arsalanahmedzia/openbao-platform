@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
 # Hardening A4 (risk R11): after `git push`, rolls the OpenBao pods onto the
-# config with the declarative stdout audit device (scripts/openbao-tls-rollout.sh
+# config with the declarative stdout audit device (scripts/openbao/openbao-tls-rollout.sh
 # restarts only pods on an old StatefulSet revision and unseals them), lists the
 # audit devices, makes one read of secret/demo/hello as the ESO login and shows
 # the matching audit entry from the active pod's log: who, what, and that the
 # value and the token are HMAC hashes, not plain.
 # Root token only for the read-only `bao audit list` (needs sudo); tokens go to
 # the pod through stdin and are never printed.
-#   bash scripts/openbao-audit-check.sh
+#   bash scripts/openbao/openbao-audit-check.sh
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 NS=openbao
 SELECTOR=app.kubernetes.io/name=openbao,component=server
 INIT_FILE="$HOME/openbao-init.json"
 
 echo "==> Roll pods onto the new config (unseals each restarted pod)"
-bash scripts/openbao-tls-rollout.sh
+bash scripts/openbao/openbao-tls-rollout.sh
 
 POD=$(kubectl -n "$NS" get pods -l "$SELECTOR,openbao-active=true" -o jsonpath='{.items[0].metadata.name}')
 [[ -n "$POD" ]] || { echo "no active OpenBao pod"; exit 1; }

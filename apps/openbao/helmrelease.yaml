@@ -56,7 +56,7 @@ spec:
       # effect when a pod is deleted by hand (standbys first, then the active).
       # configAnnotation puts a checksum of the config into the pod template, so
       # every config change creates a new StatefulSet revision and
-      # scripts/openbao-tls-rollout.sh restarts exactly the outdated pods.
+      # scripts/openbao/openbao-tls-rollout.sh restarts exactly the outdated pods.
       configAnnotation: true
       resources:
         requests:

@@ -9,9 +9,9 @@
 #   - role demo-writer for SA eso-demo/demo-writer (refresh test, ADR 0005)
 #   - test secret secret/demo/hello, then a login AS the ESO service account
 # Tokens go to the pod through stdin, never printed, never on a command line.
-#   bash scripts/openbao-configure.sh
+#   bash scripts/openbao/openbao-configure.sh
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 NS=openbao
 SELECTOR=app.kubernetes.io/name=openbao,component=server
@@ -27,7 +27,7 @@ echo "==> Checks (nothing is changed yet)"
 kubectl -n "$ESO_NS" get sa "$ESO_SA" >/dev/null || {
   echo "service account $ESO_NS/$ESO_SA not found. Existing ones:"
   kubectl -n "$ESO_NS" get sa
-  echo "Re-run with ESO_SA=<name> bash scripts/openbao-configure.sh"; exit 1
+  echo "Re-run with ESO_SA=<name> bash scripts/openbao/openbao-configure.sh"; exit 1
 }
 if [[ -n "${OPENBAO_ROOT_TOKEN:-}" ]]; then
   ROOT_TOKEN=$OPENBAO_ROOT_TOKEN

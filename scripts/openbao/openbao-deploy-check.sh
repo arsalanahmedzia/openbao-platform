@@ -3,7 +3,7 @@
 # commits now (instead of waiting for the interval) and shows whether the
 # OpenBao layer came up. Expected at this point: 3 pods Running but 0/1 Ready,
 # because they are not initialised and sealed yet. Prints no secrets.
-#   bash scripts/openbao-deploy-check.sh
+#   bash scripts/openbao/openbao-deploy-check.sh
 set -euo pipefail
 
 NS=openbao

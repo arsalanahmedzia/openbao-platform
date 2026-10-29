@@ -5,9 +5,9 @@
 #   04-https.txt     /v1/sys/health through Traefik over HTTPS, checked with the demo CA
 #   04-postgres.txt  OpenBao tables in database openbao, and a fresh base backup
 # Prints no keys or tokens (none are used).
-#   bash scripts/openbao-evidence.sh
+#   bash scripts/openbao/openbao-evidence.sh
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 NS=openbao
 SELECTOR=app.kubernetes.io/name=openbao,component=server

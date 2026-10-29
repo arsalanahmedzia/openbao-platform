@@ -7,7 +7,7 @@
 # What it does:
 #   1. Rolls out the config change: Flux reconcile, restart the outdated pods
 #      one at a time (standbys first), unseal each new pod.
-#        bash scripts/openbao-tls-rollout.sh
+#        bash scripts/openbao/openbao-tls-rollout.sh
 #   2. Lets Flux apply the Certificate prometheus-client (its Secret holds the
 #      demo CA for Prometheus) and the PodMonitor; checks it is the same CA
 #      that signed the OpenBao certificate.
@@ -54,7 +54,7 @@ forward() {
 }
 
 echo "==> 1. Rollout (pods restart sealed and are unsealed one by one)"
-bash scripts/openbao-tls-rollout.sh || fail "rollout script failed"
+bash scripts/openbao/openbao-tls-rollout.sh || fail "rollout script failed"
 kubectl -n "$NS" wait pod -l "$SELECTOR" --for=condition=Ready --timeout=120s >/dev/null 2>&1 \
   && pass "3 OpenBao pods Ready (unsealed)" || fail "not all OpenBao pods Ready"
 ports=$(kubectl -n "$NS" get pods -l "$SELECTOR" -o jsonpath='{range .items[*]}{.metadata.name}={.spec.containers[0].ports[?(@.name=="metrics")].containerPort}{" "}{end}')

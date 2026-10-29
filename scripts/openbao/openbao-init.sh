@@ -7,7 +7,7 @@
 #                      OPENBAO_ROOT_TOKEN, so a new Codespace can unseal.
 # Values only travel through files and stdin, never through the screen or the
 # command line.
-#   bash scripts/openbao-init.sh
+#   bash scripts/openbao/openbao-init.sh
 set -euo pipefail
 
 NS=openbao

@@ -5,8 +5,8 @@
 # stdin, never printed. Asks before doing anything.
 # After this, scripts that need root (openbao-configure.sh,
 # openbao-policy-update.sh, openbao-audit-check.sh's audit list) need a new root
-# token first: bash scripts/openbao-generate-root.sh (runbook section 6).
-#   bash scripts/openbao-revoke-root.sh
+# token first: bash scripts/openbao/openbao-generate-root.sh (runbook section 6).
+#   bash scripts/openbao/openbao-revoke-root.sh
 set -euo pipefail
 
 NS=openbao

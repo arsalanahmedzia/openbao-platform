@@ -41,7 +41,7 @@ for pod in $(kubectl -n "$NS" get pods -l "$SELECTOR" -o jsonpath='{.items[*].me
     sleep 5
   done
   if [[ "$init" == false ]]; then
-    echo "$pod: not initialised (run scripts/openbao-init.sh first)"; exit 1
+    echo "$pod: not initialised (run scripts/openbao/openbao-init.sh first)"; exit 1
   elif [[ "$init" != true ]]; then
     echo "$pod: no answer from bao status after 3 minutes (pod starting, or PostgreSQL not ready). Last error:"
     kubectl -n "$NS" exec "$pod" -- bao status 2>&1 | tail -3 || true

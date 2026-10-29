@@ -74,7 +74,7 @@ When a layer does not get Ready:
 | [`apps/openbao/`](../apps/openbao/) | `apps-openbao` | OpenBao (Helm), its certificates, the Traefik connection settings, the database connection string (SOPS) |
 | [`apps/external-secrets/`](../apps/external-secrets/) | `apps-external-secrets` | The store `openbao`, the pull and push examples in namespace `eso-demo` |
 | [`apps/monitoring/`](../apps/monitoring/) | `apps-monitoring` | Prometheus stack (Helm), what to scrape (PodMonitors), the alert rules |
-| [`openbao/policies/`](../openbao/policies/) | none | OpenBao policies; loaded by `scripts/openbao-configure.sh`, not by Flux |
+| [`openbao/policies/`](../openbao/policies/) | none | OpenBao policies; loaded by `scripts/openbao/openbao-configure.sh`, not by Flux |
 | [`scripts/`](../scripts/) | none | Bootstrap, OpenBao init/unseal/configure, checks, failure tests ([`scripts/README.md`](../scripts/README.md)) |
 | [`docs/`](./) | none | Design decisions (`adr/`), runbooks, test outputs (`evidence/`), risk assessment, time log |
 

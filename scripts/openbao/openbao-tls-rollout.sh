@@ -5,9 +5,9 @@
 # the active pod last; the chart uses updateStrategy OnDelete) and unseals
 # each new pod. Only pods still on the old StatefulSet revision are restarted,
 # so the script is safe to run again. Prints no keys or tokens.
-#   bash scripts/openbao-tls-rollout.sh
+#   bash scripts/openbao/openbao-tls-rollout.sh
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 NS=openbao
 SELECTOR=app.kubernetes.io/name=openbao,component=server

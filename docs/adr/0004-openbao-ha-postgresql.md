@@ -75,7 +75,7 @@ be in Git.
   OpenBao connected and created its tables right after the change).
 - **Required pod anti-affinity** on `kubernetes.io/hostname` (chart default):
   one pod per worker, so one node failure takes out at most one pod.
-- **Shamir unseal, 5 shares, threshold 3**, done by `scripts/openbao-init.sh`
+- **Shamir unseal, 5 shares, threshold 3**, done by `scripts/openbao/openbao-init.sh`
   and `scripts/openbao-unseal.sh`. Keys and root token go to
   `~/openbao-init.json` (outside the repo, `chmod 600`, in `.gitignore` as a
   safety net) and to Codespaces secrets; they are passed to pods through
@@ -95,7 +95,7 @@ be in Git.
 - **Configuration inside OpenBao** (KV v2 at `secret/`, Kubernetes auth,
   policies `eso-read` / `eso-write`, role `external-secrets`; `eso-write` was
   widened for PushSecret in ADR 0005, policy text now in `openbao/policies/`) by
-  `scripts/openbao-configure.sh`, run once with the root token. Kubernetes auth
+  `scripts/openbao/openbao-configure.sh`, run once with the root token. Kubernetes auth
   uses OpenBao's own service account to review tokens; the chart binds it to
   `system:auth-delegator`.
 

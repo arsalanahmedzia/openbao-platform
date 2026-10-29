@@ -57,7 +57,7 @@ and no long-lived static token may be used.
   with TLS (port named `https`) through a `ServersTransport` that trusts the
   demo CA and checks the name `openbao-active.openbao.svc` (Traefik connects
   to pod IPs, which are not in the certificate). Rolled out pod by pod with
-  `scripts/openbao-tls-rollout.sh` (`OnDelete`, unseal after each restart).
+  `scripts/openbao/openbao-tls-rollout.sh` (`OnDelete`, unseal after each restart).
 - **Store**: `server: https://openbao-active.openbao.svc:8200`, `path: secret`,
   `version: v2`, `caProvider` = `ca.crt` of `openbao/openbao-server-tls` (read
   at runtime: a rebuilt cluster gets a new CA, so it is not copied into Git).

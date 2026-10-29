@@ -89,7 +89,7 @@ If not, the condition message names the failing link:
 | `connection refused`, `503`, `sealed` | OpenBao sealed or down | `bash scripts/openbao-unseal.sh` |
 | `x509: certificate signed by unknown authority` | wrong CA | `caProvider` must point at `openbao/openbao-server-tls`, key `ca.crt` |
 | `x509: certificate is valid for ..., not ...` | name not in the certificate | `server` must use a name from `apps/openbao/server-certificate.yaml` |
-| `permission denied` on `auth/kubernetes/login` | role / service account mismatch | role `external-secrets` must bind `external-secrets/external-secrets` (`scripts/openbao-configure.sh`) |
+| `permission denied` on `auth/kubernetes/login` | role / service account mismatch | role `external-secrets` must bind `external-secrets/external-secrets` (`scripts/openbao/openbao-configure.sh`) |
 | `service account ... not found` | `serviceAccountRef` wrong | name and namespace in `clustersecretstore.yaml` |
 
 ## 2. Debug a failing ExternalSecret or PushSecret
@@ -109,7 +109,7 @@ Then:
   `.../secret/metadata/...` = metadata rules. Remember: OpenBao uses only the
   most specific matching path pattern, it does not combine
   `secret/data/*` with `secret/data/pushed/*`. Fix the file in
-  `openbao/policies/`, commit, run `bash scripts/openbao-policy-update.sh`.
+  `openbao/policies/`, commit, run `bash scripts/openbao/openbao-policy-update.sh`.
 - Message that the secret or key was not found (wording varies): the key
   does not exist in OpenBao (`remoteRef.key` is relative to the mount: `demo/hello`,
   not `secret/data/demo/hello`), or the `property` does not exist.

@@ -22,11 +22,11 @@ OpenBao (once Flux shows `apps-openbao` Ready; details in
 `docs/runbooks/openbao-init-unseal.md`):
 
 ```bash
-bash scripts/openbao-deploy-check.sh   # 3 pods Running, sealed, tables in PostgreSQL
-bash scripts/openbao-init.sh           # once: keys to ~/openbao-init.json + Codespaces secrets
+bash scripts/openbao/openbao-deploy-check.sh   # 3 pods Running, sealed, tables in PostgreSQL
+bash scripts/openbao/openbao-init.sh           # once: keys to ~/openbao-init.json + Codespaces secrets
 bash scripts/openbao-unseal.sh         # after every pod/Codespace restart
-bash scripts/openbao-configure.sh      # once: KV v2, Kubernetes auth, ESO policies and role
-bash scripts/openbao-evidence.sh       # evidence in docs/evidence/04-*.txt
+bash scripts/openbao/openbao-configure.sh      # once: KV v2, Kubernetes auth, ESO policies and role
+bash scripts/openbao/openbao-evidence.sh       # evidence in docs/evidence/04-*.txt
 bash scripts/failure-tests/openbao-failover-test.sh  # deletes the active pod (asks first)
 ```
 

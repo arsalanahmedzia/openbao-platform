@@ -15,9 +15,9 @@ Words are explained in the [glossary](../glossary.md).
 ```mermaid
 flowchart TB
   you([You])
-  init[scripts/openbao-init.sh<br/>once per new OpenBao]
+  init[scripts/openbao/openbao-init.sh<br/>once per new OpenBao]
   unseal[scripts/openbao-unseal.sh<br/>after every restart]
-  conf[scripts/openbao-configure.sh<br/>once]
+  conf[scripts/openbao/openbao-configure.sh<br/>once]
   keys[(Codespaces secrets<br/>and ~/openbao-init.json<br/>5 key shares, root token)]
   api[Kubernetes API]
   bao[OpenBao pods<br/>start sealed]
@@ -61,10 +61,10 @@ Where the secrets are (never in Git, never printed):
 ## 1. First start (once per new OpenBao, i.e. empty database)
 
 ```bash
-bash scripts/openbao-deploy-check.sh   # 3 pods Running 0/1, Initialized false
-bash scripts/openbao-init.sh           # "initialised, keys saved to ..."
+bash scripts/openbao/openbao-deploy-check.sh   # 3 pods Running 0/1, Initialized false
+bash scripts/openbao/openbao-init.sh           # "initialised, keys saved to ..."
 bash scripts/openbao-unseal.sh         # all pods unsealed, 1 active, 2 standby
-bash scripts/openbao-configure.sh      # KV v2, Kubernetes auth, policies, role
+bash scripts/openbao/openbao-configure.sh      # KV v2, Kubernetes auth, policies, role
 ```
 
 `openbao-init.sh` refuses to run if `~/openbao-init.json` exists or the pod
@@ -121,7 +121,7 @@ right away, so restart all OpenBao pods promptly after Flux applied it.
 
 The same again after cert-manager renewed the listener certificate
 `openbao-server-tls` (90 days, renewed 15 days before expiry): OpenBao only
-loads it at start. `bash scripts/openbao-tls-rollout.sh` only restarts pods on
+loads it at start. `bash scripts/openbao/openbao-tls-rollout.sh` only restarts pods on
 an old StatefulSet revision, so after a renewal delete the pods by hand as
 above.
 
@@ -150,7 +150,7 @@ Revoke (asks first; token through stdin; checks that the token is refused
 afterwards; offers to delete the Codespaces secret):
 
 ```bash
-bash scripts/openbao-revoke-root.sh
+bash scripts/openbao/openbao-revoke-root.sh
 ```
 
 Expected: `Success! Revoked token`, then `refused (expected): the root token
@@ -161,10 +161,10 @@ Generate a new root token when needed (needs 3 of the 5 key shares;
 **untested**, written from the OpenBao v2.7.1 CLI source):
 
 ```bash
-bash scripts/openbao-generate-root.sh   # stores it as Codespaces secret OPENBAO_ROOT_TOKEN
+bash scripts/openbao/openbao-generate-root.sh   # stores it as Codespaces secret OPENBAO_ROOT_TOKEN
 # restart the Codespace so the new secret appears as an environment variable,
 # do the work, then:
-bash scripts/openbao-revoke-root.sh
+bash scripts/openbao/openbao-revoke-root.sh
 ```
 
 What the script does, step by step (the same commands work by hand inside the

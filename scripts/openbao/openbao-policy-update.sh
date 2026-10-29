@@ -5,9 +5,9 @@
 # secret/pushed/policy-check: read, write marker, write data, read back, delete.
 # Uses the root token (from OPENBAO_ROOT_TOKEN or ~/openbao-init.json) through
 # stdin only, never printed. openbao-configure.sh does the same from scratch.
-#   bash scripts/openbao-policy-update.sh
+#   bash scripts/openbao/openbao-policy-update.sh
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 NS=openbao
 SELECTOR=app.kubernetes.io/name=openbao,component=server
