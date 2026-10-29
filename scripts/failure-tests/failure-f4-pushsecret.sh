@@ -24,9 +24,9 @@
 # Output: PASS / FAIL / INFO lines with UTC times, also written to
 # docs/evidence/07-f4-pushsecret.txt. Tokens stay in variables and go to the
 # pod via stdin; only the demo value pushed-from-kubernetes is shown.
-#   bash scripts/failure-f4-pushsecret.sh
+#   bash scripts/failure-tests/failure-f4-pushsecret.sh
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 OUT=docs/evidence/07-f4-pushsecret.txt
 KS=apps-external-secrets
@@ -77,7 +77,7 @@ read -r -p "This pauses Flux for $KS and deletes the PushSecret push-demo. Conti
 
 exec > >(tee "$OUT") 2>&1
 echo "# F4: the PushSecret is deleted   $(date -u +%Y-%m-%d)"
-echo "# Command: bash scripts/failure-f4-pushsecret.sh"
+echo "# Command: bash scripts/failure-tests/failure-f4-pushsecret.sh"
 echo
 info "start: PushSecret $(push_ready); secret/pushed/push-demo = $(pushed) (read as the ESO login)"
 

@@ -7,9 +7,9 @@
 #   4. shows the replacement pod comes back SEALED
 #   5. unseals it (scripts/openbao-unseal.sh) and shows it joins as standby
 # No root token; the ESO login token stays in a shell variable.
-#   bash scripts/openbao-failover-test.sh
+#   bash scripts/failure-tests/openbao-failover-test.sh
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 NS=openbao
 SELECTOR=app.kubernetes.io/name=openbao,component=server

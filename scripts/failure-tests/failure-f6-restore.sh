@@ -28,9 +28,9 @@
 #
 # Output: PASS / FAIL / INFO lines with UTC times, also written to
 # docs/evidence/07-f6-restore.txt. No secrets are printed.
-#   bash scripts/failure-f6-restore.sh
+#   bash scripts/failure-tests/failure-f6-restore.sh
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 OUT=docs/evidence/07-f6-restore.txt
 NS=databases
@@ -72,7 +72,7 @@ trap cleanup EXIT
 
 exec > >(tee "$OUT") 2>&1
 echo "# F6: restore from backup (point-in-time recovery)   $(date -u +%Y-%m-%d)"
-echo "# Command: bash scripts/failure-f6-restore.sh"
+echo "# Command: bash scripts/failure-tests/failure-f6-restore.sh"
 echo
 SCHED=$(kubectl -n "$NS" get backup -l cnpg.io/scheduled-backup=pg-openbao-daily -o name 2>/dev/null | wc -l)
 (( SCHED > 0 )) && pass "scheduled backups from pg-openbao-daily: $SCHED" \

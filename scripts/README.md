@@ -27,7 +27,7 @@ bash scripts/openbao-init.sh           # once: keys to ~/openbao-init.json + Cod
 bash scripts/openbao-unseal.sh         # after every pod/Codespace restart
 bash scripts/openbao-configure.sh      # once: KV v2, Kubernetes auth, ESO policies and role
 bash scripts/openbao-evidence.sh       # evidence in docs/evidence/04-*.txt
-bash scripts/openbao-failover-test.sh  # deletes the active pod (asks first)
+bash scripts/failure-tests/openbao-failover-test.sh  # deletes the active pod (asks first)
 ```
 
 Check everything (read-only; includes monitoring: targets up, alert rules

@@ -63,7 +63,7 @@ What we would change in production:
 
 ## F2. The PostgreSQL primary dies
 
-What we broke: `bash scripts/failure-f2-postgres.sh` deleted the primary
+What we broke: `bash scripts/failure-tests/failure-f2-postgres.sh` deleted the primary
 pod `pg-openbao-1`. A background probe wrote to OpenBao every 2 s as the ESO
 login (`secret/pushed/f2-probe`), because a write must reach PostgreSQL.
 
@@ -101,7 +101,7 @@ the cost of write latency.
 
 ## F3. OpenBao is sealed while ESO runs
 
-What we broke: `bash scripts/failure-f3-sealed.sh` deleted all three
+What we broke: `bash scripts/failure-tests/failure-f3-sealed.sh` deleted all three
 OpenBao pods. They came back sealed after 20 s; the script unsealed them after
 153 s (keys via stdin).
 
@@ -133,7 +133,7 @@ OpenBao outage.
 
 ## F4. The PushSecret is deleted
 
-What we broke: `bash scripts/failure-f4-pushsecret.sh` suspended the Flux
+What we broke: `bash scripts/failure-tests/failure-f4-pushsecret.sh` suspended the Flux
 kustomization `apps-external-secrets` (so Flux could not recreate the object
 during the test) and deleted the PushSecret `push-demo`.
 
@@ -159,7 +159,7 @@ OpenBao for good.
 
 ## F5. ESO restarts
 
-What we broke: `bash scripts/failure-f5-eso-restart.sh` deleted the ESO
+What we broke: `bash scripts/failure-tests/failure-f5-eso-restart.sh` deleted the ESO
 controller pod; the Deployment started a new one.
 
 What we expected: the Kubernetes Secret is untouched; the new pod logs in
@@ -181,7 +181,7 @@ logins to OpenBao (check the ESO docs for the option before enabling it).
 
 ## F6. Restore from backup (point-in-time recovery)
 
-What we did: `bash scripts/failure-f6-restore.sh` wrote row A into the
+What we did: `bash scripts/failure-tests/failure-f6-restore.sh` wrote row A into the
 live cluster (database `postgres`), noted a target time, wrote row B, forced
 a WAL switch and waited until it was archived, then created a temporary
 cluster `pg-restore-test` from the S3 backup with `recoveryTarget.targetTime`

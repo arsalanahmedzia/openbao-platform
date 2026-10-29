@@ -25,12 +25,12 @@
 # Output: PASS / FAIL / INFO lines with UTC times, also written to
 # docs/evidence/07-f3-sealed.txt (F3_OUT to write elsewhere). No token or key
 # is printed; only the demo value hello-from-openbao is shown.
-#   bash scripts/failure-f3-sealed.sh
+#   bash scripts/failure-tests/failure-f3-sealed.sh
 # Monitoring M6 (OpenBaoSealed must fire: sealed > 2 min after Prometheus
 # notices, so about 4 min sealed):
-#   F3_WATCH_ROUNDS=16 F3_OUT=docs/evidence/08-m6-f3-sealed.txt bash scripts/failure-f3-sealed.sh
+#   F3_WATCH_ROUNDS=16 F3_OUT=docs/evidence/08-m6-f3-sealed.txt bash scripts/failure-tests/failure-f3-sealed.sh
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 OUT=${F3_OUT:-docs/evidence/07-f3-sealed.txt}
 ROUNDS=${F3_WATCH_ROUNDS:-8}
@@ -74,7 +74,7 @@ trap cleanup EXIT
 
 exec > >(tee "$OUT") 2>&1
 echo "# F3: OpenBao sealed while ESO runs   $(date -u +%Y-%m-%d)"
-echo "# Command: bash scripts/failure-f3-sealed.sh"
+echo "# Command: bash scripts/failure-tests/failure-f3-sealed.sh"
 echo
 info "start: store $(store); ExternalSecret $(extsec); Secret value $VALUE0 (resourceVersion $RV0); ESO controller $ESO0"
 

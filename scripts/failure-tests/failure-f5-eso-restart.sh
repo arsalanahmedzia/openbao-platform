@@ -25,9 +25,9 @@
 # Output: PASS / FAIL / INFO lines with UTC times, also written to
 # docs/evidence/07-f5-eso-restart.txt. No token is printed; audit entries show
 # HMAC hashes, cut to 24 characters. Only the demo value is shown.
-#   bash scripts/failure-f5-eso-restart.sh
+#   bash scripts/failure-tests/failure-f5-eso-restart.sh
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 OUT=docs/evidence/07-f5-eso-restart.txt
 NS=external-secrets
@@ -59,7 +59,7 @@ trap cleanup EXIT
 
 exec > >(tee "$OUT") 2>&1
 echo "# F5: ESO restarts   $(date -u +%Y-%m-%d)"
-echo "# Command: bash scripts/failure-f5-eso-restart.sh"
+echo "# Command: bash scripts/failure-tests/failure-f5-eso-restart.sh"
 echo
 info "start: ESO controller $OLD_POD ($OLD_IP); store $STORE; ExternalSecret $ES; Secret value $VALUE0 (resourceVersion $RV0)"
 

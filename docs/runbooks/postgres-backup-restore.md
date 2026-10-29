@@ -54,7 +54,7 @@ Terms:
   live one. The steps are in section 4 below.
 
 ```bash
-bash scripts/failure-f6-restore.sh                                # tested PITR into a temporary cluster
+bash scripts/failure-tests/failure-f6-restore.sh                                # tested PITR into a temporary cluster
 kubectl -n databases get backups --sort-by=.metadata.creationTimestamp
 ```
 

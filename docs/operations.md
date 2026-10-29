@@ -13,7 +13,7 @@ problem after a Codespace restart, and the alerts. Words are explained in the
 | [`scripts/test-gate.sh`](../scripts/test-gate.sh) | Is everything OK? Read-only check of Flux, OpenBao, PostgreSQL, External Secrets and monitoring |
 | [`scripts/monitoring-check.sh`](../scripts/monitoring-check.sh) | Read-only: all scrape targets up, alert rules loaded, which alerts are pending or firing |
 | [`scripts/eso-debug.sh`](../scripts/eso-debug.sh) | Why is an ExternalSecret or PushSecret not Ready? |
-| `scripts/failure-f1-worker.sh` … `scripts/failure-f6-restore.sh` | One failure test each; asks before it breaks anything and puts everything back at the end |
+| `scripts/failure-tests/failure-f1-worker.sh` … `scripts/failure-tests/failure-f6-restore.sh` | One failure test each; asks before it breaks anything and puts everything back at the end |
 
 Outputs of all tests are in [`evidence/`](evidence/). Runbooks:
 [`runbooks/`](runbooks/). All scripts: [`scripts/README.md`](../scripts/README.md).

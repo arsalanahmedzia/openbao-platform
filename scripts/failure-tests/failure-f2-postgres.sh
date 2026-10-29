@@ -29,9 +29,9 @@
 # Output: PASS / FAIL / INFO lines with UTC times, also written to
 # docs/evidence/07-f2-postgres.txt. Tokens stay in variables and go to the
 # pod via stdin; only the demo value hello-from-openbao is shown.
-#   bash scripts/failure-f2-postgres.sh
+#   bash scripts/failure-tests/failure-f2-postgres.sh
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 OUT=docs/evidence/07-f2-postgres.txt
 DB_NS=databases
@@ -62,7 +62,7 @@ read -r -p "This deletes the PostgreSQL PRIMARY pod $PRIMARY. Continue? [y/N] " 
 
 exec > >(tee "$OUT") 2>&1
 echo "# F2: the PostgreSQL primary dies   $(date -u +%Y-%m-%d)"
-echo "# Command: bash scripts/failure-f2-postgres.sh"
+echo "# Command: bash scripts/failure-tests/failure-f2-postgres.sh"
 echo
 info "start: primary $PRIMARY on $PRIMARY_NODE, 3 ready instances; active OpenBao pod $BAO_POD"
 

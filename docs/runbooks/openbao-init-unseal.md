@@ -93,7 +93,7 @@ kubectl -n openbao get pods -L openbao-active,openbao-sealed
 bash scripts/openbao-unseal.sh
 ```
 
-Test again any time with `bash scripts/openbao-failover-test.sh` (deletes the
+Test again any time with `bash scripts/failure-tests/openbao-failover-test.sh` (deletes the
 active pod, asks first).
 
 If a pod stays `Pending` after a node failure: required anti-affinity allows

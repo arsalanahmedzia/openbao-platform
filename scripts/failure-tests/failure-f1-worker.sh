@@ -30,9 +30,9 @@
 # to docs/evidence/07-f1-worker-script.txt (the manual run's evidence file is
 # not touched). No secrets are printed; unseal keys go via stdin in the
 # unseal script.
-#   bash scripts/failure-f1-worker.sh [node-name]
+#   bash scripts/failure-tests/failure-f1-worker.sh [node-name]
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 OUT=docs/evidence/07-f1-worker-script.txt
 CLUSTER=openbao-platform
@@ -75,7 +75,7 @@ trap cleanup EXIT
 
 exec > >(tee "$OUT") 2>&1
 echo "# F1: a worker node dies (script)   $(date -u +%Y-%m-%d)"
-echo "# Command: bash scripts/failure-f1-worker.sh $NODE"
+echo "# Command: bash scripts/failure-tests/failure-f1-worker.sh $NODE"
 echo
 info "start: node $NODE; OpenBao active $ACTIVE (on this node: ${BAO_ON_NODE:-none}); PostgreSQL primary $PRIMARY on $PRIMARY_NODE; ESO controller on $ESO_NODE"
 

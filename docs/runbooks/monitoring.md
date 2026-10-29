@@ -137,7 +137,7 @@ Done on 2026-10-28 (M6): the sealed test with a longer sealed time.
 # terminal 1 (watches, read-only)
 bash scripts/monitoring-check.sh --wait-firing OpenBaoSealed 8
 # terminal 2 (breaks and repairs; asks y/N)
-F3_WATCH_ROUNDS=16 F3_OUT=docs/evidence/08-m6-f3-sealed.txt bash scripts/failure-f3-sealed.sh
+F3_WATCH_ROUNDS=16 F3_OUT=docs/evidence/08-m6-f3-sealed.txt bash scripts/failure-tests/failure-f3-sealed.sh
 ```
 
 Result: pending 22 s after the pods were deleted, firing after 2 min 22 s,
