@@ -6,34 +6,65 @@ monitoring.
 
 ## Overview
 
-- OpenBao is the vault that keeps the secrets; it runs as 3 copies, one is active and the other two wait to take over.
-- PostgreSQL is the database where OpenBao saves its data; it runs as 3 copies and is backed up every day.
-- External Secrets Operator (ESO) copies secrets between OpenBao and Kubernetes, in both directions.
-- Flux builds everything from this repository, so Git is the single source of truth (this way of working is called GitOps).
-- Prometheus watches the platform by collecting numbers every 30 s and raises alerts when something breaks.
+Applications need secrets such as database passwords and API keys. If those sit in config files, in Git or in environment variables, anyone who can read those files can read the secrets, and changing one means editing every place that uses it. This platform keeps them in one place, OpenBao, where each client gets only the secrets its policy allows and access can be logged. Applications on Kubernetes receive them through External Secrets Operator as ordinary Kubernetes Secrets, so they need no OpenBao code. Because the secrets are the most sensitive data in the system, OpenBao and its database run as several copies with daily backups.
+
+It is made of these parts:
+
+- **OpenBao** is the vault that keeps the secrets. It runs as 3 copies: one is active and the other two wait to take over.
+- **PostgreSQL** is the database where OpenBao saves its data. It runs as 3 copies and is backed up every day.
+- **External Secrets Operator (ESO)** copies secrets between OpenBao and Kubernetes, in both directions.
+- **Traefik** is the HTTPS entry point from outside the cluster.
+- **Flux** builds everything from this repository, so Git is the single source of truth (this way of working is called GitOps).
+- **Prometheus** watches the platform by collecting numbers every 30 seconds and raises alerts when something breaks.
 
 ![How it runs](docs/images/how-it-runs.png)
 
 ## How the parts talk to each other?
 
+**1. How a client reads a secret.** A client proves who it is and gets a short-lived token. It shows that token with every later request, so the login credential is sent only once.
+
 | From | To | Request | Response |
 | --- | --- | --- | --- |
-| curl (or a browser or script) | Traefik, which forwards to OpenBao | Login: `POST https://openbao.demo.local/v1/auth/kubernetes/login` with a service-account token and a role | An OpenBao token |
-| curl (or a browser or script) | Traefik, which forwards to OpenBao | Read: `GET https://openbao.demo.local/v1/secret/data/demo/hello` with the OpenBao token in the `X-Vault-Token` header | The secret `demo/hello` as JSON |
-| ESO | Kubernetes API | Asks for a service-account token for `external-secrets`, valid 10 minutes | The signed token |
-| ESO | OpenBao (HTTPS, port 8200) | Login with that token and the role `external-secrets` | An OpenBao token with the policies `default`, `eso-read` and `eso-write`, valid 15 minutes |
-| OpenBao | Kubernetes API | TokenReview: is this token valid, and whose is it? | Yes, it belongs to the service account `external-secrets/external-secrets` |
+| curl (or a script) | Traefik | Login: `POST /v1/auth/kubernetes/login` with a service-account token and a role | An OpenBao token |
+| curl (or a script) | Traefik | Read: `GET /v1/secret/data/demo/hello` with the token in the `X-Vault-Token` header | The secret `demo/hello` as JSON |
+| Traefik | OpenBao (HTTPS, port 8200) | Forwards the request to the active pod, after checking its certificate against the demo CA | The answer, passed back to the client |
+
+**2. How secrets get into Kubernetes.** Applications do not talk to OpenBao themselves; External Secrets Operator (ESO) does it for them. ESO proves its identity with a token from the Kubernetes API, and OpenBao checks that token with the same API before it trusts ESO. After that, ESO copies secrets in both directions.
+
+| From | To | Request | Response |
+| --- | --- | --- | --- |
+| ESO | Kubernetes API | Asks for a token for its service account (its identity in Kubernetes), valid 10 minutes | The signed token |
+| ESO | OpenBao (HTTPS, port 8200) | Login with that token and the role `external-secrets` | An OpenBao token with the policies `default`, `eso-read`, `eso-write`, valid 15 minutes |
+| OpenBao | Kubernetes API | Is this token valid, and whose is it? | Yes, it belongs to `external-secrets/external-secrets` |
 | ESO | OpenBao | Pull: reads `secret/demo/hello` | The secret value |
 | ESO | Kubernetes API | Pull: creates or updates the Secret `eso-demo/hello-from-openbao` | A confirmation |
 | ESO | Kubernetes API | Push: reads the Secret `eso-demo/push-demo` | The Secret value |
-| ESO | OpenBao | Push: writes `secret/pushed/push-demo` | A confirmation of the write |
-| OpenBao | PostgreSQL | Saves its data, encrypted by OpenBao before it is saved | Stored |
+| ESO | OpenBao | Push: writes `secret/pushed/push-demo` | A confirmation |
+
+**3. How the data is stored and backed up.** OpenBao encrypts its data and stores it in PostgreSQL, so the database never sees a readable secret. PostgreSQL sends a full backup and its change log to S3 storage, which allows a restore to a chosen point in time.
+
+| From | To | Request | Response |
+| --- | --- | --- | --- |
+| OpenBao | PostgreSQL | Saves its data, encrypted by OpenBao first | Stored |
 | OpenBao | PostgreSQL | Reads its data back | The data |
-| PostgreSQL | SeaweedFS (S3) | A base backup, every day at 12:00 UTC | Stored |
-| PostgreSQL | SeaweedFS (S3) | The WAL files, continuously | Stored |
-| Prometheus | OpenBao, PostgreSQL, ESO | Asks for the metrics every 30 seconds | A text list of numbers (metrics) |
+| PostgreSQL | SeaweedFS (S3) | A full backup, every day at 12:00 UTC | Stored |
+| PostgreSQL | SeaweedFS (S3) | The WAL files (PostgreSQL's log of every change), continuously | Stored |
+
+**4. How OpenBao is unlocked and gets its certificates.** OpenBao starts locked. It needs 3 of its 5 key shares, so by design no single holder can unlock it; in this demo all shares are in one place (see Production readiness). All TLS certificates come from one demo CA, so every connection can be checked against one trusted source.
+
+| From | To | Request | Response |
+| --- | --- | --- | --- |
+| You (via `scripts/after-restart/openbao-unseal.sh`, with `kubectl exec`) | Each OpenBao pod | One key share at a time, until 3 are entered | The pod is unsealed and ready |
+| cert-manager | Kubernetes API | Creates the TLS certificates, signed by the demo CA, as Secrets | The Secrets; the pods mount them, Traefik and the Prometheus Operator read them |
+
+**5. How the platform stays correct and is watched.** Flux fetches Git every minute and applies every new commit; every 10 minutes it also corrects any difference in the cluster, so Git stays the single source of truth. Prometheus reads the numbers of each component, and Alertmanager shows an alert when a number stays wrong for too long.
+
+| From | To | Request | Response |
+| --- | --- | --- | --- |
 | Flux | GitHub | Fetches the repository every minute | The files |
-| Flux | Kubernetes API | Applies the manifests from Git | The status of each object |
+| Flux | Kubernetes API | Applies the manifests from Git, and decrypts the SOPS files with the age key (Secret `sops-age`) | The status of each object |
+| Prometheus | OpenBao, PostgreSQL, ESO | Asks for the metrics every 30 seconds | A text list of numbers |
+| Prometheus | Alertmanager | Sends an alert when a rule has been true long enough | Alertmanager shows it; no receiver is configured |
 
 Words: [glossary](docs/glossary.md). Build order, certificates, network rules: [architecture](docs/architecture.md).
 
