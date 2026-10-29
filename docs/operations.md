@@ -10,7 +10,7 @@ problem after a Codespace restart, and the alerts. Words are explained in the
 | --- | --- |
 | [`scripts/after-restart/resume.sh`](../scripts/after-restart/resume.sh) | After a Codespace restart: starts the nodes, fixes the network, checks the pod network |
 | [`scripts/after-restart/openbao-unseal.sh`](../scripts/after-restart/openbao-unseal.sh) | After every OpenBao pod restart (pods start sealed) |
-| [`scripts/checks/test-gate.sh`](../scripts/checks/test-gate.sh) | Is everything OK? Read-only check of Flux, OpenBao, PostgreSQL, External Secrets and monitoring |
+| [`scripts/verify/test-gate.sh`](../scripts/verify/test-gate.sh) | Is everything OK? Read-only check of Flux, OpenBao, PostgreSQL, External Secrets and monitoring |
 | [`scripts/monitoring/monitoring-check.sh`](../scripts/monitoring/monitoring-check.sh) | Read-only: all scrape targets up, alert rules loaded, which alerts are pending or firing |
 | [`scripts/external-secrets/eso-debug.sh`](../scripts/external-secrets/eso-debug.sh) | Why is an ExternalSecret or PushSecret not Ready? |
 | `scripts/failure-tests/failure-f1-worker.sh` … `scripts/failure-tests/failure-f6-restore.sh` | One failure test each; asks before it breaks anything and puts everything back at the end |
@@ -27,7 +27,7 @@ Outputs of all tests are in [`evidence/`](evidence/). Runbooks:
 2. Run `bash scripts/after-restart/openbao-unseal.sh`. Every OpenBao pod that restarted is
    sealed (it cannot read its data); the script gives each pod 3 of its 5 key
    shares. See the [unseal runbook](runbooks/openbao-init-unseal.md).
-3. Run `bash scripts/checks/test-gate.sh`. It checks Flux, OpenBao, PostgreSQL,
+3. Run `bash scripts/verify/test-gate.sh`. It checks Flux, OpenBao, PostgreSQL,
    External Secrets and monitoring without changing anything, and ends with
    `GATE PASSED` or a list of failures.
 

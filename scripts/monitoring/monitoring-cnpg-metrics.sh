@@ -104,5 +104,5 @@ else
 fi
 
 echo
-(( FAILS == 0 )) && echo "$(ts) RESULT  M2 CloudNativePG passed (now run bash scripts/checks/test-gate.sh)" \
+(( FAILS == 0 )) && echo "$(ts) RESULT  M2 CloudNativePG passed (now run bash scripts/verify/test-gate.sh)" \
   || { echo "$(ts) RESULT  M2 CloudNativePG: $FAILS check(s) failed"; exit 1; }

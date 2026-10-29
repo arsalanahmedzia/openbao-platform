@@ -75,7 +75,7 @@ PRIMARY_NODE=$(kubectl -n "$DB_NS" get pod "$PRIMARY" -o jsonpath='{.spec.nodeNa
 BAO_POD=$(kubectl -n "$BAO_NS" get pods -l openbao-active=true -o jsonpath='{.items[0].metadata.name}')
 echo "primary: $PRIMARY on $PRIMARY_NODE, ready instances: $(ready), phase: $(phase)"
 echo "active OpenBao pod: $BAO_POD"
-[[ "$(ready)" == 3 && "$(phase)" == *healthy* ]] || { echo "cluster not healthy with 3 instances: run scripts/checks/test-gate.sh first"; exit 1; }
+[[ "$(ready)" == 3 && "$(phase)" == *healthy* ]] || { echo "cluster not healthy with 3 instances: run scripts/verify/test-gate.sh first"; exit 1; }
 [[ -n "$BAO_POD" ]] || { echo "no active OpenBao pod: unseal first"; exit 1; }
 
 read -r -p "This deletes the PostgreSQL PRIMARY pod $PRIMARY. Continue? [y/N] " answer

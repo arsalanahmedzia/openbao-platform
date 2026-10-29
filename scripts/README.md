@@ -3,7 +3,7 @@
 Every script explains at the top what it does, step by step, with the real
 commands. They print PASS / FAIL / INFO lines with UTC times and never print
 keys or tokens. Run them from the repository root, for example
-`bash scripts/checks/test-gate.sh`. Scripts for daily use are listed in
+`bash scripts/verify/test-gate.sh`. Scripts for daily use are listed in
 [`docs/operations.md`](../docs/operations.md); failure tests in
 [`docs/runbooks/failure-tests.md`](../docs/runbooks/failure-tests.md).
 
@@ -35,7 +35,7 @@ Check everything (read-only; includes monitoring: targets up, alert rules
 loaded, nothing firing; details in `docs/runbooks/monitoring.md`):
 
 ```bash
-bash scripts/checks/test-gate.sh
+bash scripts/verify/test-gate.sh
 bash scripts/monitoring/monitoring-check.sh
 ```
 
@@ -60,12 +60,12 @@ bash scripts/monitoring/monitoring-check.sh
 | [`kind-fix-pod-network.sh`](after-restart/kind-fix-pod-network.sh) | Repairs pod IPs after a node IP change: restarts kindnet, recreates affected pods (asks first) | the cluster |
 | [`openbao-unseal.sh`](after-restart/openbao-unseal.sh) | Unseals every sealed OpenBao pod with 3 key shares via stdin; skips unsealed pods | the cluster |
 
-### checks/ (read-only, any time)
+### verify/ (read-only, any time)
 
 | Script | What it does | Changes |
 | --- | --- | --- |
-| [`test-gate.sh`](checks/test-gate.sh) | Checks Flux, OpenBao, PostgreSQL, External Secrets and monitoring; ends with `GATE PASSED` | nothing (asks Flux to fetch Git) |
-| [`github-access-check.sh`](checks/github-access-check.sh) | Shows token types, scopes, deploy keys and branch protection through the GitHub API | nothing |
+| [`test-gate.sh`](verify/test-gate.sh) | Checks Flux, OpenBao, PostgreSQL, External Secrets and monitoring; ends with `GATE PASSED` | nothing (asks Flux to fetch Git) |
+| [`github-access.sh`](verify/github-access.sh) | Shows token types, scopes, deploy keys and branch protection through the GitHub API | nothing |
 
 ### openbao/
 
@@ -155,7 +155,7 @@ in `docs/evidence/` are recorded outputs and keep the old paths. Each old path
 | --- | --- |
 | `setup/` | install-tools, bootstrap, kind-config.yaml, pin-versions, s3-secrets, openbao-db-secret, sops-demo |
 | `after-restart/` | resume, kind-fix-pod-network, openbao-unseal |
-| `checks/` | test-gate, github-access-check |
+| `verify/` | test-gate, github-access-check (now named github-access.sh) |
 | `openbao/` | openbao-deploy-check, openbao-init, openbao-configure, openbao-policy-update, openbao-tls-rollout, openbao-audit-check, openbao-evidence, openbao-generate-root, openbao-revoke-root |
 | `external-secrets/` | eso-store-check, eso-pull-check, eso-refresh-test, eso-push-check, eso-evidence, eso-debug |
 | `database/` | pg-backup-check (new on 2026-10-29: pg-check, storage-check) |

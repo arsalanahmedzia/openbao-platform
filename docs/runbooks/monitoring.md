@@ -150,7 +150,7 @@ one alert per pod, received by Alertmanager; gone after the unseal.
 - No receiver: nobody is notified. Look with `scripts/monitoring/monitoring-check.sh`.
 - Retention 2 days (max 1 GB on a 2 Gi volume).
 - PostgreSQL metrics are plain HTTP (R30). Flux is not monitored here
-  (`scripts/checks/test-gate.sh` checks it).
+  (`scripts/verify/test-gate.sh` checks it).
 - A new or changed alert rule shows "not loaded" right after a change: the
   rules need up to 1-2 minutes to reach Prometheus; `scripts/monitoring/monitoring-check.sh`
   waits for them.

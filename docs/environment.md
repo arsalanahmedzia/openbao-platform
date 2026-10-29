@@ -30,7 +30,7 @@ env vars, visible only to Codespaces of this repository), never in the repo:
 | `OPENBAO_UNSEAL_KEYS` | the 5 OpenBao key shares (JSON list), for `scripts/after-restart/openbao-unseal.sh` | written by `scripts/openbao/openbao-init.sh` |
 | `OPENBAO_ROOT_TOKEN` | OpenBao root token, for the configure/policy scripts | written by `scripts/openbao/openbao-init.sh`; to be revoked (`scripts/openbao/openbao-revoke-root.sh`) |
 
-Checked with `bash scripts/checks/github-access-check.sh` (prints token types and
+Checked with `bash scripts/verify/github-access.sh` (prints token types and
 scopes, never the values). An earlier version of this page said
 `FLUX_GITHUB_TOKEN` was a fine-grained token limited to this repository with an
 expiry; that was the plan, not what was done. Flux itself does **not** use this
@@ -43,7 +43,7 @@ manager (owner's statement, not checked here).
 ## Manual GitHub steps (owner checklist)
 
 These are done in the GitHub web UI by the account owner; nothing here can be
-done by Flux or by the scripts. Re-run `bash scripts/checks/github-access-check.sh`
+done by Flux or by the scripts. Re-run `bash scripts/verify/github-access.sh`
 afterwards to confirm.
 
 **Now**

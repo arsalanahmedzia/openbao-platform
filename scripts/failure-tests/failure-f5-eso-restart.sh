@@ -67,7 +67,7 @@ echo "==> 1. Start state"
 eso
 STORE=$(ready_of get clustersecretstore openbao); ES=$(ready_of -n eso-demo get externalsecret hello)
 echo "store: $STORE | ExternalSecret hello: $ES | Secret: $(value) rv=$(rv)"
-[[ "$STORE" == True* && "$ES" == True* ]] || { echo "store or ExternalSecret not Ready: run scripts/checks/test-gate.sh first"; exit 1; }
+[[ "$STORE" == True* && "$ES" == True* ]] || { echo "store or ExternalSecret not Ready: run scripts/verify/test-gate.sh first"; exit 1; }
 OLD_POD=$(eso | awk 'NR==1{print $1}'); OLD_IP=$(eso | awk 'NR==1{print $2}')
 VALUE0=$(value); RV0=$(rv)
 

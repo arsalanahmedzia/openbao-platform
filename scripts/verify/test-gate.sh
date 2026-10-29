@@ -14,7 +14,7 @@
 # monitoring/monitoring-check.sh for that). Each check prints PASS or FAIL.
 # When monitoring fails, it also prints why.
 #
-# Run it: bash scripts/checks/test-gate.sh (after every change and before and after every failure test)
+# Run it: bash scripts/verify/test-gate.sh (after every change and before and after every failure test)
 # Changes the cluster: no. It asks Flux to fetch Git once; writes no files, uses
 #   no OpenBao token, prints no secrets (only the demo values).
 #

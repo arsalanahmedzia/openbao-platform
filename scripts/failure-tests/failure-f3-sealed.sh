@@ -79,7 +79,7 @@ eso_errors() {
 echo "==> 1. Start state"
 kubectl -n openbao get pods -l "$SELECTOR" -L openbao-active,openbao-sealed
 echo "store: $(store) | ExternalSecret hello: $(extsec)"
-[[ "$(store)" == True* && "$(extsec)" == True* ]] || { echo "store or ExternalSecret not Ready: run scripts/checks/test-gate.sh first"; exit 1; }
+[[ "$(store)" == True* && "$(extsec)" == True* ]] || { echo "store or ExternalSecret not Ready: run scripts/verify/test-gate.sh first"; exit 1; }
 VALUE0=$(value); RV0=$(rv); ESO0=$(eso_pod)
 echo "Secret value: $VALUE0, resourceVersion $RV0; ESO controller: $ESO0"
 

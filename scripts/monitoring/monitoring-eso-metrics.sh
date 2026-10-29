@@ -141,5 +141,5 @@ else
 fi
 
 echo
-(( FAILS == 0 )) && echo "$(ts) RESULT  ESO metrics TLS passed (now run bash scripts/checks/test-gate.sh)" \
+(( FAILS == 0 )) && echo "$(ts) RESULT  ESO metrics TLS passed (now run bash scripts/verify/test-gate.sh)" \
   || { echo "$(ts) RESULT  ESO metrics TLS: $FAILS check(s) failed"; exit 1; }

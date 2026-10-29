@@ -49,7 +49,7 @@
 # unseal script.
 #
 # What you should see: PASS / INFO lines with a timeline (node NotReady, new primary, OpenBao
-#   answering 200 again), then "RESULT F1 passed (run scripts/checks/test-gate.sh next)".
+#   answering 200 again), then "RESULT F1 passed (run scripts/verify/test-gate.sh next)".
 # If it fails: if the script stops early, its trap starts the node again; then run
 #   scripts/after-restart/kind-fix-pod-network.sh and scripts/after-restart/openbao-unseal.sh.
 # Needs: docker, kubectl, curl, jq, the unseal keys.
@@ -72,7 +72,7 @@ primary()    { kubectl -n databases get cluster pg-openbao -o jsonpath='{.status
 echo "==> 1. Choose the worker"
 NODE=${1:-$(kubectl -n openbao get pods -l openbao-active=true -o jsonpath='{.items[0].spec.nodeName}')}
 [[ "$NODE" == "$CLUSTER"-worker* ]] || { echo "not a worker of $CLUSTER: '$NODE'"; exit 1; }
-[[ "$(node_ready)" == True ]] || { echo "$NODE is not Ready: run scripts/checks/test-gate.sh first"; exit 1; }
+[[ "$(node_ready)" == True ]] || { echo "$NODE is not Ready: run scripts/verify/test-gate.sh first"; exit 1; }
 PRIMARY=$(primary); PRIMARY_NODE=$(kubectl -n databases get pod "$PRIMARY" -o jsonpath='{.spec.nodeName}')
 ACTIVE=$(kubectl -n openbao get pods -l openbao-active=true -o jsonpath='{.items[0].metadata.name}')
 BAO_ON_NODE=$(kubectl -n openbao get pods -l app.kubernetes.io/name=openbao,component=server \
@@ -176,4 +176,4 @@ echo "  new PostgreSQL primary:  ${T_PRIMARY:-not needed}"
 echo "  OpenBao 200 again:       ${T_BAO:-?}"
 echo "  ESO controller replaced: ${T_ESO:-not needed}"
 echo
-(( FAILS == 0 )) && echo "$(ts) RESULT  F1 passed (run scripts/checks/test-gate.sh next)" || { echo "$(ts) RESULT  F1: $FAILS check(s) failed"; exit 1; }
+(( FAILS == 0 )) && echo "$(ts) RESULT  F1 passed (run scripts/verify/test-gate.sh next)" || { echo "$(ts) RESULT  F1: $FAILS check(s) failed"; exit 1; }

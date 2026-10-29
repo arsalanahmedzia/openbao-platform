@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# github-access-check.sh - shows which GitHub access this setup uses, without printing any token.
+# github-access.sh - shows which GitHub access this setup uses, without printing any token.
 #
 # This script answers one question for risk R08: which GitHub access does
 # this setup use, and how much may it do? Write access to the repository is
@@ -12,7 +12,7 @@
 # creates one) and the branch protection on main. It only reads from the
 # GitHub API and does not touch the cluster.
 #
-# Run it: bash scripts/checks/github-access-check.sh (to review access, risk R08)
+# Run it: bash scripts/verify/github-access.sh (to review access, risk R08)
 # Changes the cluster: no. It calls only the GitHub API.
 #
 # What it does:

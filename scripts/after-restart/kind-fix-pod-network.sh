@@ -45,7 +45,7 @@
 #   instances" and "all pods have IPs from their node's range".
 # If it fails: a PostgreSQL pod stuck in Terminating: run the printed
 #   --grace-period=0 --force command. Afterwards: scripts/after-restart/openbao-unseal.sh
-#   and scripts/checks/test-gate.sh.
+#   and scripts/verify/test-gate.sh.
 # Needs: kind, docker, kubectl, jq. Prints no secrets.
 set -euo pipefail
 
@@ -131,4 +131,4 @@ echo "==> 4. Check"
 LEFT=$(wrong_ip_pods)
 [[ -z "$LEFT" ]] && echo "all pods have IPs from their node's range" || { echo "still wrong:"; echo "$LEFT"; }
 echo
-echo "Next: bash scripts/after-restart/openbao-unseal.sh, then bash scripts/checks/test-gate.sh"
+echo "Next: bash scripts/after-restart/openbao-unseal.sh, then bash scripts/verify/test-gate.sh"
