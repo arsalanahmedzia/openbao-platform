@@ -14,7 +14,7 @@
 #      backup timestamps (Barman Cloud plugin).
 #   4. Shows the Prometheus target state (down until M3 adds the
 #      NetworkPolicy that lets Prometheus reach port 9187).
-#   bash scripts/monitoring-cnpg-metrics.sh
+#   bash scripts/monitoring/monitoring-cnpg-metrics.sh
 set -uo pipefail
 
 NS=databases

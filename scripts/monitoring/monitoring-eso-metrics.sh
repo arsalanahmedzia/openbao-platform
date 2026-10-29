@@ -19,7 +19,7 @@
 #   4. Shows the status metrics needed for the alerts in M4.
 #   5. Prometheus: generated scrape config (https, CA, server_name, no
 #      insecure_skip_verify) and the target, which must be up (M3 is in place).
-#   bash scripts/monitoring-eso-metrics.sh
+#   bash scripts/monitoring/monitoring-eso-metrics.sh
 set -uo pipefail
 
 NS=external-secrets

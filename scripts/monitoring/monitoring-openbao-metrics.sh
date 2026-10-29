@@ -22,9 +22,9 @@
 #   5. Shows the scrape config Prometheus generated (CA, server name, no
 #      insecure_skip_verify) and the target state (down until M3 adds the
 #      NetworkPolicy that lets Prometheus reach port 9101).
-#   bash scripts/monitoring-openbao-metrics.sh
+#   bash scripts/monitoring/monitoring-openbao-metrics.sh
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 NS=openbao
 SELECTOR=app.kubernetes.io/name=openbao,component=server

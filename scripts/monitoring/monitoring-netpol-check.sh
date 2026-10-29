@@ -14,7 +14,7 @@
 #      proof, for OpenBao also that Prometheus accepts the TLS certificate).
 #        curl http://127.0.0.1:19090/api/v1/targets (port-forward to Prometheus)
 # Prints no secrets.
-#   bash scripts/monitoring-netpol-check.sh
+#   bash scripts/monitoring/monitoring-netpol-check.sh
 set -uo pipefail
 
 IMAGE=busybox:1.37.0

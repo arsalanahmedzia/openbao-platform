@@ -12,7 +12,7 @@
 #   3. Waits for the 4 pods to be Ready and prints PASS / FAIL.
 #   4. Shows memory requests/limits per pod (actual use: docker stats, not here).
 # Prints no secrets.
-#   bash scripts/monitoring-deploy-check.sh
+#   bash scripts/monitoring/monitoring-deploy-check.sh
 set -uo pipefail
 
 NS=monitoring
