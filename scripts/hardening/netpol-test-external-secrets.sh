@@ -1,14 +1,28 @@
 #!/usr/bin/env bash
-# Hardening B2d: after `git push`, applies the NetworkPolicies of namespace
-# external-secrets and proves them:
-#   real:    `kubectl create --dry-run=server` of renamed copies of the ExternalSecret and the
-#            ClusterSecretStore runs ESO's validating webhooks (failurePolicy
-#            Fail) without saving anything: succeeds only if the API server
-#            reaches the webhook
-#   blocked: default -> webhook pod :10250, default -> controller metrics :8080
-#   real:    store still Valid, Flux still reconciles apps-external-secrets
-# Probe pods are temporary (kubectl run --rm).
-#   bash scripts/hardening/netpol-test-external-secrets.sh
+# netpol-test-external-secrets.sh - applies and proves the NetworkPolicies of namespace external-secrets (hardening B2d).
+# Run it: bash scripts/hardening/netpol-test-external-secrets.sh (after git push of infrastructure/controllers/external-secrets-networkpolicy.yaml)
+# Changes the cluster: yes: starts temporary probe pods (kubectl run --rm).
+#   The dry-run creates save nothing.
+#
+# What it does:
+#   1. Applies Git now.
+#        flux reconcile kustomization infra-controllers
+#   2. Real path: a server-side dry run of renamed copies of the ExternalSecret
+#      and the ClusterSecretStore runs ESO's validating webhooks (failurePolicy
+#      Fail) without saving anything; it succeeds only if the API server reaches
+#      the webhook.
+#        sed "0,/^  name: /s//  name: netpol-dryrun-/" <file> | kubectl create --dry-run=server -f -
+#   3. Probes from namespace default with temporary pods (must be blocked):
+#      webhook pod :10250 and controller metrics :8080.
+#   4. Real paths: ESO pods, the store still Valid, Flux still reconciles
+#      apps-external-secrets.
+#        flux reconcile kustomization apps-external-secrets
+#
+# What you should see: "PASS webhook reached for ..." twice, two blocked
+#   probes, then "RESULT: external-secrets policies work as intended".
+# If it fails: "webhook not reached": the API server cannot reach port 10250;
+#   then every change to ESO objects fails (failurePolicy Fail).
+# Needs: flux, kubectl, sed, the image busybox:1.37.0.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 

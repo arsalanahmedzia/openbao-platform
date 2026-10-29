@@ -1,13 +1,29 @@
 #!/usr/bin/env bash
-# Hardening B2b: after `git push`, applies the NetworkPolicies of namespace
-# databases and proves them:
-#   open:    OpenBao-labelled pod in openbao -> pg-openbao-rw:5432
-#   blocked: unlabelled pod in openbao       -> pg-openbao-rw:5432
-#   blocked: pod in default -> 5432, and -> instance manager :8000
-#   real:    kubectl cnpg status (API server -> :8000), streaming replication,
-#            a base backup (operator -> :8000), OpenBao still active
-# Probe pods are temporary (kubectl run --rm), deleted right after use.
-#   bash scripts/hardening/netpol-test-databases.sh
+# netpol-test-databases.sh - applies and proves the NetworkPolicies of namespace databases (hardening B2b).
+# Run it: bash scripts/hardening/netpol-test-databases.sh (after git push of apps/database/networkpolicy.yaml)
+# Changes the cluster: yes: starts temporary probe pods (kubectl run --rm,
+#   deleted right after use) and takes one base backup (pg-backup-check.sh).
+#
+# What it does:
+#   1. Checks every node IP is inside 172.16.0.0/12 (the ipBlock that lets the
+#      API server reach the instance manager).
+#        kubectl get nodes -o custom-columns=NAME:.metadata.name,IP:.status.addresses[0].address
+#   2. Applies Git now.
+#        flux reconcile kustomization apps-database
+#   3. Probes with temporary pods, nc -w 3 <host> <port>:
+#        open:    OpenBao-labelled pod in openbao -> pg-openbao-rw:5432
+#        blocked: unlabelled pod in openbao       -> pg-openbao-rw:5432
+#        blocked: pod in default -> 5432, and -> instance manager :8000
+#   4. Real paths: kubectl cnpg status (API server -> :8000) with streaming
+#      replication, a base backup (operator -> :8000), OpenBao still active.
+#        kubectl cnpg status pg-openbao -n databases
+#        bash scripts/database/pg-backup-check.sh
+#
+# What you should see: one PASS per probe, the status with "Ready instances: 3",
+#   the backup completed, then "RESULT: databases policies work as intended".
+# If it fails: "node IP ... is outside 172.16.0.0/12: fix the ipBlock first"
+#   stops the script before anything is applied.
+# Needs: flux, kubectl with the cnpg plugin, jq, the image busybox:1.37.0.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 

@@ -1,13 +1,26 @@
 #!/usr/bin/env bash
-# Hardening B1: are NetworkPolicies enforced in this cluster? (kind >= v0.24.0
-# ships kube-network-policies with kindnet; this test proves it.)
-# MANUAL TEMPORARY TEST, not from Git: creates namespace netpol-test with a
-# server and a client pod (on different nodes), then
-#   1. no policy               -> connection must work
-#   2. deny-all ingress        -> connection must time out
-#   3. deny-all + allow client -> connection must work again
-# and deletes the namespace at the end, also if the script fails.
-#   bash scripts/hardening/netpol-enforcement-test.sh
+# netpol-enforcement-test.sh - proves that this cluster enforces NetworkPolicies at all (hardening B1).
+# Run it: bash scripts/hardening/netpol-enforcement-test.sh (once per new cluster, before trusting any policy)
+# Changes the cluster: yes: MANUAL TEMPORARY TEST, not from Git. Creates
+#   namespace netpol-test with a server and a client pod (on different nodes)
+#   and deletes the namespace at the end, also if the script fails. kind >=
+#   v0.24.0 ships kube-network-policies with kindnet; this test proves it.
+#
+# What it does:
+#   1. Creates the namespace, a busybox web server on port 8080 and a client on
+#      another node.
+#        kubectl create namespace netpol-test ; kubectl apply -n netpol-test -f -
+#   2. No policy: client -> server must work.
+#   3. Adds a deny-all ingress policy: the connection must time out.
+#   4. Adds an allow rule app=client -> app=server TCP 8080: it must work again.
+#   5. Cleanup (trap): deletes the namespace.
+#        kubectl delete namespace netpol-test
+#
+# What you should see: three PASS lines (ok, blocked, ok) and
+#   "RESULT: NetworkPolicies are enforced (deny and allow both work)".
+# If it fails: "blocked" still working means the cluster ignores
+#   NetworkPolicies; no other policy in this repo would then have any effect.
+# Needs: kubectl, the image busybox:1.37.0.
 set -euo pipefail
 
 NS=netpol-test

@@ -1,16 +1,29 @@
 #!/usr/bin/env bash
-# Hardening B2c: after `git push`, applies the NetworkPolicies of namespace
-# openbao and proves them:
-#   open:    Traefik-labelled pod in traefik, ESO-labelled pod in
-#            external-secrets -> openbao-active:8200
-#   blocked: unlabelled pod in external-secrets -> 8200, default -> 8200,
-#            default -> a standby pod's 8201
-#   real:    HTTPS through Traefik; ESO login ON A STANDBY pod (a login writes a
-#            token, so the standby must forward it to the active pod over 8201;
-#            reads could be served by the standby itself); store still Valid
-# Probe pods are temporary (kubectl run --rm). Tokens stay in variables and go
-# to the pod via stdin; only the demo value is shown.
-#   bash scripts/hardening/netpol-test-openbao.sh
+# netpol-test-openbao.sh - applies and proves the NetworkPolicies of namespace openbao (hardening B2c).
+# Run it: bash scripts/hardening/netpol-test-openbao.sh (after git push of apps/openbao/networkpolicy.yaml)
+# Changes the cluster: yes: starts temporary probe pods (kubectl run --rm) and
+#   logs in once as the ESO service account. Tokens stay in variables and go to
+#   the pod via stdin; only the demo value is shown.
+#
+# What it does:
+#   1. Applies Git now.
+#        flux reconcile kustomization apps-openbao
+#   2. Probes with temporary pods, nc -w 3 <host> <port>:
+#        open:    Traefik-labelled pod in traefik, ESO-labelled pod in
+#                 external-secrets -> openbao-active:8200
+#        blocked: unlabelled pod in external-secrets -> 8200, default -> 8200,
+#                 default -> a standby pod's 8201
+#   3. Real paths: HTTPS through Traefik; an ESO login ON A STANDBY pod (a login
+#      writes a token, so the standby must forward it to the active pod over
+#      8201; reads could be served by the standby itself); store still Valid.
+#        curl --resolve openbao.demo.local:443:127.0.0.1 --cacert <ca> https://openbao.demo.local/v1/sys/health
+#        kubectl -n openbao exec -i <standby> -- bao write -field=token auth/kubernetes/login role=external-secrets jwt=-
+#
+# What you should see: one PASS per probe, "HTTP 200", "login on standby: ok",
+#   the demo value, then "RESULT: openbao policies work as intended".
+# If it fails: the login on the standby fails: port 8201 between the OpenBao
+#   pods is blocked.
+# Needs: flux, kubectl, curl, the image busybox:1.37.0.
 set -euo pipefail
 
 IMAGE=busybox:1.37.0

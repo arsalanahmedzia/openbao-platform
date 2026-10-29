@@ -1,12 +1,26 @@
 #!/usr/bin/env bash
-# Hardening B2e: after `git push`, applies the default-deny policy of namespace
-# eso-demo and proves it with a TEMPORARY web server pod in eso-demo:
-#   blocked: default -> server:8080, and eso-demo -> server:8080 (a default
-#            deny also blocks traffic inside the namespace)
-#   real:    the refresh test (ExternalSecret in eso-demo) still works
-# The server pod is deleted at the end, also if the script fails; probe pods
-# are temporary (kubectl run --rm).
-#   bash scripts/hardening/netpol-test-eso-demo.sh
+# netpol-test-eso-demo.sh - applies and proves the default-deny policy of namespace eso-demo (hardening B2e).
+# Run it: bash scripts/hardening/netpol-test-eso-demo.sh (after git push of apps/external-secrets/networkpolicy.yaml)
+# Changes the cluster: yes: starts a TEMPORARY web server pod in eso-demo
+#   (deleted at the end, also if the script fails), temporary probe pods
+#   (kubectl run --rm), and runs the refresh test (demo value changed and restored).
+#
+# What it does:
+#   1. Applies Git now.
+#        flux reconcile kustomization apps-external-secrets
+#   2. Starts the temporary server pod netpol-server on port 8080.
+#        kubectl -n eso-demo run netpol-server --image=busybox:1.37.0 --restart=Never --command -- sh -c '... httpd -f -p 8080 -h /tmp'
+#   3. Probes it (both must be blocked; a default deny also blocks traffic
+#      inside the namespace): from default, and from eso-demo.
+#   4. Real path: the ExternalSecret refresh in eso-demo still works.
+#        bash scripts/external-secrets/eso-refresh-test.sh
+#
+# What you should see: two "expected blocked, got blocked" lines, the refresh
+#   test output, then "RESULT: eso-demo policy works as intended".
+# If it fails: the refresh test fails: ESO writes Secrets through the Kubernetes
+#   API, not into pods, so the policy itself is not the cause; see
+#   scripts/external-secrets/eso-debug.sh.
+# Needs: flux, kubectl, the image busybox:1.37.0.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
