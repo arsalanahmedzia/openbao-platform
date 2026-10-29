@@ -12,8 +12,7 @@ Words are explained in the [glossary](../glossary.md).
 
 ## What Prometheus measures
 
-The dotted arrows in the README picture ([`how-it-runs.png`](../images/how-it-runs.png),
-shown in the [README](../../README.md#overview)) are the monitoring calls.
+The dotted arrows in the [README diagram](../../README.md#overview) are the monitoring calls.
 
 A PodMonitor is a Kubernetes object that names the pods and the port
 Prometheus reads. There is one per target in `apps/monitoring/`. A

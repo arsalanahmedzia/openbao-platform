@@ -17,9 +17,62 @@ It is made of these components:
 - **Flux** builds everything from this repository, so Git is the single source of truth (this way of working is called GitOps).
 - **Prometheus** watches the platform by collecting numbers every 30 seconds, and **Alertmanager** shows the alerts when something breaks.
 
-![How it runs](docs/images/how-it-runs.png)
+```mermaid
+flowchart LR
+  subgraph outside[Outside the cluster]
+    client(["curl or a script"])
+    you(["You<br/>unseal script"])
+    gh[("GitHub<br/>this repository")]
+  end
 
-## How the components talk to each other
+  subgraph cluster[kind cluster]
+    traefik["Traefik<br/>HTTPS entry point"]
+    bao["OpenBao x3<br/>keeps the secrets<br/>1 active, 2 standby"]
+    eso["External Secrets<br/>Operator (ESO)"]
+    api["Kubernetes API<br/>identities and Secrets"]
+    cm["cert-manager<br/>demo CA"]
+    cnpg["CloudNativePG<br/>operator"]
+    pg[("PostgreSQL x3<br/>OpenBao's data")]
+    s3[("SeaweedFS S3<br/>backups")]
+    flux["Flux"]
+    prom["Prometheus"]
+    ksm["kube-state-metrics"]
+    am["Alertmanager"]
+  end
+
+  client -->|"1 login, then read a secret"| traefik
+  traefik -->|"1 forwards to the active pod"| bao
+  eso -->|"2 gets a token, writes and reads Secrets"| api
+  eso -->|"2 logs in, pulls and pushes secrets"| bao
+  bao -->|"2 TokenReview: is this token valid?"| api
+  bao -->|"3 saves and reads its data, encrypted"| pg
+  cnpg -->|"3 status and backups, port 8000"| pg
+  pg -->|"3 daily backup and WAL,<br/>through the Barman Cloud plugin"| s3
+  you -->|"4 3 of 5 key shares, kubectl exec"| bao
+  cm -->|"4 TLS certificates as Secrets"| api
+  flux -->|"5 fetches every minute"| gh
+  flux -->|"5 applies the manifests"| api
+  prom -.->|"5 metrics every 30 s"| bao
+  prom -.-> pg
+  prom -.-> eso
+  prom -.-> ksm
+  prom -.->|"5 alerts"| am
+
+  classDef ext fill:#f2f2f2,stroke:#888888
+  classDef entry fill:#ececff,stroke:#7b68c8
+  classDef main fill:#fff4d6,stroke:#b8860b
+  classDef store fill:#e8f1ff,stroke:#4a6fa5
+  classDef ops fill:#eaf7ea,stroke:#4a8a4a
+  class client,you,gh ext
+  class traefik,api,cm entry
+  class bao,eso main
+  class pg,s3,cnpg store
+  class flux,prom,ksm,am ops
+```
+
+The numbers on the arrows are the groups in the tables below. An arrow points from the one who starts the call to the one who is asked; dotted arrows are monitoring.
+
+## How the components talk to each other?
 
 **1. How a client reads a secret.** A client proves who it is and gets a short-lived token. It shows that token with every later request, so the login credential is sent only once.
 

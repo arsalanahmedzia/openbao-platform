@@ -82,16 +82,11 @@ NetworkPolicies sit next to the things they protect: `networkpolicy.yaml` in `in
 `apps/database/`, `apps/openbao/` and `apps/external-secrets/`, and
 `external-secrets-networkpolicy.yaml` in `infrastructure/controllers/`.
 
-## Not shown in the README picture
+## Not shown in the README diagram
 
-The README picture ([`images/how-it-runs.png`](images/how-it-runs.png)) leaves
-out three parts that also take part at run time:
-
-- cert-manager does not call OpenBao. It stores the certificates as Secrets in
-  the Kubernetes API.
-- The kubelet (the Kubernetes agent on each node) puts Secrets into the pods
-  as files. Pods do not call the Kubernetes API for their certificates.
-- The Barman Cloud plugin runs inside each PostgreSQL pod and sends the backups.
+The [README diagram](../README.md#overview) leaves out the kubelet (the
+Kubernetes agent on each node). It puts Secrets into the pods as files; pods
+do not call the Kubernetes API for their certificates.
 
 Everything runs inside one kind cluster.
 
