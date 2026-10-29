@@ -1,11 +1,25 @@
 #!/usr/bin/env bash
-# Step 6a of the OpenBao stage: collects test evidence into docs/evidence/:
-#   04-pods.txt      pods, nodes, active/sealed labels
-#   04-status.txt    bao status of every pod
-#   04-https.txt     /v1/sys/health through Traefik over HTTPS, checked with the demo CA
-#   04-postgres.txt  OpenBao tables in database openbao, and a fresh base backup
-# Prints no keys or tokens (none are used).
-#   bash scripts/openbao/openbao-evidence.sh
+# openbao-evidence.sh - writes the OpenBao evidence files into docs/evidence/.
+# Run it: bash scripts/openbao/openbao-evidence.sh (after init, unseal and configure)
+# Changes the cluster: yes: takes one base backup of pg-openbao. Otherwise it
+#   only reads. Uses no keys or tokens.
+#
+# What it does:
+#   1. 04-pods.txt: pods, nodes, active and sealed labels.
+#        kubectl -n openbao get pods -L openbao-active,openbao-sealed
+#   2. 04-status.txt: bao status of every pod.
+#        kubectl -n openbao exec <pod> -- bao status
+#   3. 04-https.txt: /v1/sys/health through Traefik over HTTPS, checked with the demo CA.
+#        curl --resolve openbao.demo.local:443:127.0.0.1 --cacert ca.crt https://openbao.demo.local/v1/sys/health
+#   4. 04-postgres.txt: OpenBao's tables and row counts in database openbao, and
+#      a fresh base backup.
+#        kubectl cnpg psql pg-openbao -n databases -- -d openbao -c '\dt'
+#        kubectl cnpg backup pg-openbao -n databases --method=plugin --plugin-name=barman-cloud.cloudnative-pg.io
+#
+# What you should see: one "==> docs/evidence/04-..." line per file; the last
+#   one takes up to a few minutes (backup).
+# If it fails: an empty status file means the pods are sealed; unseal first.
+# Needs: kubectl with the cnpg plugin, curl.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 

@@ -1,13 +1,26 @@
 #!/usr/bin/env bash
-# Hardening A4 (risk R11): after `git push`, rolls the OpenBao pods onto the
-# config with the declarative stdout audit device (scripts/openbao/openbao-tls-rollout.sh
-# restarts only pods on an old StatefulSet revision and unseals them), lists the
-# audit devices, makes one read of secret/demo/hello as the ESO login and shows
-# the matching audit entry from the active pod's log: who, what, and that the
-# value and the token are HMAC hashes, not plain.
-# Root token only for the read-only `bao audit list` (needs sudo); tokens go to
-# the pod through stdin and are never printed.
-#   bash scripts/openbao/openbao-audit-check.sh
+# openbao-audit-check.sh - shows that the OpenBao audit log records a read with the value hashed.
+# Run it: bash scripts/openbao/openbao-audit-check.sh (after git push of the audit config; risk R11)
+# Changes the cluster: yes: runs openbao-tls-rollout.sh, which restarts outdated
+#   pods and unseals them.
+#
+# What it does:
+#   1. Rolls the pods onto the config with the stdout audit device.
+#        bash scripts/openbao/openbao-tls-rollout.sh
+#   2. Lists the audit devices with the root token (read-only).
+#        bao audit list -detailed
+#   3. Reads secret/demo/hello once as the ESO login, then revokes that token.
+#        bao kv get -mount=secret -field=message demo/hello
+#   4. Shows the matching audit entry from the active pod's log (who, what) and
+#      counts the plain value in the log.
+#        kubectl -n openbao logs <active pod> --since=2m
+#
+# What you should see: the device "stdout", the entry with the ESO login and
+#   path secret/data/demo/hello where client_token and returned_message are
+#   hashes (shown cut to 24 characters), and the count 0 for the plain value.
+# If it fails: no entry: the device is not active; check the rollout output.
+# Needs: kubectl, jq, OPENBAO_ROOT_TOKEN or ~/openbao-init.json. Tokens go to
+#   the pod through stdin and are never printed.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 

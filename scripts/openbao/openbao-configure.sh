@@ -1,15 +1,36 @@
 #!/usr/bin/env bash
-# Step 5 of the OpenBao stage: configures OpenBao for External Secrets.
-# Safe to run again (every step either checks first or overwrites with the
-# same content). Uses the root token for the last time; see ADR 0004.
-#   - KV v2 secrets engine at secret/
-#   - Kubernetes auth method (in-cluster, OpenBao's own SA reviews tokens)
-#   - policies eso-read, eso-write, demo-write (text in openbao/policies/)
-#   - role external-secrets for SA external-secrets/external-secrets
-#   - role demo-writer for SA eso-demo/demo-writer (refresh test, ADR 0005)
-#   - test secret secret/demo/hello, then a login AS the ESO service account
-# Tokens go to the pod through stdin, never printed, never on a command line.
-#   bash scripts/openbao/openbao-configure.sh
+# openbao-configure.sh - configures OpenBao for External Secrets (storage, login, policies, roles).
+# Run it: bash scripts/openbao/openbao-configure.sh (once after the first unseal; safe to run again)
+# Changes the cluster: yes: writes OpenBao's configuration with the root token
+#   (the last planned use of it, see ADR 0004). Every step checks first or
+#   overwrites with the same content.
+#
+# What it does:
+#   1. Checks the ESO service account exists and finds the active pod.
+#        kubectl -n external-secrets get sa external-secrets
+#   2. Enables KV v2 at secret/ and Kubernetes auth (OpenBao checks logins with
+#      its own service account).
+#        bao secrets enable -path=secret -version=2 kv
+#        bao write auth/kubernetes/config kubernetes_host=https://kubernetes.default.svc:443
+#   3. Writes the policies from openbao/policies/ (eso-read, eso-write, demo-write).
+#        bao policy write <policy> - < openbao/policies/<policy>.hcl
+#   4. Creates the role external-secrets (for external-secrets/external-secrets,
+#      policies eso-read and eso-write, token TTL 15m) and the role demo-writer
+#      (for eso-demo/demo-writer, TTL 5m, used by the refresh test).
+#   5. Writes the test secret secret/demo/hello (message hello-from-openbao).
+#        bao kv put -mount=secret demo/hello message=hello-from-openbao
+#   6. Logs in as the ESO service account, without the root token.
+#        kubectl -n external-secrets create token external-secrets --duration=10m
+#        bao write -field=token auth/kubernetes/login role=external-secrets jwt=-
+#   Tokens go to the pod through stdin, never printed, never on a command line.
+#
+# What you should see: "already enabled" or the enable output per step, the
+#   role settings, the test secret, then "login ok" with the policies
+#   ["default","eso-read","eso-write"].
+# If it fails: "service account ... not found" lists the existing ones; re-run
+#   with ESO_SA=<name>. "no active OpenBao pod": unseal first.
+# Needs: kubectl, jq, OPENBAO_ROOT_TOKEN or ~/openbao-init.json. Optional
+#   environment: ESO_NS and ESO_SA (default external-secrets for both).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 

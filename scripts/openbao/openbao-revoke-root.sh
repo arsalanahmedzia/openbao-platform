@@ -1,12 +1,26 @@
 #!/usr/bin/env bash
-# Hardening A5: revokes the OpenBao root token, checks that it no longer works,
-# and offers to delete the Codespaces secret OPENBAO_ROOT_TOKEN.
-# Token from OPENBAO_ROOT_TOKEN or ~/openbao-init.json, passed to the pod via
-# stdin, never printed. Asks before doing anything.
-# After this, scripts that need root (openbao-configure.sh,
-# openbao-policy-update.sh, openbao-audit-check.sh's audit list) need a new root
-# token first: bash scripts/openbao/openbao-generate-root.sh (runbook section 6).
-#   bash scripts/openbao/openbao-revoke-root.sh
+# openbao-revoke-root.sh - revokes the OpenBao root token and checks it no longer works.
+# Run it: bash scripts/openbao/openbao-revoke-root.sh (when OpenBao is configured; cleanup)
+# Changes the cluster: yes: revokes the root token, asks first. Offers to delete
+#   the Codespaces secret OPENBAO_ROOT_TOKEN.
+#
+# What it does:
+#   1. Reads the token from OPENBAO_ROOT_TOKEN or ~/openbao-init.json and shows
+#      its policies.
+#        bao token lookup -format=json
+#   2. Asks y/N, then revokes it.
+#        bao token revoke -self
+#   3. Checks the revoked token is refused.
+#   4. Asks y/N, then deletes the Codespaces secret.
+#        gh secret delete OPENBAO_ROOT_TOKEN --user --app codespaces
+#
+# What you should see: "policies of this token: ["root"]", "Success! Revoked
+#   token", then "refused (expected): the root token is revoked".
+# If it fails: "TOKEN STILL WORKS" means the revoke did not happen.
+# Needs: kubectl, jq, gh. The token goes to the pod through stdin, never printed.
+#   Afterwards openbao-configure.sh, openbao-policy-update.sh and the audit list
+#   in openbao-audit-check.sh need a new root token first:
+#   bash scripts/openbao/openbao-generate-root.sh (runbook section 6).
 set -euo pipefail
 
 NS=openbao

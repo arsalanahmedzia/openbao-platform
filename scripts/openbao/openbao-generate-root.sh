@@ -1,15 +1,30 @@
 #!/usr/bin/env bash
-# Hardening A5: creates a NEW OpenBao root token from 3 of the 5 key shares
-# (generate-root with a one-time password) and stores it directly as the
-# Codespaces secret OPENBAO_ROOT_TOKEN. Use it when a root token is needed
-# after scripts/openbao/openbao-revoke-root.sh. Revoke the new token again when done.
+# openbao-generate-root.sh - creates a new OpenBao root token from 3 key shares and stores it as a Codespaces secret.
+# Run it: bash scripts/openbao/openbao-generate-root.sh (only when a root token is needed after openbao-revoke-root.sh)
+# Changes the cluster: yes: creates a new root token, asks first. Stores it as
+#   the Codespaces secret OPENBAO_ROOT_TOKEN; revoke it again when done.
 # UNTESTED: written from the OpenBao v2.7.1 CLI source
-# (internal/command/operator_generate_root.go): "-" as the key argument reads
-# the share from stdin, -decode=- reads the encoded token from stdin.
-# Key shares from OPENBAO_UNSEAL_KEYS or ~/openbao-init.json, via stdin only;
-# the new token is never printed. The one-time password is an argument inside
-# the pod; on its own it reveals nothing (it is XORed with the token).
-#   bash scripts/openbao/openbao-generate-root.sh
+#   (internal/command/operator_generate_root.go): "-" as the key argument reads
+#   the share from stdin, -decode=- reads the encoded token from stdin.
+#
+# What it does:
+#   1. Reads the key shares from OPENBAO_UNSEAL_KEYS or ~/openbao-init.json and
+#      finds the active pod. Asks y/N.
+#   2. Starts the procedure with a one-time password (on its own it reveals
+#      nothing; it is XORed with the token).
+#        bao operator generate-root -generate-otp
+#        bao operator generate-root -init -otp=<OTP> -format=json
+#   3. Gives 3 key shares through stdin.
+#        bao operator generate-root -nonce=<nonce> -format=json -
+#   4. Decodes the token and sends it straight to the Codespaces secret, never
+#      to the screen.
+#        bao operator generate-root -decode=- -otp=<OTP> | gh secret set OPENBAO_ROOT_TOKEN --user --app codespaces --repos <repo>
+#
+# What you should see: "nonce: ...", "progress: 1/3" to "3/3", then "New root
+#   token stored." It appears as an environment variable after a Codespace restart.
+# If it fails: "no encoded token after 3 shares" prints the cancel command
+#   (bao operator generate-root -cancel); a started attempt blocks new ones.
+# Needs: kubectl, jq, gh logged in with codespace:secrets, the key shares.
 set -euo pipefail
 
 NS=openbao

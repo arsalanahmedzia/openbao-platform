@@ -1,11 +1,31 @@
 #!/usr/bin/env bash
-# External Secrets stage, step 2: OpenBao listener switches to HTTPS.
-# After `git push`: lets Flux apply the change, waits for the listener
-# certificate, then restarts the OpenBao pods one at a time (standbys first,
-# the active pod last; the chart uses updateStrategy OnDelete) and unseals
-# each new pod. Only pods still on the old StatefulSet revision are restarted,
-# so the script is safe to run again. Prints no keys or tokens.
-#   bash scripts/openbao/openbao-tls-rollout.sh
+# openbao-tls-rollout.sh - applies a new OpenBao config and restarts only the outdated pods, one by one.
+# Run it: bash scripts/openbao/openbao-tls-rollout.sh (after git push of a change to the OpenBao config; safe to run again)
+# Changes the cluster: yes: restarts OpenBao pods (they come back sealed) and
+#   unseals each one. Pods already on the new StatefulSet revision are skipped.
+#
+# What it does:
+#   1. Applies Git and waits for the listener certificate.
+#        flux reconcile kustomization apps-openbao ; flux reconcile helmrelease openbao -n openbao
+#        kubectl -n openbao wait certificate/openbao-server-tls --for=condition=Ready --timeout=120s
+#   2. Reads the target StatefulSet revision. The chart uses updateStrategy
+#      OnDelete: running pods keep the old config until they are deleted.
+#        kubectl -n openbao get statefulset openbao -o jsonpath='{.status.updateRevision}'
+#   3. Restarts every pod on an old revision, standbys first, the active pod
+#      last, and unseals each new pod.
+#        kubectl -n openbao delete pod <pod>
+#        bash scripts/after-restart/openbao-unseal.sh
+#   4. Checks TLS with the name ESO uses, and HTTPS through Traefik.
+#        kubectl -n openbao exec <active pod> -- bao status -address=https://openbao-active.openbao.svc:8200
+#        curl --resolve openbao.demo.local:443:127.0.0.1 --cacert <ca> https://openbao.demo.local/v1/sys/health
+#
+# What you should see: "target StatefulSet revision: ...", per pod "already on"
+#   or "unsealed and Ready", one pod with HA Mode active, and
+#   "GET https://openbao.demo.local/v1/sys/health -> HTTP 200".
+# If it fails: a pod that does not come back: kubectl -n openbao describe pod <pod>.
+#   This script does not restart pods after a certificate renewal (same
+#   revision); see docs/runbooks/openbao-init-unseal.md, section 4.
+# Needs: flux, kubectl, curl, the unseal keys (see openbao-unseal.sh).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 

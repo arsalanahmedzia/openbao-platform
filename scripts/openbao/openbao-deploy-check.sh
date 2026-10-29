@@ -1,9 +1,27 @@
 #!/usr/bin/env bash
-# Step 2 of the OpenBao stage: after `git push`, makes Flux apply the new
-# commits now (instead of waiting for the interval) and shows whether the
-# OpenBao layer came up. Expected at this point: 3 pods Running but 0/1 Ready,
-# because they are not initialised and sealed yet. Prints no secrets.
-#   bash scripts/openbao/openbao-deploy-check.sh
+# openbao-deploy-check.sh - applies the OpenBao layer and shows that the 3 pods run, sealed.
+# Run it: bash scripts/openbao/openbao-deploy-check.sh (after git push of the OpenBao layer, before init)
+# Changes the cluster: no. It asks Flux to apply what is in Git now instead of
+#   waiting for the interval; then it only reads. Prints no secrets.
+#
+# What it does:
+#   1. Applies Git now: the HelmRepository, the database change, then OpenBao.
+#        flux reconcile source git flux-system
+#        flux reconcile kustomization infra-controllers / apps-database / apps-openbao
+#   2. Shows the layers, the HelmRelease, the Certificate and the Ingress.
+#        flux get kustomizations ; flux get helmreleases -n openbao
+#   3. Waits up to 5 min until the 3 pods are Running (not Ready: sealed).
+#        kubectl -n openbao wait pod -l app.kubernetes.io/name=openbao,component=server --for=jsonpath='{.status.phase}'=Running --timeout=300s
+#   4. Shows the seal status and recent errors of each pod.
+#        kubectl -n openbao exec <pod> -- bao status
+#   5. Shows the tables OpenBao created in database openbao.
+#        kubectl cnpg psql pg-openbao -n databases -- -d openbao -c '\dt'
+#
+# What you should see: 3 pods Running 0/1, "Initialized false" and "Sealed true"
+#   before init, no error lines, and the tables openbao_kv_store and openbao_ha_locks.
+# If it fails: pods not Running after 5 min: check
+#   kubectl -n openbao describe pod <pod> and the PostgreSQL layer.
+# Needs: flux, kubectl with the cnpg plugin.
 set -euo pipefail
 
 NS=openbao

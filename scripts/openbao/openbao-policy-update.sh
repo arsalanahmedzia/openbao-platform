@@ -1,11 +1,25 @@
 #!/usr/bin/env bash
-# External Secrets stage, step 3: applies the policy files in openbao/policies/
-# (eso-read, eso-write, demo-write) and the role demo-writer, then proves the
-# PushSecret rights AS the ESO login by doing what a push does on
-# secret/pushed/policy-check: read, write marker, write data, read back, delete.
-# Uses the root token (from OPENBAO_ROOT_TOKEN or ~/openbao-init.json) through
-# stdin only, never printed. openbao-configure.sh does the same from scratch.
-#   bash scripts/openbao/openbao-policy-update.sh
+# openbao-policy-update.sh - applies the OpenBao policy files and proves the PushSecret rights.
+# Run it: bash scripts/openbao/openbao-policy-update.sh (after changing a file in openbao/policies/)
+# Changes the cluster: yes: writes the policies and the role demo-writer with
+#   the root token; writes and deletes the test path secret/pushed/policy-check.
+#
+# What it does:
+#   1. Writes the policies eso-read, eso-write, demo-write and the role demo-writer (as root).
+#        bao policy write <policy> - < openbao/policies/<policy>.hcl
+#   2. Logs in as the ESO service account (no root) and does what a PushSecret
+#      does on secret/pushed/policy-check: read, write the managed-by marker,
+#      write data, read back, delete all versions.
+#        bao kv metadata put -mount=secret -custom-metadata=managed-by=external-secrets pushed/policy-check
+#        bao kv put -mount=secret pushed/policy-check ok=true
+#   3. Checks the ESO login may not write metadata on secret/demo/hello, then
+#      revokes its token.
+#
+# What you should see: the stored eso-write policy, then "allowed (expected)"
+#   for each PushSecret step and "denied (expected)" for secret/demo/hello.
+# If it fails: "DENIED" or "ALLOWED - policy is too wide!" names the wrong
+#   rule. OpenBao uses only the most specific matching path pattern.
+# Needs: kubectl, jq, OPENBAO_ROOT_TOKEN or ~/openbao-init.json.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 

@@ -1,13 +1,30 @@
 #!/usr/bin/env bash
-# Step 3 of the OpenBao stage: initialises OpenBao ONCE (5 key shares,
-# threshold 3) and stores the result without ever printing it:
-#   ~/openbao-init.json            (outside the repo, chmod 600; download a copy
-#                                   and keep it somewhere safe)
-#   Codespaces secrets OPENBAO_UNSEAL_KEYS (JSON list of the 5 shares) and
-#                      OPENBAO_ROOT_TOKEN, so a new Codespace can unseal.
-# Values only travel through files and stdin, never through the screen or the
-# command line.
-#   bash scripts/openbao/openbao-init.sh
+# openbao-init.sh - initialises OpenBao once and stores the key shares and root token without printing them.
+# Run it: bash scripts/openbao/openbao-init.sh (once per new OpenBao, i.e. empty database)
+# Changes the cluster: yes: initialises OpenBao (5 key shares, threshold 3).
+#   Also writes ~/openbao-init.json and two Codespaces secrets.
+#
+# What it does:
+#   1. Checks first, changes nothing yet: gh can manage Codespaces secrets,
+#      ~/openbao-init.json does not exist, openbao-0 reports initialized=false.
+#        gh secret list --user
+#        kubectl -n openbao exec openbao-0 -- bao status -format=json
+#   2. Initialises OpenBao; the output goes straight into ~/openbao-init.json
+#      (outside the repo, chmod 600).
+#        kubectl -n openbao exec openbao-0 -- bao operator init -key-shares=5 -key-threshold=3 -format=json
+#   3. Stores the 5 shares and the root token as Codespaces secrets through
+#      stdin, so a new Codespace can unseal.
+#        gh secret set OPENBAO_UNSEAL_KEYS --user --app codespaces --repos <repo>
+#        gh secret set OPENBAO_ROOT_TOKEN  --user --app codespaces --repos <repo>
+#
+# What you should see: "ok (repo ...)", then "initialised, keys saved to
+#   ~/openbao-init.json" and "Next: bash scripts/after-restart/openbao-unseal.sh".
+#   Download ~/openbao-init.json and keep it outside the Codespace.
+# If it fails: "gh cannot manage Codespaces secrets" prints the gh auth login
+#   command to run. "already exists" or "initialized=true": OpenBao was
+#   initialised before; the script stops without changing anything.
+# Needs: kubectl, jq, gh logged in with codespace:secrets (the Codespace's own
+#   GITHUB_TOKEN cannot write Codespaces secrets).
 set -euo pipefail
 
 NS=openbao
