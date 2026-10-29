@@ -1,5 +1,20 @@
 #!/usr/bin/env bash
 # monitoring-eso-metrics.sh - checks the ESO controller's metrics over TLS, the way Prometheus reads them.
+#
+# In plain words:
+#   Stage M2 switched the External Secrets controller's metrics to HTTPS, with
+#   a certificate from the demo CA. This script applies that change and checks
+#   it the way Prometheus does. The certificate must exist before the
+#   controller starts with it, which is why the change went out in two pushes;
+#   the script stops if the certificate is not ready yet.
+#
+#   It reads the metrics over HTTPS, checked against the demo CA and the
+#   certificate's name. If the controller had fallen back to a self-signed
+#   certificate, this check would fail. It also checks that plain HTTP gets
+#   nothing, shows the status metrics the alerts use, and checks that
+#   Prometheus scrapes the controller over verified HTTPS. Run it again only
+#   when you change the ESO metrics setup.
+#
 # Run it: bash scripts/monitoring/monitoring-eso-metrics.sh (after git push of the ESO metrics change; stage M2)
 # Changes the cluster: no by itself; it asks Flux to apply what is in Git now.
 #   The pushed change restarts the ESO controller once. Prints no secrets (the

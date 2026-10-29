@@ -1,5 +1,17 @@
 #!/usr/bin/env bash
 # monitoring-deploy-check.sh - applies the monitoring layer and checks that the 4 monitoring pods run.
+#
+# In plain words:
+#   Stage M1 of monitoring installed the stack: Prometheus, Alertmanager, the
+#   Prometheus Operator and kube-state-metrics. This script checks that step
+#   after the push. It asks Flux to apply the chart repository and the
+#   monitoring layer now, then waits until the 4 pods are Ready and the volume
+#   for Prometheus' data is bound.
+#
+#   It also prints the memory each pod asks for and may use at most, to
+#   compare with the plan. It changes nothing apart from the Flux step. Run it
+#   again only when you change the monitoring layer itself.
+#
 # Run it: bash scripts/monitoring/monitoring-deploy-check.sh (after git push of apps/monitoring; stage M1)
 # Changes the cluster: no. It asks Flux to apply what is in Git now; then it
 #   only reads. Prints no secrets.
