@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Monitoring M2, CloudNativePG: after `git push`, lets Flux apply the PodMonitor
-# pg-openbao and checks the metrics of the PostgreSQL primary. Read-only apart
-# from the Flux reconcile; no pod restarts. Prints no secrets.
+# monitoring-cnpg-metrics.sh - applies the PostgreSQL PodMonitor and checks the primary's metrics.
+# Run it: bash scripts/monitoring/monitoring-cnpg-metrics.sh (after git push of the PodMonitor; stage M2)
+# Changes the cluster: no. It asks Flux to apply what is in Git now; then it
+#   only reads (no pod restarts). Prints no secrets.
 #
 # What it does:
 #   1. Lets Flux apply the PodMonitor.
@@ -14,7 +15,13 @@
 #      backup timestamps (Barman Cloud plugin).
 #   4. Shows the Prometheus target state (down until M3 adds the
 #      NetworkPolicy that lets Prometheus reach port 9187).
-#   bash scripts/monitoring/monitoring-cnpg-metrics.sh
+#
+# What you should see: PASS for the PodMonitor, "exporter answers",
+#   cnpg_collector_up 1 and the Barman Cloud backup metrics, then
+#   "RESULT M2 CloudNativePG passed".
+# If it fails: "port-forward ... did not start": check the primary pod with
+#   kubectl -n databases get pods.
+# Needs: flux, kubectl, curl, jq.
 set -uo pipefail
 
 NS=databases

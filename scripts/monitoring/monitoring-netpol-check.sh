@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Monitoring M3: after `git push`, applies the three new NetworkPolicies
-# allow-prometheus-metrics (namespaces openbao, databases, external-secrets)
-# and proves them. Existing policies are not changed.
+# monitoring-netpol-check.sh - applies and proves the NetworkPolicies that let Prometheus reach the metrics ports.
+# Run it: bash scripts/monitoring/monitoring-netpol-check.sh (after git push of the allow-prometheus-metrics policies; stage M3)
+# Changes the cluster: yes: starts temporary probe pods (kubectl run --rm,
+#   deleted when done). Existing policies are not changed. Prints no secrets.
 #
 # What it does:
 #   1. Lets Flux apply the policies (they live in each namespace's own layer).
@@ -13,8 +14,13 @@
 #   3. Waits up to 3 min until Prometheus reports every target up (the real
 #      proof, for OpenBao also that Prometheus accepts the TLS certificate).
 #        curl http://127.0.0.1:19090/api/v1/targets (port-forward to Prometheus)
-# Prints no secrets.
-#   bash scripts/monitoring/monitoring-netpol-check.sh
+#
+# What you should see: 3 x PASS for the policies, 9 probe lines (per port one
+#   "expected open, got open" and two "expected blocked, got blocked"), the
+#   targets up, then "RESULT M3 passed".
+# If it fails: a target with a certificate error: see ADR 0007; an open port
+#   that should be blocked: check the policy files.
+# Needs: flux, kubectl, curl, jq, the image busybox:1.37.0.
 set -uo pipefail
 
 IMAGE=busybox:1.37.0

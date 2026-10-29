@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Monitoring M2, External Secrets: after `git push`, lets Flux apply the HTTPS
-# metrics change of the ESO controller (certificate from the demo CA) and the
-# PodMonitor, and checks it the way Prometheus does. Prints no secrets (the
-# metrics only carry object names and conditions; the CA certificate is public
-# and only written to a temporary file).
+# monitoring-eso-metrics.sh - checks the ESO controller's metrics over TLS, the way Prometheus reads them.
+# Run it: bash scripts/monitoring/monitoring-eso-metrics.sh (after git push of the ESO metrics change; stage M2)
+# Changes the cluster: no by itself; it asks Flux to apply what is in Git now.
+#   The pushed change restarts the ESO controller once. Prints no secrets (the
+#   metrics only carry object names and conditions; the CA certificate is public
+#   and only written to a temporary file).
 #
 # What it does:
 #   1. Flux: infra-configs must already have created the certificate Secret
@@ -19,7 +20,13 @@
 #   4. Shows the status metrics needed for the alerts in M4.
 #   5. Prometheus: generated scrape config (https, CA, server_name, no
 #      insecure_skip_verify) and the target, which must be up (M3 is in place).
-#   bash scripts/monitoring/monitoring-eso-metrics.sh
+#
+# What you should see: PASS for the certificate, the controller args, the
+#   metrics over HTTPS, the plain-HTTP check, the three status metrics and the
+#   scrape config, then "RESULT ESO metrics TLS passed".
+# If it fails: "Certificate ... not Ready: push the certificate commit first"
+#   stops the script; "HTTP 000" is a TLS error (e.g. the self-signed fallback).
+# Needs: flux, kubectl, curl, jq.
 set -uo pipefail
 
 NS=external-secrets

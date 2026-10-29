@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Monitoring M1: after `git push`, lets Flux apply the new layer apps-monitoring
-# and checks that the stack is running. Read-only apart from the Flux reconcile.
+# monitoring-deploy-check.sh - applies the monitoring layer and checks that the 4 monitoring pods run.
+# Run it: bash scripts/monitoring/monitoring-deploy-check.sh (after git push of apps/monitoring; stage M1)
+# Changes the cluster: no. It asks Flux to apply what is in Git now; then it
+#   only reads. Prints no secrets.
 #
 # What it does:
 #   1. Fetches Git and reconciles the layers in order: infra-controllers (new
@@ -8,11 +10,18 @@
 #        flux reconcile source git flux-system
 #        flux reconcile kustomization infra-controllers / apps-monitoring
 #   2. Shows the HelmRelease, the pods, the Prometheus volume and the new CRDs.
-#        kubectl -n monitoring get helmrelease,pods,pvc
-#   3. Waits for the 4 pods to be Ready and prints PASS / FAIL.
-#   4. Shows memory requests/limits per pod (actual use: docker stats, not here).
-# Prints no secrets.
-#   bash scripts/monitoring/monitoring-deploy-check.sh
+#        kubectl -n monitoring get pods -o wide ; kubectl -n monitoring get pvc
+#   3. Waits up to 300 s each for Prometheus, Alertmanager, the operator and
+#      kube-state-metrics to be Ready.
+#        kubectl -n monitoring wait pod -l <label> --for=condition=Ready --timeout=300s
+#   4. Shows memory requests and limits per container (actual use: docker
+#      stats, not here).
+#
+# What you should see: PASS for the 4 pods and "Prometheus volume Bound", then
+#   "RESULT M1 passed".
+# If it fails: "apps-monitoring did not reconcile": flux get kustomizations; a
+#   pod not Ready: kubectl -n monitoring describe pod <pod>.
+# Needs: flux, kubectl.
 set -uo pipefail
 
 NS=monitoring

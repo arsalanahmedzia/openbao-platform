@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Monitoring M2, OpenBao: after `git push`, rolls out the new OpenBao config
-# (metrics listener on port 9101, HTTPS with the demo CA) and checks the
-# metrics. Prints no keys or tokens; the metrics need no token. The CA
-# certificate is public and only written to a temporary file.
+# monitoring-openbao-metrics.sh - rolls out the OpenBao metrics listener and checks it like Prometheus does.
+# Run it: bash scripts/monitoring/monitoring-openbao-metrics.sh (after git push of the OpenBao metrics config; stage M2)
+# Changes the cluster: yes: restarts outdated OpenBao pods one at a time and
+#   unseals each (through openbao-tls-rollout.sh). Prints no keys or tokens; the
+#   metrics need no token. The CA certificate is public and only written to a
+#   temporary file.
 #
 # What it does:
 #   1. Rolls out the config change: Flux reconcile, restart the outdated pods
@@ -22,7 +24,13 @@
 #   5. Shows the scrape config Prometheus generated (CA, server name, no
 #      insecure_skip_verify) and the target state (down until M3 adds the
 #      NetworkPolicy that lets Prometheus reach port 9101).
-#   bash scripts/monitoring/monitoring-openbao-metrics.sh
+#
+# What you should see: PASS for the pods, the certificate, the CA check, the
+#   metrics over HTTPS, vault_core_unsealed, the three negative checks and the
+#   scrape config, then "RESULT M2 OpenBao passed".
+# If it fails: "metrics over verified HTTPS failed (HTTP 000)" is a TLS or
+#   connection error; check the certificate lines above it.
+# Needs: flux, kubectl, curl, jq, openssl, the unseal keys.
 set -uo pipefail
 cd "$(dirname "$0")/../.."
 
