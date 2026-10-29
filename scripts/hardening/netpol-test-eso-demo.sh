@@ -43,7 +43,7 @@ probe "$NS" blocked
 
 echo
 echo "==> Real path: ExternalSecret refresh in $NS"
-bash scripts/eso-refresh-test.sh
+bash scripts/external-secrets/eso-refresh-test.sh
 
 echo
 (( FAILS == 0 )) && echo "RESULT: eso-demo policy works as intended" || { echo "RESULT: $FAILS check(s) failed"; exit 1; }

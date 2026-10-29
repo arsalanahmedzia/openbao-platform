@@ -1,7 +1,7 @@
 # Identity for the refresh test only: logs in to OpenBao through Kubernetes
 # auth (role demo-writer, policy demo-write: create/update secret/data/demo/*)
 # to change secret/demo/hello, so ESO itself can stay read-only there (ADR 0005).
-# No pod uses it; scripts/eso-refresh-test.sh requests a short-lived token.
+# No pod uses it; scripts/external-secrets/eso-refresh-test.sh requests a short-lived token.
 apiVersion: v1
 kind: ServiceAccount
 metadata:

@@ -12,7 +12,7 @@ problem after a Codespace restart, and the alerts. Words are explained in the
 | [`scripts/openbao-unseal.sh`](../scripts/openbao-unseal.sh) | After every OpenBao pod restart (pods start sealed) |
 | [`scripts/test-gate.sh`](../scripts/test-gate.sh) | Is everything OK? Read-only check of Flux, OpenBao, PostgreSQL, External Secrets and monitoring |
 | [`scripts/monitoring-check.sh`](../scripts/monitoring-check.sh) | Read-only: all scrape targets up, alert rules loaded, which alerts are pending or firing |
-| [`scripts/eso-debug.sh`](../scripts/eso-debug.sh) | Why is an ExternalSecret or PushSecret not Ready? |
+| [`scripts/external-secrets/eso-debug.sh`](../scripts/external-secrets/eso-debug.sh) | Why is an ExternalSecret or PushSecret not Ready? |
 | `scripts/failure-tests/failure-f1-worker.sh` … `scripts/failure-tests/failure-f6-restore.sh` | One failure test each; asks before it breaks anything and puts everything back at the end |
 
 Outputs of all tests are in [`evidence/`](evidence/). Runbooks:
@@ -79,5 +79,5 @@ to the pod log.
 - `test-gate.sh` fails on the monitoring check: an alert is firing or a
   target is down. `bash scripts/monitoring-check.sh` shows which; the
   [monitoring runbook](runbooks/monitoring.md) says what to do.
-- An ExternalSecret is not Ready: `bash scripts/eso-debug.sh` shows the
+- An ExternalSecret is not Ready: `bash scripts/external-secrets/eso-debug.sh` shows the
   reason (often OpenBao sealed or unreachable).

@@ -4,7 +4,7 @@
 # What it does:
 #   1. Checks the start state: PushSecret push-demo Ready, and the pushed value
 #      readable in OpenBao as the ESO login (Kubernetes auth, role
-#      external-secrets; same pattern as scripts/eso-push-check.sh).
+#      external-secrets; same pattern as scripts/external-secrets/eso-push-check.sh).
 #        bao kv get -mount=secret -field=message pushed/push-demo
 #   2. Asks y/N before changing anything.
 #   3. Pauses Flux for the layer apps-external-secrets, so Flux does not

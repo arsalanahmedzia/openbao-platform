@@ -7,7 +7,7 @@
 #        kubectl -n databases get cluster pg-openbao -o jsonpath=...
 #   2. Asks y/N before breaking anything.
 #   3. Logs in to OpenBao as the ESO service account (Kubernetes auth, role
-#      external-secrets; same pattern as scripts/eso-push-check.sh) and starts a
+#      external-secrets; same pattern as scripts/external-secrets/eso-push-check.sh) and starts a
 #      background probe: every 2 s it WRITES secret/pushed/f2-probe (allowed by
 #      eso-write). A write must reach PostgreSQL; reads could come from
 #      OpenBao's cache. Each attempt is logged as ok/fail with the time.

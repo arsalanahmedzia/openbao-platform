@@ -3,7 +3,7 @@
 # eso-demo/hello and shows that ESO created the Kubernetes Secret
 # hello-from-openbao with the value from secret/demo/hello in OpenBao.
 # The value hello-from-openbao is a demo value, not a secret, so it is shown.
-#   bash scripts/eso-pull-check.sh
+#   bash scripts/external-secrets/eso-pull-check.sh
 set -euo pipefail
 
 NS=eso-demo

@@ -5,7 +5,7 @@
 # Kubernetes Secret eso-demo/hello-from-openbao shows the new value (refresh
 # interval 30 s), then restores hello-from-openbao the same way.
 # Demo values only; tokens stay in variables and go to the pod via stdin.
-#   bash scripts/eso-refresh-test.sh
+#   bash scripts/external-secrets/eso-refresh-test.sh
 set -euo pipefail
 
 NS=openbao

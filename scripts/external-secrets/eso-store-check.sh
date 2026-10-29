@@ -3,7 +3,7 @@
 # layer apps-external-secrets and shows whether the ClusterSecretStore
 # "openbao" could log in to OpenBao (status Valid, condition Ready).
 # Prints no secrets.
-#   bash scripts/eso-store-check.sh
+#   bash scripts/external-secrets/eso-store-check.sh
 set -euo pipefail
 
 echo "==> Flux: fetch Git and apply apps-external-secrets"

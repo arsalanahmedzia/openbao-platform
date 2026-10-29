@@ -3,7 +3,7 @@
 # eso-demo/push-demo and reads the pushed value back from OpenBao AS THE ESO
 # LOGIN (Kubernetes auth, role external-secrets; no root). Demo value only;
 # tokens stay in variables and go to the pod via stdin.
-#   bash scripts/eso-push-check.sh
+#   bash scripts/external-secrets/eso-push-check.sh
 set -euo pipefail
 
 NS=openbao

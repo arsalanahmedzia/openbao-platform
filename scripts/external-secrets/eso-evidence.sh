@@ -5,9 +5,9 @@
 #   the ESO login), least privilege of the ESO login.
 # Demo values only (hello-from-openbao, pushed-from-kubernetes). Tokens stay in
 # variables and go to the pod via stdin; the file is scanned for tokens at the end.
-#   bash scripts/eso-evidence.sh
+#   bash scripts/external-secrets/eso-evidence.sh
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 OUT=docs/evidence/05-external-secrets.txt
 NS=openbao
@@ -21,7 +21,7 @@ kubectl -n flux-system wait kustomization --all --for=condition=Ready --timeout=
 
 {
 echo "# External Secrets stage: evidence, captured $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-echo "# Command: bash scripts/eso-evidence.sh"
+echo "# Command: bash scripts/external-secrets/eso-evidence.sh"
 
 echo
 echo "==> 1. Flux layers"
@@ -41,7 +41,7 @@ echo "message (decoded): $(kubectl -n eso-demo get secret hello-from-openbao -o 
 
 echo
 echo "==> 4. Refresh: change in OpenBao (as eso-demo/demo-writer) reaches Kubernetes"
-bash scripts/eso-refresh-test.sh
+bash scripts/external-secrets/eso-refresh-test.sh
 
 POD=$(kubectl -n "$NS" get pods -l "$SELECTOR,openbao-active=true" -o jsonpath='{.items[0].metadata.name}')
 JWT=$(kubectl -n external-secrets create token external-secrets --duration=10m)

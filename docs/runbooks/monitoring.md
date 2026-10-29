@@ -77,7 +77,7 @@ secrets; if all are sealed, ESO cannot sync.
 
 The object
 could not sync. The Kubernetes Secret keeps its last value.
-1. `bash scripts/eso-debug.sh`, or
+1. `bash scripts/external-secrets/eso-debug.sh`, or
    `kubectl -n <namespace> describe externalsecret|pushsecret <name>`.
 2. Usually OpenBao is sealed or unreachable (then OpenBaoSealed fires too) or a
    policy denies the path ([external-secrets.md](external-secrets.md)).

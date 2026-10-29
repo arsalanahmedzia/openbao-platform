@@ -77,7 +77,7 @@ Objects:
 
 ```bash
 kubectl get clustersecretstore openbao
-bash scripts/eso-store-check.sh      # also reconciles Flux and shows conditions
+bash scripts/external-secrets/eso-store-check.sh      # also reconciles Flux and shows conditions
 ```
 
 Expected: `STATUS Valid`, `READY True`, message `store validated`.
@@ -95,8 +95,8 @@ If not, the condition message names the failing link:
 ## 2. Debug a failing ExternalSecret or PushSecret
 
 ```bash
-bash scripts/eso-debug.sh externalsecret hello
-bash scripts/eso-debug.sh pushsecret push-demo
+bash scripts/external-secrets/eso-debug.sh externalsecret hello
+bash scripts/external-secrets/eso-debug.sh pushsecret push-demo
 ```
 
 It shows the object's conditions, its events, the store status and the last
@@ -126,10 +126,10 @@ Then:
 ## 3. Prove it end to end
 
 ```bash
-bash scripts/eso-pull-check.sh       # pulled value = hello-from-openbao
-bash scripts/eso-refresh-test.sh     # change as demo-writer, wait, restore
-bash scripts/eso-push-check.sh       # pushed value read back as the ESO login
-bash scripts/eso-evidence.sh         # everything incl. least privilege -> docs/evidence/05-external-secrets.txt
+bash scripts/external-secrets/eso-pull-check.sh       # pulled value = hello-from-openbao
+bash scripts/external-secrets/eso-refresh-test.sh     # change as demo-writer, wait, restore
+bash scripts/external-secrets/eso-push-check.sh       # pushed value read back as the ESO login
+bash scripts/external-secrets/eso-evidence.sh         # everything incl. least privilege -> docs/evidence/05-external-secrets.txt
 ```
 
 ## 4. After a Codespace restart
@@ -162,4 +162,4 @@ dates with
    person or CI with its own login, never root).
 2. Add an `ExternalSecret` in the app's namespace (the namespace must be in the
    store's `conditions`) with `secretStoreRef` `ClusterSecretStore/openbao`.
-3. Commit; Flux applies it; check with `bash scripts/eso-debug.sh externalsecret <name>`.
+3. Commit; Flux applies it; check with `bash scripts/external-secrets/eso-debug.sh externalsecret <name>`.

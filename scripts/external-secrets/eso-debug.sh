@@ -2,8 +2,8 @@
 # Shows why an External Secrets object is not Ready: its status conditions,
 # its events and the matching lines of the ESO controller log.
 # ESO logs paths and errors, not secret values. Changes nothing.
-#   bash scripts/eso-debug.sh                          (default: pushsecret push-demo)
-#   bash scripts/eso-debug.sh externalsecret hello
+#   bash scripts/external-secrets/eso-debug.sh                          (default: pushsecret push-demo)
+#   bash scripts/external-secrets/eso-debug.sh externalsecret hello
 set -euo pipefail
 
 KIND=${1:-pushsecret}
