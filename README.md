@@ -14,7 +14,7 @@ monitoring.
 
 ![How it runs](docs/images/how-it-runs.png)
 
-## How the parts talk to each other
+## How the parts talk to each other?
 
 | From | To | Request | Response |
 | --- | --- | --- | --- |
@@ -46,7 +46,7 @@ bash scripts/verify/test-gate.sh            # read-only check of everything; end
 
 All other commands and the full order: [`scripts/README.md`](scripts/README.md).
 
-## What we tested
+## What we tested?
 
 | Test | What we broke | Result |
 | --- | --- | --- |
@@ -59,7 +59,7 @@ All other commands and the full order: [`scripts/README.md`](scripts/README.md).
 
 Details, timelines and evidence: [`docs/runbooks/failure-tests.md`](docs/runbooks/failure-tests.md).
 
-## Production Readiness
+## How to Production?
 
 | Topic | Demo | Production |
 | --- | --- | --- |
