@@ -1,18 +1,33 @@
 #!/usr/bin/env bash
-# Bootstraps the platform: kind cluster -> SOPS age key secret -> Flux.
-# After this script, every change happens through Git; Flux applies it.
+# bootstrap.sh - creates the kind cluster, the SOPS key Secret and installs Flux.
+# Run it: bash scripts/setup/bootstrap.sh (once per new cluster; after it every change comes through Git)
+# Changes the cluster: yes: creates the cluster, the Secret flux-system/sops-age and Flux.
 #
-# Required environment:
-#   FLUX_GITHUB_TOKEN  personal access token Flux uses (falls back to GITHUB_TOKEN).
-#                      In Codespaces, GITHUB_TOKEN is set automatically but has too
-#                      few rights for bootstrap, so set FLUX_GITHUB_TOKEN as a
-#                      Codespaces secret.
+# What it does:
+#   1. Creates the kind cluster openbao-platform from kind-config.yaml in this
+#      folder, or reuses it if it exists. Allows forwarding for the kind bridge
+#      and sets a DNS server in the nodes if they cannot resolve names.
+#        kind create cluster --config "$SCRIPT_DIR/kind-config.yaml"
+#        kubectl wait --for=condition=Ready nodes --all --timeout=180s
+#   2. Checks that Flux can be installed.
+#        flux check --pre
+#   3. Stores the age private key as the Secret sops-age (the only Secret
+#      created by hand), so Flux can decrypt the *.sops.yaml files.
+#        kubectl -n flux-system create secret generic sops-age --from-file=age.agekey=<key> --dry-run=client -o yaml | kubectl apply -f -
+#   4. Installs Flux and connects it to this repository (path clusters/demo).
+#        flux bootstrap github --owner=<GITHUB_USER> --repository=<GITHUB_REPO> --branch=main --path=clusters/demo --personal
+#
+# What you should see: "==> 1/4" to "==> 4/4", then "Bootstrap done." and the
+#   two flux commands to watch the progress.
+# If it fails: "missing tool" means run scripts/setup/install-tools.sh first;
+#   "age key not found" means SOPS_AGE_KEY or AGE_KEY_FILE is not set.
+# Needs: docker, kind, kubectl, flux. Environment:
+#   FLUX_GITHUB_TOKEN  personal access token Flux uses (falls back to GITHUB_TOKEN;
+#                      the Codespaces GITHUB_TOKEN has too few rights)
 #   GITHUB_USER        your GitHub user name
-#   The age private key, either as:
-#     SOPS_AGE_KEY     the key's contents (e.g. a Codespaces secret), or
-#     AGE_KEY_FILE     a file path (default: ./age.agekey, never committed)
-# Optional:
-#   GITHUB_REPO        repository name (default: openbao-platform)
+#   SOPS_AGE_KEY       the age private key (e.g. a Codespaces secret), or
+#   AGE_KEY_FILE       a file path (default: ./age.agekey, never committed)
+#   GITHUB_REPO        optional, default openbao-platform
 set -euo pipefail
 
 GITHUB_REPO="${GITHUB_REPO:-openbao-platform}"

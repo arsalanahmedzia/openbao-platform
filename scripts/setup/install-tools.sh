@@ -1,6 +1,24 @@
 #!/usr/bin/env bash
-# Installs the CLI tools needed to run the platform on a fresh Ubuntu 24.04 host (e.g. EC2).
-# Run once:  bash scripts/setup/install-tools.sh   (then log out and back in for the docker group)
+# install-tools.sh - installs the command-line tools the platform needs on Ubuntu 24.04.
+# Run it: bash scripts/setup/install-tools.sh (once; the devcontainer runs it when a Codespace is created)
+# Changes the cluster: no. It installs programs on this machine (sudo).
+#
+# What it does:
+#   1. Installs base packages.
+#        sudo apt-get install -y curl jq git age ca-certificates openssl
+#   2. Installs Docker Engine if it is missing and adds you to the docker group.
+#        curl -fsSL https://get.docker.com | sudo sh
+#   3. Installs the latest stable kubectl, the latest kind and SOPS release, the
+#      Flux CLI and the kubectl-cnpg plugin into /usr/local/bin.
+#        curl -fsSLo /tmp/kubectl https://dl.k8s.io/release/<version>/bin/linux/amd64/kubectl
+#        curl -fsSL https://fluxcd.io/install.sh | sudo bash
+#   4. Prints the installed versions.
+#
+# What you should see: one "==> <tool>" line per tool, then the versions and
+#   "Done. On a VM: log out and back in (docker group). Then run: flux check --pre".
+# If it fails: a download error stops the script (set -e); run it again. On a VM
+#   without the new group, docker needs a new login.
+# Needs: Ubuntu 24.04 (amd64), sudo, internet access.
 set -euo pipefail
 
 ARCH=amd64

@@ -1,8 +1,21 @@
 #!/usr/bin/env bash
-# Looks up the newest STABLE chart version of each component and writes it into
-# the HelmRelease files (replacing the __PLACEHOLDER__ markers).
-# Run once, review the diff, then commit. Versions are then fixed in Git, so the
-# cluster does not change by itself when a new chart is published.
+# pin-versions.sh - writes the newest stable chart versions into the HelmRelease files.
+# Run it: bash scripts/setup/pin-versions.sh (once, when the __PLACEHOLDER__ markers are still in the files)
+# Changes the cluster: no. It changes repo files; review the diff, then commit.
+#
+# What it does:
+#   1. Adds and updates the chart repositories (jetstack, traefik, cnpg,
+#      external-secrets, openbao, prometheus-community).
+#        helm repo add <name> <url> --force-update ; helm repo update
+#   2. For each placeholder, looks up the newest stable chart version and
+#      replaces the marker in the file. A file that is already pinned is left alone.
+#        helm search repo <chart> -o json
+#        sed -i "s/<placeholder>/<version>/" <file>
+#
+# What you should see: one line per chart with its version or "already pinned",
+#   then "Done. Review with: git diff".
+# If it fails: "no version found for <chart>" means the repository has no such chart.
+# Needs: helm, jq, sed, internet access.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 

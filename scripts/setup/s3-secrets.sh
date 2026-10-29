@@ -1,14 +1,26 @@
 #!/usr/bin/env bash
-# Generates the S3 credentials for the in-cluster SeaweedFS and writes them as
-# two SOPS-encrypted Secrets (one access/secret key pair, used by both):
-#   infrastructure/storage/seaweedfs-s3-config.sops.yaml
-#       Secret storage/seaweedfs-s3-config: s3.json (SeaweedFS identities file)
-#       plus ACCESS_KEY_ID / ACCESS_SECRET_KEY for the bucket Job.
-#   infrastructure/storage/s3-credentials.sops.yaml
-#       Secret databases/s3-credentials: ACCESS_KEY_ID / ACCESS_SECRET_KEY for
-#       CloudNativePG backups.
-# The values are never printed. Refuses to overwrite existing files unless
-# --force is given (new keys break access to backups written with the old ones).
+# s3-secrets.sh - generates the S3 keys for SeaweedFS and writes them as two SOPS-encrypted files.
+# Run it: bash scripts/setup/s3-secrets.sh (once; --force replaces the files)
+# Changes the cluster: no. It writes repo files; Flux applies them after a push.
+#   --force makes new keys: backups written with the old keys can then not be read.
+#
+# What it does:
+#   1. Refuses to run if a file exists, unless --force is given.
+#   2. Generates one access key and one secret key.
+#        openssl rand -hex 10 ; openssl rand -hex 20
+#   3. Writes infrastructure/storage/seaweedfs-s3-config.sops.yaml (Secret
+#      storage/seaweedfs-s3-config: s3.json identities file plus ACCESS_KEY_ID /
+#      ACCESS_SECRET_KEY for the bucket Job) and
+#      infrastructure/storage/s3-credentials.sops.yaml (Secret
+#      databases/s3-credentials for the CloudNativePG backups).
+#   4. Encrypts both files in place with the public key from .sops.yaml.
+#        sops --encrypt --in-place <file>
+#
+# What you should see: "Encrypted files written:" with both paths. The keys are
+#   never printed.
+# If it fails: ".sops.yaml has no age public key yet" means set the recipient in
+#   .sops.yaml first. If encryption fails, the trap deletes the unencrypted files.
+# Needs: sops, openssl, jq, the age public key in .sops.yaml.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 

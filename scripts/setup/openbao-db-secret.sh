@@ -1,15 +1,25 @@
 #!/usr/bin/env bash
-# Generates the PostgreSQL password for OpenBao and writes it as two
-# SOPS-encrypted Secrets (same password in both):
-#   apps/database/pg-openbao-openbao.sops.yaml
-#       Secret databases/pg-openbao-openbao (type basic-auth: username, password).
-#       The Cluster points at it with bootstrap.initdb.secret, so CloudNativePG
-#       sets this password on the role "openbao".
-#   apps/openbao/openbao-db.sops.yaml
-#       Secret openbao/openbao-db: BAO_PG_CONNECTION_URL, the connection string
-#       OpenBao reads from its environment (password never in a ConfigMap).
-# The password is never printed. Refuses to overwrite existing files unless
-# --force is given (rotation: OpenBao pods must then be restarted, see runbook).
+# openbao-db-secret.sh - generates OpenBao's PostgreSQL password and writes it as two SOPS-encrypted files.
+# Run it: bash scripts/setup/openbao-db-secret.sh (once; --force rotates the password)
+# Changes the cluster: no. It writes repo files; Flux applies them after a push.
+#   After --force the OpenBao pods must be restarted (runbook openbao-init-unseal.md, section 4).
+#
+# What it does:
+#   1. Refuses to run if a file exists, unless --force is given.
+#   2. Generates one password.
+#        openssl rand -hex 24
+#   3. Writes apps/database/pg-openbao-openbao.sops.yaml (Secret
+#      databases/pg-openbao-openbao, type basic-auth; CloudNativePG sets this
+#      password on the role openbao) and apps/openbao/openbao-db.sops.yaml
+#      (Secret openbao/openbao-db: BAO_PG_CONNECTION_URL with the same password).
+#   4. Encrypts both files in place with the public key from .sops.yaml.
+#        sops --encrypt --in-place <file>
+#
+# What you should see: "Encrypted files written:" with both paths. The password
+#   is never printed.
+# If it fails: ".sops.yaml has no age public key yet" means set the recipient in
+#   .sops.yaml first. If encryption fails, the trap deletes the unencrypted files.
+# Needs: sops, openssl, the age public key in .sops.yaml.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
