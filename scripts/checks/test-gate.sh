@@ -16,13 +16,15 @@
 #   4. External Secrets: store, ExternalSecret and PushSecret Ready, and the
 #      pulled value is hello-from-openbao.
 #        kubectl wait clustersecretstore/openbao --for=condition=Ready --timeout=30s
-#   5. Monitoring: all targets up, 8 alert rules ok, no alert firing.
+#   5. Monitoring: all targets up, 8 alert rules ok, no alert firing. On a
+#      FAIL it prints the check's FAIL lines, firing alerts and down targets.
 #        bash "$(dirname "$0")/monitoring-check.sh"
 #
 # What you should see: one PASS line per check and GATE PASSED at the end.
 # If it fails: GATE FAILED lists the failed checks. Sealed pods: run
-#   scripts/after-restart/openbao-unseal.sh. Monitoring: run
-#   scripts/checks/monitoring-check.sh to see which target or alert.
+#   scripts/after-restart/openbao-unseal.sh. Right after an unseal, alerts from
+#   the sealed time can still be firing for about a minute; run the gate again.
+#   Monitoring details: scripts/checks/monitoring-check.sh.
 # Needs: kubectl with the cnpg plugin, flux, jq, curl.
 set -uo pipefail
 
@@ -72,8 +74,11 @@ check "PushSecret push-demo Ready" \
 
 echo
 echo "==> Monitoring"
-check "monitoring: all targets up, 8 alert rules ok, no alert firing" \
-  bash "$(dirname "$0")/monitoring-check.sh"
+MON=$(bash "$(dirname "$0")/monitoring-check.sh" 2>&1)
+MON_RC=$?
+check "monitoring: all targets up, 8 alert rules ok, no alert firing" test "$MON_RC" -eq 0
+# On a FAIL, show why: the check's FAIL lines, firing alerts, targets not up
+(( MON_RC == 0 )) || grep -E 'FAIL |^ +(firing|down) ' <<<"$MON" | sed 's/^ */        /'
 
 echo
 if (( ${#FAILS[@]} == 0 )); then
