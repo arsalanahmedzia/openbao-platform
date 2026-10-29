@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Failure test F6: restore from backup to a point in time (PITR), into a NEW
-# cluster. The live cluster pg-openbao is only used to write two test rows.
+# failure-f6-restore.sh - failure test F6: point-in-time restore into a new temporary cluster, checked with two marker rows.
+# Run it: bash scripts/failure-tests/failure-f6-restore.sh (run test-gate.sh before and after)
+# Changes the cluster: yes, asks first: writes 2 test rows into pg-openbao (database postgres)
+#   and creates the temporary cluster pg-restore-test; the trap deletes both.
 #
 # What it does:
 #   1. Checks the start state: pg-openbao healthy, WAL archiving OK, a
@@ -28,7 +30,12 @@
 #
 # Output: PASS / FAIL / INFO lines with UTC times, also written to
 # docs/evidence/07-f6-restore.txt. No secrets are printed.
-#   bash scripts/failure-tests/failure-f6-restore.sh
+#
+# What you should see: row A present and row B absent in the restored cluster, the cleanup,
+#   then "RESULT F6 passed".
+# If it fails: the restore does not get healthy within 15 min: see the Troubleshooting
+#   table in docs/runbooks/postgres-backup-restore.md; the trap still cleans up.
+# Needs: kubectl with the cnpg plugin, jq.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 

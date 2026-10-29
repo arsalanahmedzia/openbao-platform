@@ -1,13 +1,28 @@
 #!/usr/bin/env bash
-# Step 6b of the OpenBao stage: failover test, written to
-# docs/evidence/04-failover.txt (and shown on screen).
-#   1. reads secret/demo/hello as the External Secrets service account
-#   2. DELETES the active OpenBao pod (asks first)
-#   3. waits until a standby has become active, reads the secret again
-#   4. shows the replacement pod comes back SEALED
-#   5. unseals it (scripts/after-restart/openbao-unseal.sh) and shows it joins as standby
-# No root token; the ESO login token stays in a shell variable.
-#   bash scripts/failure-tests/openbao-failover-test.sh
+# openbao-failover-test.sh - deletes the active OpenBao pod and shows a standby takes over.
+# Run it: bash scripts/failure-tests/openbao-failover-test.sh (after the OpenBao stage; output also in docs/evidence/04-failover.txt)
+# Changes the cluster: breaks something on purpose, asks first: deletes the
+#   active OpenBao pod; the StatefulSet recreates it sealed and the script unseals it.
+#
+# What it does:
+#   1. Reads secret/demo/hello as the External Secrets service account through
+#      the active pod (no root token; the login token stays in a shell variable).
+#        kubectl -n external-secrets create token external-secrets --duration=10m
+#        bao write -field=token auth/kubernetes/login role=external-secrets jwt=-
+#   2. Deletes the active pod.
+#        kubectl -n openbao delete pod <active pod> --wait=false
+#   3. Waits up to 60 s until a standby has become active, reads the secret again.
+#   4. Shows the replacement pod comes back SEALED.
+#        kubectl -n openbao exec <pod> -- bao status
+#   5. Unseals it and shows it joins as standby.
+#        bash scripts/after-restart/openbao-unseal.sh
+#
+# What you should see: the secret value hello-from-openbao twice, "new active
+#   pod: ... (after about N s)", "Sealed true" for the replacement, then the old
+#   pod back as standby.
+# If it fails: "no new active pod after 60 s": check the other pods with
+#   kubectl -n openbao get pods -L openbao-active,openbao-sealed.
+# Needs: kubectl, the unseal keys.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 

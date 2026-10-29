@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
-# Failure test F3: OpenBao is sealed while External Secrets runs.
+# failure-f3-sealed.sh - failure test F3: restarts all OpenBao pods (sealed) and watches External Secrets recover.
+# Run it: bash scripts/failure-tests/failure-f3-sealed.sh (run test-gate.sh before and after)
+#         Monitoring M6 (OpenBaoSealed must fire: sealed > 2 min after Prometheus
+#         notices, so about 4 min sealed):
+#         F3_WATCH_ROUNDS=16 F3_OUT=docs/evidence/08-m6-f3-sealed.txt bash scripts/failure-tests/failure-f3-sealed.sh
+# Changes the cluster: breaks something on purpose, asks first: deletes the 3 OpenBao pods;
+#   they come back sealed and the script unseals them.
 #
 # What it does:
 #   1. Checks the start state: 3 OpenBao pods Ready, store and ExternalSecret
@@ -25,10 +31,12 @@
 # Output: PASS / FAIL / INFO lines with UTC times, also written to
 # docs/evidence/07-f3-sealed.txt (F3_OUT to write elsewhere). No token or key
 # is printed; only the demo value hello-from-openbao is shown.
-#   bash scripts/failure-tests/failure-f3-sealed.sh
-# Monitoring M6 (OpenBaoSealed must fire: sealed > 2 min after Prometheus
-# notices, so about 4 min sealed):
-#   F3_WATCH_ROUNDS=16 F3_OUT=docs/evidence/08-m6-f3-sealed.txt bash scripts/failure-tests/failure-f3-sealed.sh
+#
+# What you should see: "OpenBao pods are back SEALED", the watch lines, "Secret ... kept its
+#   value", the time until store and ExternalSecret are Ready again, then "RESULT F3 passed".
+# If it fails: the trap unseals pods that are still sealed; if that fails too, run
+#   scripts/after-restart/openbao-unseal.sh by hand.
+# Needs: kubectl, jq, the unseal keys. Optional: F3_WATCH_ROUNDS, F3_OUT.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 

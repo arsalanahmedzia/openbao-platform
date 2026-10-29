@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# Failure test F2: the PostgreSQL primary dies.
+# failure-f2-postgres.sh - failure test F2: deletes the PostgreSQL primary and measures the failover and the write outage.
+# Run it: bash scripts/failure-tests/failure-f2-postgres.sh (run test-gate.sh before and after)
+# Changes the cluster: breaks something on purpose, asks first: deletes the primary pod;
+#   CloudNativePG recreates it. Writes and deletes secret/pushed/f2-probe.
 #
 # What it does:
 #   1. Checks the start state: cluster pg-openbao healthy with 3 ready
@@ -29,7 +32,12 @@
 # Output: PASS / FAIL / INFO lines with UTC times, also written to
 # docs/evidence/07-f2-postgres.txt. Tokens stay in variables and go to the
 # pod via stdin; only the demo value hello-from-openbao is shown.
-#   bash scripts/failure-tests/failure-f2-postgres.sh
+#
+# What you should see: the probe log (ok/fail per write), the time until a new primary and
+#   until 3 ready instances, then "RESULT F2 passed".
+# If it fails: the cluster does not get healthy again: kubectl cnpg status pg-openbao
+#   -n databases; a deleted primary waits up to 180 s for open connections (risk R28).
+# Needs: kubectl with the cnpg plugin, jq.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 

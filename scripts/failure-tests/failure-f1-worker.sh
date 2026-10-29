@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Failure test F1: a worker node dies (repeatable version of the manual test
-# of 2026-10-27, evidence docs/evidence/07-f1-worker-node.txt).
+# failure-f1-worker.sh - failure test F1: stops a worker node and measures how the platform recovers.
+# Run it: bash scripts/failure-tests/failure-f1-worker.sh [node-name] (default: the node with the active OpenBao pod; run test-gate.sh before and after)
+# Changes the cluster: breaks something on purpose, asks first: stops a worker node container,
+#   then starts it again and unseals OpenBao.
 #
 # What it does:
 #   1. Picks the worker: the one given as argument, or by default the one
@@ -30,7 +32,12 @@
 # to docs/evidence/07-f1-worker-script.txt (the manual run's evidence file is
 # not touched). No secrets are printed; unseal keys go via stdin in the
 # unseal script.
-#   bash scripts/failure-tests/failure-f1-worker.sh [node-name]
+#
+# What you should see: PASS / INFO lines with a timeline (node NotReady, new primary, OpenBao
+#   answering 200 again), then "RESULT F1 passed (run scripts/checks/test-gate.sh next)".
+# If it fails: if the script stops early, its trap starts the node again; then run
+#   scripts/after-restart/kind-fix-pod-network.sh and scripts/after-restart/openbao-unseal.sh.
+# Needs: docker, kubectl, curl, jq, the unseal keys.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 

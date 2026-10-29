@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# Failure test F4: the PushSecret is deleted.
+# failure-f4-pushsecret.sh - failure test F4: deletes the PushSecret and shows the value is deleted in OpenBao, then restored by Flux.
+# Run it: bash scripts/failure-tests/failure-f4-pushsecret.sh (run test-gate.sh before and after)
+# Changes the cluster: breaks something on purpose, asks first: suspends Flux for
+#   apps-external-secrets, deletes the PushSecret (and with it the value in
+#   OpenBao), then resumes Flux.
 #
 # What it does:
 #   1. Checks the start state: PushSecret push-demo Ready, and the pushed value
@@ -24,7 +28,12 @@
 # Output: PASS / FAIL / INFO lines with UTC times, also written to
 # docs/evidence/07-f4-pushsecret.txt. Tokens stay in variables and go to the
 # pod via stdin; only the demo value pushed-from-kubernetes is shown.
-#   bash scripts/failure-tests/failure-f4-pushsecret.sh
+#
+# What you should see: the value gone from OpenBao after the delete, back after Flux resumes,
+#   the PushSecret Synced, then "RESULT F4 passed".
+# If it fails: the trap resumes Flux if it is still suspended; check with
+#   flux get kustomizations.
+# Needs: flux, kubectl, jq.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 

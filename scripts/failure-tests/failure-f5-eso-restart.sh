@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# Failure test F5: the External Secrets controller restarts.
+# failure-f5-eso-restart.sh - failure test F5: deletes the External Secrets controller pod and proves the new pod logs in and syncs.
+# Run it: bash scripts/failure-tests/failure-f5-eso-restart.sh (run test-gate.sh before and after)
+# Changes the cluster: breaks something on purpose, asks first: deletes the ESO controller
+#   pod; the Deployment starts a new one.
 #
 # What it does:
 #   1. Checks the start state: ESO controller pod (name, IP), store and
@@ -25,7 +28,12 @@
 # Output: PASS / FAIL / INFO lines with UTC times, also written to
 # docs/evidence/07-f5-eso-restart.txt. No token is printed; audit entries show
 # HMAC hashes, cut to 24 characters. Only the demo value is shown.
-#   bash scripts/failure-tests/failure-f5-eso-restart.sh
+#
+# What you should see: the new pod, the ExternalSecret synced after the restart, audit entries
+#   from the new pod IP, the Secret unchanged, then "RESULT F5 passed".
+# If it fails: no audit entries: check the audit device with
+#   scripts/openbao/openbao-audit-check.sh.
+# Needs: kubectl, jq.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
