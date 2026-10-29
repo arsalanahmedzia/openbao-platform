@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
 # openbao-failover-test.sh - deletes the active OpenBao pod and shows a standby takes over.
+#
+# In plain words:
+#   OpenBao runs as 3 pods: one active pod answers all requests, and two
+#   standbys wait. This test answers: does a standby take over when the active
+#   pod is lost? It reads the demo secret as External Secrets, deletes the
+#   active pod, and waits until another pod has become active.
+#
+#   Then it reads the secret again through the new active pod, shows that the
+#   deleted pod came back sealed, unseals it, and shows it joined as a
+#   standby. The output also goes to docs/evidence/04-failover.txt.
+#
 # Run it: bash scripts/failure-tests/openbao-failover-test.sh (after the OpenBao stage; output also in docs/evidence/04-failover.txt)
 # Changes the cluster: breaks something on purpose, asks first: deletes the
 #   active OpenBao pod; the StatefulSet recreates it sealed and the script unseals it.

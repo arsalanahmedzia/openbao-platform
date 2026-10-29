@@ -1,5 +1,20 @@
 #!/usr/bin/env bash
 # failure-f3-sealed.sh - failure test F3: restarts all OpenBao pods (sealed) and watches External Secrets recover.
+#
+# In plain words:
+#   This test answers: what happens to the apps when OpenBao is sealed
+#   (locked)? It deletes all 3 OpenBao pods. Kubernetes starts them again, but
+#   they come back sealed and serve no secrets, which is what a restart does
+#   in real life.
+#
+#   For about 2 minutes (or longer with F3_WATCH_ROUNDS) it watches what
+#   External Secrets does: whether the store and the ExternalSecret report
+#   errors, and whether the Kubernetes Secret keeps its value. Apps keep
+#   reading that Secret, so it must not change. Then it unseals OpenBao and
+#   measures how long ESO needs to recover by itself, without a restart. If
+#   anything goes wrong, it still unseals the pods. The output also goes to
+#   docs/evidence/07-f3-sealed.txt, or to F3_OUT.
+#
 # Run it: bash scripts/failure-tests/failure-f3-sealed.sh (run test-gate.sh before and after)
 #         Monitoring M6 (OpenBaoSealed must fire: sealed > 2 min after Prometheus
 #         notices, so about 4 min sealed):

@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 # failure-f6-restore.sh - failure test F6: point-in-time restore into a new temporary cluster, checked with two marker rows.
+#
+# In plain words:
+#   This test answers: can a backup really bring the data back to an exact
+#   moment in the past (point-in-time recovery)? It writes a marker row A into
+#   the live cluster, notes the time, then writes a row B. It makes sure the
+#   change log (WAL) up to that time is stored in S3.
+#
+#   Then it creates a new, temporary PostgreSQL cluster from the backup, told
+#   to stop at the noted time. The live cluster is never overwritten; the
+#   temporary one does not archive its own changes, so it cannot touch the
+#   backups. If the restore is right, row A exists and row B does not. At the
+#   end the temporary cluster and the marker table are deleted, also if the
+#   script fails. The output also goes to docs/evidence/07-f6-restore.txt.
+#
 # Run it: bash scripts/failure-tests/failure-f6-restore.sh (run test-gate.sh before and after)
 # Changes the cluster: yes, asks first: writes 2 test rows into pg-openbao (database postgres)
 #   and creates the temporary cluster pg-restore-test; the trap deletes both.
