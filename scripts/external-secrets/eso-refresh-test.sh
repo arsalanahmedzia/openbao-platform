@@ -1,11 +1,26 @@
 #!/usr/bin/env bash
-# External Secrets stage, step 6: proves the refresh of the ExternalSecret.
-# Logs in to OpenBao as eso-demo/demo-writer (role demo-writer, policy
-# demo-write; not ESO, not root), changes secret/demo/hello, waits until the
-# Kubernetes Secret eso-demo/hello-from-openbao shows the new value (refresh
-# interval 30 s), then restores hello-from-openbao the same way.
-# Demo values only; tokens stay in variables and go to the pod via stdin.
-#   bash scripts/external-secrets/eso-refresh-test.sh
+# eso-refresh-test.sh - proves that a change in OpenBao reaches the Kubernetes Secret.
+# Run it: bash scripts/external-secrets/eso-refresh-test.sh (any time; eso-evidence.sh and netpol-test-eso-demo.sh run it)
+# Changes the cluster: yes: changes the demo value secret/demo/hello and restores
+#   it to hello-from-openbao at the end.
+#
+# What it does:
+#   1. Logs in to OpenBao as eso-demo/demo-writer (role demo-writer, policy
+#      demo-write; not ESO, not root).
+#        kubectl -n eso-demo create token demo-writer --duration=10m
+#        bao write -field=token auth/kubernetes/login role=demo-writer jwt=-
+#   2. Writes a new value hello-changed-<time>.
+#        bao kv put -mount=secret demo/hello message=<new value>
+#   3. Waits up to 90 s until the Secret eso-demo/hello-from-openbao shows it
+#      (refresh interval 30 s).
+#   4. Writes hello-from-openbao back, waits again, revokes the token.
+#
+# What you should see: "Kubernetes Secret now: hello-changed-... (after about N s)",
+#   then "Kubernetes Secret now: hello-from-openbao".
+# If it fails: "not synced after 90 s" shows the value it still has; see
+#   scripts/external-secrets/eso-debug.sh externalsecret hello. "no active
+#   OpenBao pod": unseal first.
+# Needs: kubectl. Tokens stay in variables and go to the pod through stdin.
 set -euo pipefail
 
 NS=openbao

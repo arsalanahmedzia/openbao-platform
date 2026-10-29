@@ -1,9 +1,23 @@
 #!/usr/bin/env bash
-# External Secrets stage, step 7: after `git push`, applies the PushSecret
-# eso-demo/push-demo and reads the pushed value back from OpenBao AS THE ESO
-# LOGIN (Kubernetes auth, role external-secrets; no root). Demo value only;
-# tokens stay in variables and go to the pod via stdin.
-#   bash scripts/external-secrets/eso-push-check.sh
+# eso-push-check.sh - applies the PushSecret and reads the pushed value back from OpenBao as the ESO login.
+# Run it: bash scripts/external-secrets/eso-push-check.sh (after git push of the PushSecret)
+# Changes the cluster: no. It asks Flux to apply what is in Git now, then logs
+#   in as the ESO service account (no root) and revokes that token at the end.
+#
+# What it does:
+#   1. Applies Git now and waits up to 60 s until the PushSecret is Ready.
+#        flux reconcile kustomization apps-external-secrets
+#        kubectl -n eso-demo wait pushsecret/push-demo --for=condition=Ready --timeout=60s
+#   2. Shows the source Secret eso-demo/push-demo.
+#   3. Logs in as the ESO service account and reads the value back.
+#        kubectl -n external-secrets create token external-secrets --duration=10m
+#        bao kv get -mount=secret -field=message pushed/push-demo
+#        bao kv metadata get -mount=secret pushed/push-demo
+#
+# What you should see: the PushSecret Synced, "field message:
+#   pushed-from-kubernetes" and custom_metadata with managed-by external-secrets.
+# If it fails: bash scripts/external-secrets/eso-debug.sh pushsecret push-demo
+# Needs: flux, kubectl. Demo value only; tokens go to the pod through stdin.
 set -euo pipefail
 
 NS=openbao

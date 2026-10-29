@@ -1,9 +1,21 @@
 #!/usr/bin/env bash
-# External Secrets stage, step 5: after `git push`, applies the ExternalSecret
-# eso-demo/hello and shows that ESO created the Kubernetes Secret
-# hello-from-openbao with the value from secret/demo/hello in OpenBao.
-# The value hello-from-openbao is a demo value, not a secret, so it is shown.
-#   bash scripts/external-secrets/eso-pull-check.sh
+# eso-pull-check.sh - applies the ExternalSecret and shows the Kubernetes Secret ESO created from OpenBao.
+# Run it: bash scripts/external-secrets/eso-pull-check.sh (after git push of the ExternalSecret)
+# Changes the cluster: no. It asks Flux to apply what is in Git now; then it
+#   only reads. The value hello-from-openbao is a demo value, so it is shown.
+#
+# What it does:
+#   1. Applies Git now.
+#        flux reconcile kustomization apps-external-secrets
+#   2. Waits up to 60 s until the ExternalSecret eso-demo/hello is Ready.
+#        kubectl -n eso-demo wait externalsecret/hello --for=condition=Ready --timeout=60s
+#   3. Shows the Secret hello-from-openbao: its owner, its keys, the decoded value.
+#        kubectl -n eso-demo get secret hello-from-openbao -o jsonpath='{.data.message}' | base64 -d
+#
+# What you should see: "owner: ExternalSecret/hello", keys ["message"],
+#   "message (decoded): hello-from-openbao".
+# If it fails: the wait times out: bash scripts/external-secrets/eso-debug.sh externalsecret hello
+# Needs: flux, kubectl, jq.
 set -euo pipefail
 
 NS=eso-demo

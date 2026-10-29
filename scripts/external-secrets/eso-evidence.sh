@@ -1,11 +1,29 @@
 #!/usr/bin/env bash
-# External Secrets stage, step 8: collects the evidence for the stage into
-# docs/evidence/05-external-secrets.txt (also shown on screen):
-#   Flux layers, store status, pull (value), refresh test, push (read back as
-#   the ESO login), least privilege of the ESO login.
-# Demo values only (hello-from-openbao, pushed-from-kubernetes). Tokens stay in
-# variables and go to the pod via stdin; the file is scanned for tokens at the end.
-#   bash scripts/external-secrets/eso-evidence.sh
+# eso-evidence.sh - collects the External Secrets evidence into docs/evidence/05-external-secrets.txt.
+# Run it: bash scripts/external-secrets/eso-evidence.sh (after the ESO stage; prints the same on screen)
+# Changes the cluster: yes: runs the refresh test (demo value changed and
+#   restored) and writes then deletes secret/pushed/lp-check.
+#
+# What it does:
+#   1. Waits up to 10 min for all Flux layers.
+#        kubectl -n flux-system wait kustomization --all --for=condition=Ready --timeout=10m
+#   2. Records the store status and the pulled value.
+#        kubectl get clustersecretstore openbao
+#   3. Runs the refresh test.
+#        bash scripts/external-secrets/eso-refresh-test.sh
+#   4. Logs in as the ESO service account and reads the pushed value back.
+#        bao kv get -mount=secret -field=message pushed/push-demo
+#   5. Checks least privilege: the login may read secret/, write and delete only
+#      below secret/pushed/, and is denied on secret/demo/denied and secret/other/denied.
+#   6. Scans the file for tokens.
+#        grep -nE '\b(s|hvs|hvb|hvr)\.[A-Za-z0-9]{20,}|eyJ[A-Za-z0-9_-]{20,}' docs/evidence/05-external-secrets.txt
+#
+# What you should see: sections 1 to 6, "token policies:
+#   ["default","eso-read","eso-write"]", each "(allowed, expected)" or
+#   "denied (expected)", and "nothing found" from the token scan.
+# If it fails: "ALLOWED - policy is too wide!" stops the script; fix the policy
+#   in openbao/policies/ and run scripts/openbao/openbao-policy-update.sh.
+# Needs: flux, kubectl, jq. Demo values only.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
