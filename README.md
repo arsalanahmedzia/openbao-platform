@@ -40,23 +40,23 @@ flowchart LR
     am["Alertmanager"]
   end
 
-  client -->|"1 login, then read a secret"| traefik
-  traefik -->|"1 forwards to the active pod"| bao
-  eso -->|"2 gets a token, writes and reads Secrets"| api
-  eso -->|"2 logs in, pulls and pushes secrets"| bao
-  bao -->|"2 TokenReview: is this token valid?"| api
-  bao -->|"3 saves and reads its data, encrypted"| pg
-  cnpg -->|"3 status and backups, port 8000"| pg
-  pg -->|"3 daily backup and WAL,<br/>through the Barman Cloud plugin"| s3
-  you -->|"4 3 of 5 key shares, kubectl exec"| bao
-  cm -->|"4 TLS certificates as Secrets"| api
-  flux -->|"5 fetches every minute"| gh
-  flux -->|"5 applies the manifests"| api
-  prom -.->|"5 metrics every 30 s"| bao
+  client -->|"login, then read a secret"| traefik
+  traefik -->|"forwards to the active pod"| bao
+  eso -->|"gets a token, writes and reads Secrets"| api
+  eso -->|"logs in, pulls and pushes secrets"| bao
+  bao -->|"TokenReview: is this token valid?"| api
+  bao -->|"saves and reads its data, encrypted"| pg
+  cnpg -->|"status and backups, port 8000"| pg
+  pg -->|"daily backup and WAL,<br/>through the Barman Cloud plugin"| s3
+  you -->|"3 of 5 key shares, kubectl exec"| bao
+  cm -->|"TLS certificates as Secrets"| api
+  flux -->|"fetches every minute"| gh
+  flux -->|"applies the manifests"| api
+  prom -.->|"metrics every 30 s"| bao
   prom -.-> pg
   prom -.-> eso
   prom -.-> ksm
-  prom -.->|"5 alerts"| am
+  prom -.->|"alerts"| am
 
   classDef ext fill:#f2f2f2,stroke:#888888
   classDef entry fill:#ececff,stroke:#7b68c8
@@ -69,8 +69,6 @@ flowchart LR
   class pg,s3,cnpg store
   class flux,prom,ksm,am ops
 ```
-
-The numbers on the arrows are the groups in the tables below. An arrow points from the one who starts the call to the one who is asked; dotted arrows are monitoring.
 
 ## How the components talk to each other?
 
