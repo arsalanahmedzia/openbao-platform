@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 # netpol-test-openbao.sh - applies and proves the NetworkPolicies of namespace openbao (hardening B2c).
+#
+# In plain words:
+#   Namespace openbao holds OpenBao. Its rules allow port 8200 (the API) only
+#   from Traefik, the ESO controller and the OpenBao pods themselves, and port
+#   8201 (the cluster port, where standbys forward requests to the active pod)
+#   only between the OpenBao pods. This script applies the rules and proves
+#   them.
+#
+#   Short-lived test pods show that Traefik and ESO get through and that an
+#   unlabelled pod and a pod in default are blocked. As real proof it calls
+#   OpenBao through Traefik over HTTPS, and it logs in as ESO on a standby
+#   pod: a login creates a token, which only the active pod can do, so it
+#   works only if the standby can forward it over 8201.
+#
 # Run it: bash scripts/hardening/netpol-test-openbao.sh (after git push of apps/openbao/networkpolicy.yaml)
 # Changes the cluster: yes: starts temporary probe pods (kubectl run --rm) and
 #   logs in once as the ESO service account. Tokens stay in variables and go to

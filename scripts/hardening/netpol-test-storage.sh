@@ -1,5 +1,18 @@
 #!/usr/bin/env bash
 # netpol-test-storage.sh - applies and proves the NetworkPolicies of namespace storage (hardening B2a).
+#
+# In plain words:
+#   Namespace storage holds SeaweedFS, where the backups live. Its rules allow
+#   the S3 port 8333 only from namespace databases (the backups) and from the
+#   bucket job; everything else is blocked. This script applies those rules
+#   and proves both sides.
+#
+#   A short-lived test pod in databases must reach the S3 port (any HTTP
+#   answer counts, even "403 access denied", because it shows the connection
+#   works); a test pod in default must time out. As the real proof it then
+#   runs database/pg-backup-check.sh, which takes a base backup through that
+#   path.
+#
 # Run it: bash scripts/hardening/netpol-test-storage.sh (after git push of infrastructure/storage/networkpolicy.yaml)
 # Changes the cluster: yes: starts temporary probe pods (kubectl run --rm,
 #   deleted right after use) and takes one base backup (pg-backup-check.sh).

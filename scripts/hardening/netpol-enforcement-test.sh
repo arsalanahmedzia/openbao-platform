@@ -1,5 +1,18 @@
 #!/usr/bin/env bash
 # netpol-enforcement-test.sh - proves that this cluster enforces NetworkPolicies at all (hardening B1).
+#
+# In plain words:
+#   A NetworkPolicy (a Kubernetes rule for which pods may connect to which)
+#   only works if the cluster's network enforces it; otherwise Kubernetes
+#   accepts the rule and silently ignores it. This script proves that this
+#   cluster enforces them, before any other rule is trusted.
+#
+#   It works in its own temporary namespace, so nothing else is touched: one
+#   web server pod and one client pod on another node. With no rule the client
+#   must reach the server; with a deny-all rule it must be blocked; with an
+#   extra allow rule for the client it must get through again. The namespace
+#   is deleted at the end, also if the script fails.
+#
 # Run it: bash scripts/hardening/netpol-enforcement-test.sh (once per new cluster, before trusting any policy)
 # Changes the cluster: yes: MANUAL TEMPORARY TEST, not from Git. Creates
 #   namespace netpol-test with a server and a client pod (on different nodes)

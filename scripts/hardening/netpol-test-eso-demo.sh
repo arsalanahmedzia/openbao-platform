@@ -1,5 +1,18 @@
 #!/usr/bin/env bash
 # netpol-test-eso-demo.sh - applies and proves the default-deny policy of namespace eso-demo (hardening B2e).
+#
+# In plain words:
+#   Namespace eso-demo has no pods, only Secrets and ESO objects, so it gets a
+#   default-deny rule and no allow rule: any pod added there later starts
+#   closed. To prove the rule, this script starts a temporary web server pod
+#   in eso-demo.
+#
+#   Short-lived test pods from default and even from eso-demo itself must be
+#   blocked, because a default-deny also blocks traffic inside the namespace.
+#   As real proof it runs the refresh test: ESO writes the Secrets through the
+#   Kubernetes API, not into a pod, so syncing must still work. The server pod
+#   is deleted at the end, also if the script fails.
+#
 # Run it: bash scripts/hardening/netpol-test-eso-demo.sh (after git push of apps/external-secrets/networkpolicy.yaml)
 # Changes the cluster: yes: starts a TEMPORARY web server pod in eso-demo
 #   (deleted at the end, also if the script fails), temporary probe pods
