@@ -5,7 +5,8 @@
 #   This test answers: what happens when a whole worker node dies? It picks
 #   the worker that runs the active OpenBao pod (or the node you name) and
 #   stops its Docker container, which is how a node failure looks in kind.
-#   That node also runs the PostgreSQL primary, so both have to fail over.
+#   If that node also runs the PostgreSQL primary (it did in the recorded
+#   run), PostgreSQL fails over too.
 #
 #   While the node is gone, a background check calls OpenBao through Traefik
 #   every 2 seconds, and the script notes the time of each event: the node
