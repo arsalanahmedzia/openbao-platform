@@ -43,7 +43,7 @@ Every technical word used in this repository, in plain English. Sorted A to Z.
 | Prometheus | The program that collects numbers (metrics) from the platform every 30 s and checks the alert rules. |
 | PrometheusRule | A Prometheus Operator object that holds alert rules. |
 | PushSecret | An ESO object for the push direction: "copy this Kubernetes Secret into OpenBao". |
-| root token | OpenBao's all-powerful login, created at init. Used only to configure OpenBao; should be revoked afterwards. |
+| root token | OpenBao's login that may do everything, created at init. Used only to configure OpenBao; should be revoked afterwards. |
 | S3 | A common way to store files over HTTP, first made by Amazon. Here SeaweedFS provides it inside the cluster. |
 | scrape | One visit of Prometheus to a target to read its metrics. |
 | seal / sealed | OpenBao's sealed state: its data is encrypted and it cannot read it. Every OpenBao pod starts sealed. |

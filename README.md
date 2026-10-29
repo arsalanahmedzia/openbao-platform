@@ -8,11 +8,11 @@ monitoring.
 
 ## In 60 seconds
 
-- **OpenBao** is the vault that keeps the secrets; it runs as 3 copies, one is active and the other two wait to take over.
-- **PostgreSQL** is the database where OpenBao saves its data; it runs as 3 copies and is backed up every day.
-- **External Secrets Operator (ESO)** copies secrets between OpenBao and Kubernetes, in both directions.
-- **Flux** builds everything from this repository, so Git is the single source of truth (this way of working is called GitOps).
-- **Prometheus** watches the platform by collecting numbers every 30 s and raises alerts when something breaks.
+- OpenBao is the vault that keeps the secrets; it runs as 3 copies, one is active and the other two wait to take over.
+- PostgreSQL is the database where OpenBao saves its data; it runs as 3 copies and is backed up every day.
+- External Secrets Operator (ESO) copies secrets between OpenBao and Kubernetes, in both directions.
+- Flux builds everything from this repository, so Git is the single source of truth (this way of working is called GitOps).
+- Prometheus watches the platform by collecting numbers every 30 s and raises alerts when something breaks.
 
 ![How it runs](docs/images/how-it-runs.png)
 

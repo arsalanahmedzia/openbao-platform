@@ -1,19 +1,8 @@
-# Operations: monitoring, alerting, troubleshooting
+# Operations
 
-How to keep the platform running day to day. Words are explained in the
+How to keep the platform running day to day: the scripts, the one known
+problem after a Codespace restart, and the alerts. Words are explained in the
 [glossary](glossary.md).
-
-## What it is
-
-This file lists the scripts you use every day, the one known problem after a
-Codespace restart, and the alerts that tell you when something breaks. It is
-the starting point when something does not work.
-
-## Why we need it
-
-OpenBao starts sealed after every restart, and the Codespace can break the pod
-network when it restarts. Without these checks and alerts a broken part could
-stay unnoticed until a secret is missing.
 
 ## Scripts for daily use
 
@@ -29,47 +18,40 @@ stay unnoticed until a secret is missing.
 Outputs of all tests are in [`evidence/`](evidence/). Runbooks:
 [`runbooks/`](runbooks/). All scripts: [`scripts/README.md`](../scripts/README.md).
 
-## Step by step: after a Codespace restart
+## After a Codespace restart
 
 1. Run `bash scripts/resume.sh`. It starts the kind node containers again,
    re-adds the firewall rule that a restart removes (see
-   [`environment.md`](environment.md)), checks DNS in the nodes and waits until
-   the nodes are Ready, because a Codespace restart stops or breaks all of
-   these. It also checks the pod network (next section).
-2. If it reports the pod network problem, it runs
-   `scripts/kind-fix-pod-network.sh` for you (it asks first). That script
-   restarts kindnet (kind's pod network) and recreates the affected pods.
-3. Run `bash scripts/openbao-unseal.sh`. Every OpenBao pod that restarted is
+   [`environment.md`](environment.md)), checks DNS in the nodes, waits until
+   the nodes are Ready and checks the pod network.
+2. Run `bash scripts/openbao-unseal.sh`. Every OpenBao pod that restarted is
    sealed (it cannot read its data); the script gives each pod 3 of its 5 key
    shares. See the [unseal runbook](runbooks/openbao-init-unseal.md).
-4. Run `bash scripts/test-gate.sh`. It checks Flux, OpenBao, PostgreSQL,
+3. Run `bash scripts/test-gate.sh`. It checks Flux, OpenBao, PostgreSQL,
    External Secrets and monitoring without changing anything, and ends with
    `GATE PASSED` or a list of failures.
 
 ## Known problem after a Codespace restart
 
 Docker can give the kind node containers different IP addresses after a
-Codespace restart. kindnet then hands out pod IPs from another node's range,
-DNS fails, and OpenBao crash-loops because it cannot reach PostgreSQL (risk
-R27). `scripts/resume.sh` checks this and runs
+Codespace restart. kindnet (kind's pod network) then hands out pod IPs from
+another node's range, DNS fails, and OpenBao crash-loops because it cannot
+reach PostgreSQL (risk R27). `scripts/resume.sh` checks this and runs
 [`scripts/kind-fix-pod-network.sh`](../scripts/kind-fix-pod-network.sh), which
 restarts kindnet and recreates the affected pods (it asks first).
 
 ## Monitoring and alerting
 
-What it is: Prometheus (namespace `monitoring`, layer `apps-monitoring`)
-collects numbers from the platform every 30 s and checks 8 alert rules.
-It scrapes (reads the numbers of) OpenBao (HTTPS, port 9101), the 3
-PostgreSQL instances (port 9187) and the External Secrets controller (HTTPS,
-port 8080), plus kube-state-metrics for pod and node state.
+Prometheus (namespace `monitoring`, layer `apps-monitoring`) collects numbers
+from the platform every 30 s and checks 8 alert rules. It scrapes (reads the
+numbers of) OpenBao (HTTPS, port 9101), the 3 PostgreSQL instances (port 9187)
+and the External Secrets controller (HTTPS, port 8080), plus
+kube-state-metrics for pod and node state. The failure tests showed problems
+nobody would notice, for example a sealed OpenBao (F3) or a lost node (F1);
+the alerts name them.
 
-Why we need it: the failure tests showed problems nobody would notice, for
-example a sealed OpenBao (F3) or a lost node (F1). The alerts name them.
-
-Design: [ADR 0007](adr/0007-monitoring.md). Full runbook with what to do for
-each alert: [`runbooks/monitoring.md`](runbooks/monitoring.md).
-
-The alerts:
+Design: [ADR 0007](adr/0007-monitoring.md). What to do for each alert:
+[`runbooks/monitoring.md`](runbooks/monitoring.md).
 
 | Alert | Fires when |
 | --- | --- |
@@ -81,28 +63,21 @@ The alerts:
 | BackupFailedOrTooOld | no successful backup for 26 h, or the last backup failed |
 | NodeNotReady | a node is not Ready for 2 min |
 
-Proof: on 2026-10-28, with OpenBao sealed (re-run of failure test F3),
-OpenBaoSealed fired after 2 min 22 s and reached Alertmanager
+On 2026-10-28, with OpenBao sealed (re-run of failure test F3), OpenBaoSealed
+fired after 2 min 22 s and reached Alertmanager
 ([`evidence/08-monitoring.txt`](evidence/08-monitoring.txt)).
 
-No receiver is configured: alerts are visible in the UIs (port-forward, see
-the [monitoring runbook](runbooks/monitoring.md)) and in
-`scripts/monitoring-check.sh`; nothing is sent. The OpenBao audit log goes to
-the pod log.
+No receiver is configured, so nothing is sent: someone has to look at the
+alerts in the UIs (port-forward, see the [monitoring runbook](runbooks/monitoring.md))
+or with `scripts/monitoring-check.sh` (risk R31). The OpenBao audit log goes
+to the pod log.
 
-Example: a smoke detector without a phone line. It beeps in the flat when
-there is smoke, but nobody outside hears it. Our alerts work the same way:
-someone has to look at them (risk R31).
-
-## What can go wrong
+## Common failures
 
 - `test-gate.sh` fails on "3 OpenBao pods Ready": the pods are sealed after a
   restart. Fix: `bash scripts/openbao-unseal.sh`.
-- OpenBao pods crash-loop and logs show they cannot reach PostgreSQL after a
-  Codespace restart: the pod network problem above (R27). Fix:
-  `bash scripts/resume.sh`.
 - `test-gate.sh` fails on the monitoring check: an alert is firing or a
-  target is down. Run `bash scripts/monitoring-check.sh` to see which, then
-  look up the alert in the [monitoring runbook](runbooks/monitoring.md).
+  target is down. `bash scripts/monitoring-check.sh` shows which; the
+  [monitoring runbook](runbooks/monitoring.md) says what to do.
 - An ExternalSecret is not Ready: `bash scripts/eso-debug.sh` shows the
   reason (often OpenBao sealed or unreachable).

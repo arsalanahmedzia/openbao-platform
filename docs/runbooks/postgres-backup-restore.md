@@ -1,11 +1,5 @@
 # Runbook: PostgreSQL backup and point-in-time restore
 
-## What it is
-
-PostgreSQL is the database where OpenBao saves all its data. This runbook
-shows how its backups are made, how to check them, and how to restore the
-database to an exact moment in the past.
-
 Cluster `databases/pg-openbao` (CloudNativePG) archives WAL continuously and
 takes a daily base backup through the Barman Cloud plugin into
 `s3://pg-backups/pg-openbao/` (ObjectStore `databases/pg-backups`, SeaweedFS).
@@ -13,13 +7,11 @@ Design: [ADR 0003](../adr/0003-cloudnativepg-ha.md), [ADR 0002](../adr/0002-in-c
 Tested on 2026-10-25, evidence in `docs/evidence/03-*.txt`.
 Words are explained in the [glossary](../glossary.md).
 
-## Why we need it
+If the data in PostgreSQL is lost, every secret in OpenBao is lost with it.
+The backups live in SeaweedFS inside the same cluster, so losing the
+Codespace loses the data and its backups together (risk R05).
 
-If the data in PostgreSQL is lost or damaged, every secret in OpenBao is lost
-with it. A backup that was never checked or restored may not work when it is
-needed, so the restore was tested (failure test F6).
-
-## The picture: backup and restore
+## How backup and restore work
 
 ```mermaid
 flowchart LR
@@ -40,11 +32,13 @@ the live cluster's backups). Example restore cluster:
 [`restore-example.yaml`](restore-example.yaml).
 
 Terms:
-- **Base backup**: full copy of the database files at one moment (`base/<id>/data.tar.gz`).
-- **WAL**: the log of every change, in 16 MB files (`wals/<timeline>/<file>.gz`).
-- **Point-in-time recovery (PITR)**: restore the newest base backup before the
-  target time, then replay WAL up to the target time.
-- **Timeline**: a number PostgreSQL increases at every promotion or PITR, so WAL
+- Base backup: full copy of the database files at one moment (`base/<id>/data.tar.gz`).
+- WAL: the log of every change, in 16 MB files (`wals/<timeline>/<file>.gz`).
+- Point-in-time recovery (PITR): restore the newest base backup before the
+  target time, then replay WAL up to the target time. Think of a photo of a
+  room taken every day at noon and a diary of every change: to see the room at
+  15:30 yesterday, take yesterday's noon photo and redo the diary up to 15:30.
+- Timeline: a number PostgreSQL increases at every promotion or PITR, so WAL
   histories that branched off each other are not mixed (`0000000N.history`).
 
 ## How it is set up
@@ -70,9 +64,7 @@ its instance manager (port 8000): `allow-instance-manager` in
 selects every CloudNativePG instance (`cnpg.io/podRole: instance`), not only
 `pg-openbao`.
 
-## Step by step
-
-### 1. Check backup health
+## 1. Check backup health
 
 ```bash
 kubectl cnpg status pg-openbao -n databases
@@ -89,14 +81,14 @@ Last Successful Backup:         <less than ~24h ago>
 ```
 
 and every Backup with `PHASE completed`. You can restore to any time between
-**First Point of Recoverability** and the **Last Archived WAL** time.
+First Point of Recoverability and the Last Archived WAL time.
 
 `Last Failed WAL: 0000000N.history` right after a failover is harmless: during
 promotion PostgreSQL first *looks up* the new timeline's history file in the
 archive and expects "does not exist". Confirm the file was then archived:
 `wals/0000000N.history.gz` in the bucket (step 3).
 
-### 2. Take an on-demand base backup
+## 2. Take an on-demand base backup
 
 Before risky changes (upgrades, migrations):
 
@@ -110,7 +102,7 @@ Expected: a new Backup `pg-openbao-<timestamp>` that goes to `PHASE completed`
 (about 15 s for a small database). This creates a Backup object outside Git;
 that is fine, it is a record of an action, not configuration.
 
-### 3. Look into the bucket
+## 3. Look into the bucket
 
 From a temporary pod with the AWS CLI and the PostgreSQL S3 credentials
 (delete it afterwards):
@@ -129,14 +121,14 @@ kubectl -n databases delete pod s3-list
 Expected: `pg-openbao/base/<id>/backup.info`, `pg-openbao/base/<id>/data.tar.gz`
 and a continuous series of `pg-openbao/wals/.../*.gz`.
 
-### 4. Point-in-time restore into a new cluster (tested)
+## 4. Point-in-time restore into a new cluster (tested)
 
 This restores into a **new** cluster `pg-restore` next to the running one, to
 inspect or recover data. The source cluster is not touched.
 
-1. **Choose the target time** (UTC, RFC3339, e.g. `2026-10-25T12:53:36Z`). It
+1. Choose the target time (UTC, RFC3339, e.g. `2026-10-25T12:53:36Z`). It
    must be after "First Point of Recoverability" (step 1).
-2. **If the source is still running**, make sure the WAL up to the target time
+2. If the source is still running, make sure the WAL up to the target time
    is archived: force a WAL file switch, then check step 1 again
    (`WALs waiting to be archived: 0`, Last Archived WAL time after the target):
 
@@ -147,10 +139,10 @@ inspect or recover data. The source cluster is not touched.
 
    Without this, changes from the last few minutes may still be only in the
    current WAL file (`archive_timeout` is 5 minutes).
-3. **Set the target** in `docs/runbooks/restore-example.yaml`
+3. Set the target in `docs/runbooks/restore-example.yaml`
    (`spec.bootstrap.recovery.recoveryTarget.targetTime`). This file is not in a
    Flux path, so Flux never creates it by itself.
-4. **Apply it by hand** and follow the recovery job (its log is deleted with the
+4. Apply it by hand and follow the recovery job (its log is deleted with the
    job after success, so watch it live if you want to keep it):
 
    ```bash
@@ -161,7 +153,7 @@ inspect or recover data. The source cluster is not touched.
    ```
 
    Expected after about 1-2 minutes: `pg-restore  1  1  Cluster in healthy state`.
-5. **Verify the data**:
+5. Verify the data:
 
    ```bash
    kubectl -n databases exec pg-restore-1 -c postgres -- psql -d openbao -c "SELECT ..."
@@ -171,7 +163,7 @@ inspect or recover data. The source cluster is not touched.
 
    Expected: data up to the target time, nothing after it; a timeline number
    one higher than the source's.
-6. **Clean up** when done (deletes the pod, its PVC and its Secrets; S3 and
+6. Clean up when done (deletes the pod, its PVC and its Secrets; S3 and
    `pg-openbao` are not touched):
 
    ```bash
@@ -182,7 +174,7 @@ inspect or recover data. The source cluster is not touched.
 The restored cluster has **no WAL archiving** on purpose: it must never write
 into `s3://pg-backups/pg-openbao/`, which belongs to the source cluster.
 
-### 5. Replace production with a restore (not tested)
+## 5. Replace production with a restore (not tested)
 
 Outline only; to be tested once OpenBao uses the database.
 
@@ -196,23 +188,7 @@ Outline only; to be tested once OpenBao uses the database.
    recovery bootstrap under the original name after deleting the old cluster.
 4. Take an on-demand backup of the new cluster (step 2) and start OpenBao.
 
-## Example
-
-A photo album and a diary. Every day at noon you take a photo of your room
-(the base backup), and you write down every change in a diary as it happens
-(the WAL). To see the room as it was yesterday at 15:30, you take yesterday's
-noon photo and redo the diary entries up to 15:30 (point-in-time recovery).
-
-## What can go wrong
-
-- Backups live in SeaweedFS inside the same cluster: losing the Codespace
-  loses the data and its backups together (risk R05).
-- The daily backup did not run while the Codespace was stopped; it runs as
-  soon as the cluster runs again (risk R06, seen on 2026-10-27).
-- A restore cluster hangs: the operator could not reach its instance manager
-  on port 8000 before failure test F6; the NetworkPolicy now allows every
-  CloudNativePG instance.
-- More symptoms with their cause and fix:
+## Troubleshooting
 
 | Symptom | Likely cause | Check / fix |
 | --- | --- | --- |

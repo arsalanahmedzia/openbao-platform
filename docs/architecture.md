@@ -3,32 +3,6 @@
 Details behind the README. Read the [README](../README.md) first.
 Words in this file are explained in the [glossary](glossary.md).
 
-## What it is
-
-This file explains how the platform is built from Git, where each part lives
-in the repository, and how secrets, certificates and network rules fit
-together. The README shows the running platform; this file shows what is
-underneath.
-
-## Why we need it
-
-The README is short on purpose. Without this file, a reader could not check
-why a part exists, in which folder it is, or who trusts whom.
-
-## Overview in one paragraph
-
-Flux applies this Git repository to the cluster in layers, each waiting for
-the one before: `flux-system` → `infra-controllers` → `infra-configs` →
-`infra-storage` → `apps-database` → `apps-openbao` → `apps-external-secrets`.
-`apps-monitoring` (Prometheus, Alertmanager, alert rules) only waits for
-`infra-controllers` and `infra-configs`. OpenBao runs as 3 pods in HA mode (one active, two standby) and stores its
-data in PostgreSQL. PostgreSQL is run by CloudNativePG with 3 instances and
-backs up to S3 on SeaweedFS. The External Secrets Operator syncs between
-OpenBao and Kubernetes Secrets in both directions (pull and push). Traefik is
-the HTTPS entry point. Prometheus scrapes OpenBao, PostgreSQL and the ESO
-controller and raises alerts (sealed OpenBao, failed syncs, unhealthy
-PostgreSQL, old backups, lost nodes).
-
 ## How it gets built
 
 ```mermaid
@@ -50,12 +24,7 @@ flowchart TB
 ```
 
 How to read it: an arrow from Flux points to what Flux acts on. An arrow
-between two layers means "the second layer waits until the first is healthy".
-`apps-monitoring` branches off after `infra-configs`: it waits only for
-`infra-controllers` and `infra-configs`, not for the database, OpenBao or
-secret-sync layers.
-
-Step by step:
+between two layers means the second layer waits until the first is healthy.
 
 1. You run `scripts/bootstrap.sh` once. It creates the kind cluster, stores
    the age key as the Secret `sops-age`, and installs Flux (`flux bootstrap`).
@@ -68,39 +37,30 @@ Step by step:
    ([`infrastructure.yaml`](../clusters/demo/infrastructure.yaml),
    [`apps.yaml`](../clusters/demo/apps.yaml)).
 4. `infra-controllers` installs the tools (cert-manager, Traefik,
-   CloudNativePG, External Secrets Operator), because every later layer uses
-   their object types.
-5. `infra-configs` creates the demo CA, because later layers need
-   certificates signed by it.
-6. `infra-storage` starts SeaweedFS, because PostgreSQL needs a place for its
-   backups.
-7. `apps-database` starts PostgreSQL, because OpenBao stores its data there.
-8. `apps-openbao` starts OpenBao, because ESO needs something to log in to.
+   CloudNativePG, External Secrets Operator). Every later layer uses their
+   object types.
+5. `infra-configs` creates the demo CA. Later layers need certificates signed
+   by it.
+6. `infra-storage` starts SeaweedFS, where PostgreSQL keeps its backups.
+7. `apps-database` starts PostgreSQL, where OpenBao stores its data.
+8. `apps-openbao` starts OpenBao, which ESO logs in to.
 9. `apps-external-secrets` creates the store and the pull and push examples.
 10. `apps-monitoring` starts Prometheus as soon as the tools and the demo CA
-    exist; it does not wait for steps 6 to 9.
+    exist. It does not wait for steps 6 to 9.
 
 Every layer has `wait: true`: Flux marks it Ready only when all its objects
 are healthy, and only then starts the next layer.
 
-Example: building a house. The foundation must set before the walls go up,
-and the walls must stand before the roof goes on. The garden fence only needs
-the plot and the surveyor's marks, so it can be built while the house is
-still going up; that is `apps-monitoring`.
+When a layer does not get Ready:
 
-What can go wrong:
-
-- A layer stays not Ready, and every layer after it waits. Check with
-  `flux get kustomizations`; the MESSAGE column says which object is not
-  healthy.
-- A fix is pushed, but nothing changes for many minutes. Cause: the layer is
-  still waiting for the old, broken version until its timeout (15 minutes for
-  `apps-monitoring`); seen during monitoring stage M1
-  ([`evidence/08-monitoring.txt`](evidence/08-monitoring.txt)).
-- On a fresh cluster two layers wait for each other. Example avoided in
-  [ADR 0007](adr/0007-monitoring.md): the ESO pod needed a certificate that
-  only the next layer creates; fixed with `install.disableWait` on the ESO
-  HelmRelease.
+- Every layer after it waits. `flux get kustomizations` shows which object is
+  not healthy in the MESSAGE column.
+- A pushed fix can take many minutes to apply: the layer keeps waiting for the
+  old, broken version until its timeout (15 minutes for `apps-monitoring`).
+  Seen during monitoring stage M1 ([`evidence/08-monitoring.txt`](evidence/08-monitoring.txt)).
+- On a fresh cluster two layers can wait for each other. [ADR 0007](adr/0007-monitoring.md)
+  avoids one case: the ESO pod needed a certificate that only the next layer
+  creates, so the ESO HelmRelease has `install.disableWait`.
 
 ## What is where in the repo
 
@@ -122,32 +82,25 @@ NetworkPolicies sit next to the things they protect: `networkpolicy.yaml` in `in
 `apps/database/`, `apps/openbao/` and `apps/external-secrets/`, and
 `external-secrets-networkpolicy.yaml` in `infrastructure/controllers/`.
 
-## How it runs: what the README picture leaves out
+## Not shown in the README picture
 
-The README picture ([`images/how-it-runs.png`](images/how-it-runs.png)) shows
-who calls whom while the platform runs. To keep it readable it leaves out:
+The README picture ([`images/how-it-runs.png`](images/how-it-runs.png)) leaves
+out three parts that also take part at run time:
 
-- cert-manager. It does not call OpenBao. It stores the certificates as
-  Secrets in the Kubernetes API (see "Certificates and who checks them" below).
-- The kubelet (the Kubernetes agent on each node). Pods do not call the
-  Kubernetes API for their certificates; the kubelet puts Secrets into the
-  pods as files.
-- The Barman Cloud plugin. The backups are sent by this plugin, which runs
-  inside each PostgreSQL pod.
-- Unseal, NetworkPolicies, SOPS + age and the daily backup schedule. They are
-  described below and in the runbooks.
+- cert-manager does not call OpenBao. It stores the certificates as Secrets in
+  the Kubernetes API.
+- The kubelet (the Kubernetes agent on each node) puts Secrets into the pods
+  as files. Pods do not call the Kubernetes API for their certificates.
+- The Barman Cloud plugin runs inside each PostgreSQL pod and sends the backups.
 
 Everything runs inside one kind cluster.
 
-## Secrets in Git: SOPS + age
+## Secrets in Git (SOPS and age)
 
-What it is: a few bootstrap secrets (passwords and keys the platform needs to
-start) are stored in Git, encrypted. SOPS encrypts only the values inside
-files named `*.sops.yaml`; age is the encryption tool, with one key pair.
-
-Why we need it: OpenBao cannot hand out the secrets it needs to start (its own
-database password). Without SOPS these secrets would have to be typed in by
-hand or stored in Git in plain text.
+OpenBao cannot hand out the secrets it needs to start, such as its own
+database password. These bootstrap secrets are stored in Git, encrypted:
+SOPS encrypts only the values inside files named `*.sops.yaml`, and age is the
+encryption tool, with one key pair.
 
 ```mermaid
 flowchart LR
@@ -169,8 +122,6 @@ flowchart LR
 
 How to read it: an arrow points from the one who acts to what it acts on.
 
-Step by step:
-
 1. You encrypt a file with `sops` before you commit it. SOPS uses the age
    public key from [`.sops.yaml`](../.sops.yaml), so anyone with the repo can
    encrypt.
@@ -183,8 +134,6 @@ Step by step:
    key from `sops-age`, decrypts the values and creates normal Kubernetes
    Secrets.
 
-The five encrypted Secrets:
-
 | File | Secret (namespace) | What it holds |
 | --- | --- | --- |
 | `infrastructure/configs/sops-demo.sops.yaml` | `sops-demo` (`default`) | A demo value, not used by anything |
@@ -193,28 +142,21 @@ The five encrypted Secrets:
 | `apps/database/pg-openbao-openbao.sops.yaml` | `pg-openbao-openbao` (`databases`) | Password of the PostgreSQL user `openbao` |
 | `apps/openbao/openbao-db.sops.yaml` | `openbao-db` (`openbao`) | OpenBao's database connection string with that password |
 
-Example: a letter box in a front door. Anyone can push a letter through the
-slot, but only the person with the key can open the box and read the
-letters. The age public key is the slot; the private key in `sops-age` is the
-key.
+The two keys work like a letter box in a front door: anyone can push a letter
+through the slot, but only the person with the key can open the box. The age
+public key is the slot; the private key in `sops-age` is the key.
 
-What can go wrong:
-
-- The age private key is lost: nobody can decrypt the five Secrets any more.
-  One key decrypts all of them (risk R19 in the
-  [risk assessment](risk-assessment.md)).
-- A new cluster without the Secret `sops-age`: the four decrypting layers
-  cannot create their Secrets. Fix: run `scripts/bootstrap.sh`, which creates
-  it. (Reasoning from the Flux settings; not tested.)
+If the age private key is lost, nobody can decrypt the five Secrets. One key
+decrypts all of them (risk R19 in the [risk assessment](risk-assessment.md)).
+A new cluster without the Secret `sops-age` cannot create them either; running
+`scripts/bootstrap.sh` creates it (reasoning from the Flux settings, not tested).
 
 ## Certificates and who checks them
 
-What it is: cert-manager creates a self-signed demo CA (a certificate
-authority: the one certificate that signs all others) and signs every TLS
-certificate with it.
-
-Why we need it: without certificates every connection to OpenBao would be
-unencrypted, and nobody could check that they talk to the real OpenBao.
+cert-manager creates a self-signed demo CA (the one certificate that signs all
+others) and signs every TLS certificate with it. Without certificates every
+connection to OpenBao would be unencrypted, and no client could check that it
+talks to the real OpenBao.
 
 ```mermaid
 flowchart TB
@@ -236,16 +178,12 @@ flowchart TB
 
 How to read it: an arrow points from the signer to what it signs.
 
-Step by step:
-
-1. The ClusterIssuer `selfsigned-bootstrap` signs one certificate, the CA
-   `demo-root-ca` (in [`infrastructure/configs/cert-manager-issuers.yaml`](../infrastructure/configs/cert-manager-issuers.yaml)).
-2. The ClusterIssuer `demo-ca` uses that CA to sign the four certificates
-   above. cert-manager stores each one in a Secret of the same name.
-3. Each client is given the CA (`ca.crt` from one of these Secrets) and
-   checks the server's certificate against it, as the table shows.
-
-Who checks which certificate against the demo CA:
+The ClusterIssuer `selfsigned-bootstrap` signs one certificate, the CA
+`demo-root-ca` (in [`infrastructure/configs/cert-manager-issuers.yaml`](../infrastructure/configs/cert-manager-issuers.yaml)).
+The ClusterIssuer `demo-ca` uses that CA to sign the other four. cert-manager
+stores each one in a Secret of the same name. Each client gets the CA
+(`ca.crt` from one of these Secrets) and checks the server's certificate
+against it:
 
 | Connection | Who checks | How |
 | --- | --- | --- |
@@ -256,32 +194,25 @@ Who checks which certificate against the demo CA:
 | OpenBao to PostgreSQL (5432) | nobody | Encrypted (`sslmode=require`) but not checked (risk R15); PostgreSQL uses CloudNativePG's own CA |
 | Prometheus to PostgreSQL metrics (9187) | nobody | Plain HTTP (known gap, risk R30) |
 
-Example: a passport. A government issues it, and a border officer accepts it
-because the officer trusts that government's stamp. The demo CA is the
-government; every client that was given `ca.crt` is a border officer who
-trusts it.
-
-What can go wrong:
+Problems seen with certificates:
 
 - curl fails with a certificate error for `openbao.demo.local`: it was not
   given the CA. Use `--cacert` with `ca.crt` from the Secret `openbao-tls`.
-- A certificate is renewed, but OpenBao still serves the old one: OpenBao
-  reads its certificate only at start, so the pods must be restarted one by
-  one (risk R12, runbook [openbao-init-unseal.md](runbooks/openbao-init-unseal.md)).
+- After a renewal OpenBao still serves the old certificate. OpenBao reads it
+  only at start, so restart the pods one by one (risk R12, runbook
+  [openbao-init-unseal.md](runbooks/openbao-init-unseal.md)).
 - Prometheus shows the ESO target down with a certificate error: the ESO
   controller fell back to a self-signed certificate (see
   [ADR 0007](adr/0007-monitoring.md) and [operations](operations.md)).
 
 ## Network rules (NetworkPolicies)
 
-What it is: a NetworkPolicy is a Kubernetes rule that says which pods may
-connect to which pods, on which port. In five namespaces every incoming
-connection is blocked unless a rule allows it: `storage`, `databases`,
-`openbao`, `external-secrets`, `eso-demo`.
-
-Why we need it: without these rules any pod in the cluster could connect to
-OpenBao, PostgreSQL or the backup storage (risk R10). Outgoing connections
-are not limited. The other namespaces have no rules.
+A NetworkPolicy is a Kubernetes rule that says which pods may connect to which
+pods, on which port. In five namespaces every incoming connection is blocked
+unless a rule allows it: `storage`, `databases`, `openbao`,
+`external-secrets`, `eso-demo`. Without these rules any pod in the cluster
+could connect to OpenBao, PostgreSQL or the backup storage (risk R10).
+Outgoing connections are not limited. The other namespaces have no rules.
 
 ```mermaid
 flowchart LR
@@ -320,35 +251,27 @@ flowchart LR
 ```
 
 How to read it: an arrow points from the one who connects to the one who
-accepts; the label is the allowed port. Nothing else may connect into these
-namespaces.
+accepts; the label is the allowed port.
 
-Step by step (what each rule allows, and why):
+What the ports are for:
 
-1. `default-deny-ingress` in each of the five namespaces blocks everything
-   coming in, so a new pod starts closed.
-2. OpenBao (8200) accepts Traefik (the HTTPS entry point), the ESO
-   controller (to sync secrets) and the other OpenBao pods; 8201 is
-   OpenBao's cluster port, where standbys forward requests to the active pod.
-3. PostgreSQL (5432) accepts OpenBao (its data) and the other PostgreSQL
-   instances (replication). Port 8000 is CloudNativePG's instance manager
-   (status and control of each PostgreSQL pod); it accepts the operator, the
-   other instances and the Kubernetes API server (for `kubectl cnpg status`).
-4. SeaweedFS (8333) accepts the PostgreSQL pods (backups) and the bucket job.
-5. The ESO webhook (10250) accepts the Kubernetes API server, which asks it
-   to check every new ESO object.
-6. The metrics ports (9101, 9187, 8080) accept only the Prometheus pod.
-7. Namespace `eso-demo` has no pods, so it has no allow rules.
+- `default-deny-ingress` in each of the five namespaces blocks everything
+  coming in, so a new pod starts closed. Namespace `eso-demo` has no pods, so
+  it has no allow rules.
+- 8201 is OpenBao's cluster port, where standbys forward requests to the
+  active pod.
+- 8000 is CloudNativePG's instance manager (status and control of each
+  PostgreSQL pod). The Kubernetes API server connects to it for
+  `kubectl cnpg status`.
+- 10250 is the ESO webhook. The Kubernetes API server asks it to check every
+  new ESO object.
+- The metrics ports 9101, 9187 and 8080 accept only the Prometheus pod.
 
 The rules live in the `networkpolicy.yaml` files listed in "What is where in
 the repo"; tested with `scripts/netpol-*.sh` (evidence in
 [`evidence/06-hardening.txt`](evidence/06-hardening.txt)).
 
-Example: an office building where every door is locked. Each room has a
-short list on the door saying whose badge may open it. Anyone not on the
-list stays outside, even if they are already in the building.
-
-What can go wrong:
+Problems seen with these rules:
 
 - `kubectl cnpg status` hangs: the API server comes from the kind node
   network, whose address range can change when the cluster is rebuilt (was
@@ -357,8 +280,6 @@ What can go wrong:
 - A restore cluster hangs: before failure test F6 the rule for port 8000
   covered only `pg-openbao`; it now covers every CloudNativePG instance
   (`cnpg.io/podRole: instance`).
-- A new pod in one of the five namespaces cannot be reached: that is the
-  default-deny rule working. Add an allow rule next to the others.
 
 ## Components and versions
 
@@ -388,16 +309,9 @@ All decisions are in [`adr/`](adr/):
 - [ADR 0005](adr/0005-external-secrets-openbao.md): External Secrets with one ClusterSecretStore, TLS on the OpenBao listener, Kubernetes auth, push/pull policies.
 - [ADR 0007](adr/0007-monitoring.md): monitoring with kube-prometheus-stack, metrics over verified TLS (OpenBao, ESO; PostgreSQL plain HTTP as a known gap), alert rules.
 
-## Words used
-
-S3 is a common way to store files over HTTP; SeaweedFS provides it inside the
-cluster. WAL (write-ahead log) is PostgreSQL's running record of every change;
-with the backups it allows a restore to any point in time. A service account
-is the identity a pod has in Kubernetes. More words: [glossary](glossary.md).
-
 ## Other diagrams
 
 - How it runs (who calls whom): [README](../README.md#in-60-seconds)
-- Starting and unsealing OpenBao: [runbooks/openbao-init-unseal.md](runbooks/openbao-init-unseal.md#the-picture-starting-and-unsealing-openbao)
-- How one sync works (ESO login, pull, push): [runbooks/external-secrets.md](runbooks/external-secrets.md#the-picture-how-one-sync-works)
-- Backup and restore: [runbooks/postgres-backup-restore.md](runbooks/postgres-backup-restore.md#the-picture-backup-and-restore)
+- Starting and unsealing OpenBao: [runbooks/openbao-init-unseal.md](runbooks/openbao-init-unseal.md#how-init-and-unseal-work)
+- How one sync works (ESO login, pull, push): [runbooks/external-secrets.md](runbooks/external-secrets.md#how-one-sync-works)
+- Backup and restore: [runbooks/postgres-backup-restore.md](runbooks/postgres-backup-restore.md#how-backup-and-restore-work)

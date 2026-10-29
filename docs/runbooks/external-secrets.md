@@ -1,28 +1,21 @@
 # Runbook: External Secrets with OpenBao
 
-## What it is
-
 External Secrets Operator (ESO) copies secrets between OpenBao and
 Kubernetes, in both directions. An ExternalSecret copies a value from OpenBao
 into a Kubernetes Secret (pull); a PushSecret copies a Kubernetes Secret into
-OpenBao (push).
+OpenBao (push). Apps read normal Kubernetes Secrets, not OpenBao,
+so without ESO every value would be copied by hand.
 
-External Secrets Operator (namespace `external-secrets`) syncs between OpenBao
-and Kubernetes through the ClusterSecretStore `openbao` (Flux layer
+ESO runs in namespace `external-secrets` and uses the ClusterSecretStore
+`openbao` (Flux layer
 `apps-external-secrets`, folder `apps/external-secrets/`). Design:
 [ADR 0005](../adr/0005-external-secrets-openbao.md). Tested on 2026-10-26,
 evidence in `docs/evidence/05-*.txt`.
 Words are explained in the [glossary](../glossary.md).
 
-## Why we need it
+## How one sync works
 
-Apps in Kubernetes read normal Kubernetes Secrets, not OpenBao. Without ESO
-someone would have to copy every value by hand, and a changed value in
-OpenBao would never reach the app.
-
-## The picture: how one sync works
-
-How one sync works, step by step (the ESO controller logs in again for every sync):
+The ESO controller logs in again for every sync.
 
 ```mermaid
 sequenceDiagram
@@ -61,12 +54,13 @@ policies in [`openbao/policies/`](../../openbao/policies/)). No root or static t
 Manifests: [`apps/external-secrets/`](../../apps/external-secrets/), layer
 `apps-external-secrets`.
 
-- **Pull**: `ExternalSecret eso-demo/hello` copies `secret/demo/hello` (field
+- Pull: `ExternalSecret eso-demo/hello` copies `secret/demo/hello` (field
   `message`) to the Secret `eso-demo/hello-from-openbao` every 30 s.
-- **Push**: `PushSecret eso-demo/push-demo` copies the demo Secret
+- Push: `PushSecret eso-demo/push-demo` copies the demo Secret
   `eso-demo/push-demo` to `secret/pushed/push-demo` (`updatePolicy: Replace`,
-  `deletionPolicy: Delete`).
-- **Least privilege**: the ESO login can read `secret/`, write only below
+  `deletionPolicy: Delete`). Deleting the PushSecret deletes the value and all
+  its versions in OpenBao (failure test F4, risk R21).
+- Least privilege: the ESO login can read `secret/`, write only below
   `secret/pushed/`; the refresh test changes values with a separate
   `demo-writer` login.
 
@@ -79,9 +73,7 @@ Objects:
 - `PushSecret eso-demo/push-demo` (push): Secret `eso-demo/push-demo` key
   `message` -> `secret/pushed/push-demo`.
 
-## Step by step
-
-### 1. Check the store
+## 1. Check the store
 
 ```bash
 kubectl get clustersecretstore openbao
@@ -100,7 +92,7 @@ If not, the condition message names the failing link:
 | `permission denied` on `auth/kubernetes/login` | role / service account mismatch | role `external-secrets` must bind `external-secrets/external-secrets` (`scripts/openbao-configure.sh`) |
 | `service account ... not found` | `serviceAccountRef` wrong | name and namespace in `clustersecretstore.yaml` |
 
-### 2. Debug a failing ExternalSecret or PushSecret
+## 2. Debug a failing ExternalSecret or PushSecret
 
 ```bash
 bash scripts/eso-debug.sh externalsecret hello
@@ -111,19 +103,19 @@ It shows the object's conditions, its events, the store status and the last
 ESO log lines for that object (ESO logs paths and errors, not values).
 Then:
 
-- **`403` / `permission denied` with a URL**: the OpenBao policy does not allow
+- `403` / `permission denied` with a URL: the OpenBao policy does not allow
   that path and operation. The URL shows which: `GET .../secret/data/...` =
   `read`, `PUT/POST` = `create`/`update`, `DELETE` = `delete`,
   `.../secret/metadata/...` = metadata rules. Remember: OpenBao uses only the
-  **most specific** matching path pattern, it does not combine
+  most specific matching path pattern, it does not combine
   `secret/data/*` with `secret/data/pushed/*`. Fix the file in
   `openbao/policies/`, commit, run `bash scripts/openbao-policy-update.sh`.
-- **Message that the secret or key was not found** (wording varies): the key
+- Message that the secret or key was not found (wording varies): the key
   does not exist in OpenBao (`remoteRef.key` is relative to the mount: `demo/hello`,
   not `secret/data/demo/hello`), or the `property` does not exist.
-- **Message about the namespace or the store's conditions** (wording not verified): the
+- Message about the namespace or the store's conditions (wording not verified): the
   ExternalSecret is in a namespace not listed in the store's `conditions`.
-- **PushSecret `secret not managed by external-secrets`**: a value already
+- PushSecret `secret not managed by external-secrets`: a value already
   exists at the target path without ESO's marker; ESO refuses to overwrite it
   on purpose. Choose another `remoteKey` or remove the existing value by hand.
 - Nothing in the logs and status `SecretSynced`, but the value is old: wait one
@@ -131,7 +123,7 @@ Then:
   `kubectl -n eso-demo annotate externalsecret hello force-sync=$(date +%s) --overwrite`
   (an annotation change triggers a reconcile; it is not a lasting change).
 
-### 3. Prove it end to end
+## 3. Prove it end to end
 
 ```bash
 bash scripts/eso-pull-check.sh       # pulled value = hello-from-openbao
@@ -140,7 +132,7 @@ bash scripts/eso-push-check.sh       # pushed value read back as the ESO login
 bash scripts/eso-evidence.sh         # everything incl. least privilege -> docs/evidence/05-external-secrets.txt
 ```
 
-### 4. After a Codespace restart
+## 4. After a Codespace restart
 
 OpenBao comes back sealed, so the store and the layer `apps-external-secrets`
 turn `False`; existing Kubernetes Secrets stay as they are.
@@ -155,7 +147,7 @@ bash scripts/openbao-unseal.sh
 kubectl get clustersecretstore openbao   # back to Valid / True within about a minute
 ```
 
-### 5. Certificate renewal of the OpenBao listener
+## 5. Certificate renewal of the OpenBao listener
 
 cert-manager renews `openbao-server-tls` 15 days before it expires (90 days).
 OpenBao keeps serving the certificate it loaded at start, so restart the pods
@@ -164,31 +156,10 @@ see [openbao-init-unseal.md](openbao-init-unseal.md), section 4. Check the
 dates with
 `kubectl -n openbao get certificate openbao-server-tls -o jsonpath='{.status.notAfter} {.status.renewalTime}{"\n"}'`.
 
-### 6. Add a new app secret (production pattern)
+## 6. Add a new app secret (production pattern)
 
 1. Store the value in OpenBao under a path the app's store may read (by a
    person or CI with its own login, never root).
 2. Add an `ExternalSecret` in the app's namespace (the namespace must be in the
    store's `conditions`) with `secretStoreRef` `ClusterSecretStore/openbao`.
 3. Commit; Flux applies it; check with `bash scripts/eso-debug.sh externalsecret <name>`.
-
-## Example
-
-A hotel guest card. At the front desk you show your passport (the service
-account token) and get a key card (the OpenBao token) that opens only your
-floor (the policies). The card stops working after a while (15 minutes), so
-the guest comes back to the desk for every visit, as ESO logs in again for
-every sync.
-
-## What can go wrong
-
-- Store not `Valid`, message contains `sealed` or `503`: OpenBao is sealed.
-  Fix: `bash scripts/openbao-unseal.sh` (section 1).
-- ExternalSecret not Ready with `403` / `permission denied`: the policy does
-  not allow that path; OpenBao uses only the most specific matching pattern.
-  Fix the file in `openbao/policies/`, then
-  `bash scripts/openbao-policy-update.sh` (section 2).
-- PushSecret fails with `secret not managed by external-secrets`: a value
-  without ESO's marker already exists at that path (section 2).
-- Deleting a PushSecret deletes the value and all versions in OpenBao
-  (`deletionPolicy: Delete`, failure test F4, risk R21).

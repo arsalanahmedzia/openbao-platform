@@ -19,8 +19,8 @@ metrics travel encrypted, and which alerts.
 
 ## Options
 
-**Stack**
-1. **kube-prometheus-stack** (chart 92.3.1): Prometheus Operator with the
+Stack
+1. kube-prometheus-stack (chart 92.3.1): Prometheus Operator with the
    resource types `PodMonitor`/`ServiceMonitor`/`PrometheusRule`, Prometheus,
    Alertmanager, kube-state-metrics.
 2. The plain `prometheus` chart (29.39.0): no operator, so no monitor or rule
@@ -28,21 +28,21 @@ metrics travel encrypted, and which alerts.
 3. VictoriaMetrics: less memory, but its own resource types (`VMServiceScrape`,
    `VMRule`), a second set of concepts. Not worth it for a few alerts.
 
-**Where the monitors and rules live**
-1. **All in `apps/monitoring/`**, pointing at the other namespaces with
+Where the monitors and rules live
+1. All in `apps/monitoring/`, pointing at the other namespaces with
    `namespaceSelector`.
 2. Next to each component (e.g. a PodMonitor in `apps/database/`): then those
    layers depend on the operator's CRDs and fail on a fresh cluster until
    monitoring is installed.
 
-**Metrics transport**
+Metrics transport
 1. Plain HTTP, protected only by a NetworkPolicy.
-2. **TLS where the component supports it, with a certificate Prometheus
-   verifies** (demo CA plus server name; never `insecureSkipVerify`).
+2. TLS where the component supports it, with a certificate Prometheus
+   verifies (demo CA plus server name; never `insecureSkipVerify`).
 
 ## Choice
 
-- **kube-prometheus-stack 92.3.1** (Prometheus v3.15.0, Alertmanager v0.34.1,
+- kube-prometheus-stack 92.3.1 (Prometheus v3.15.0, Alertmanager v0.34.1,
   operator v0.94.1, kube-state-metrics 2.20.0), Flux layer `apps-monitoring`
   (depends on `infra-controllers` and `infra-configs`). Off: Grafana,
   node-exporter, the chart's default rules, control-plane and kubelet/cAdvisor
@@ -54,15 +54,15 @@ metrics travel encrypted, and which alerts.
   `crds: CreateReplace` so chart upgrades update the CRDs;
   `*SelectorNilUsesHelmValues: false` so Prometheus picks up our monitors
   without Helm labels.
-- **All monitors and the PrometheusRule in `apps/monitoring/`.** PodMonitors,
+- All monitors and the PrometheusRule in `apps/monitoring/`. PodMonitors,
   not ServiceMonitors: no component needs an extra metrics Service.
-- **NetworkPolicies:** one new `allow-prometheus-metrics` per namespace
+- NetworkPolicies: one new `allow-prometheus-metrics` per namespace
   (openbao 9101, databases 9187, external-secrets 8080), only from the pod
   with label `app.kubernetes.io/name=prometheus` in namespace `monitoring`.
   They live in each namespace's own policy file, so each file stays the full
   list of what may enter that namespace, and no layer order problem arises on
   a fresh cluster. Existing policies are unchanged.
-- **OpenBao:** a second listener on port 9101 with `metrics_only` and
+- OpenBao: a second listener on port 9101 with `metrics_only` and
   `unauthenticated_metrics_access` (no token in Prometheus), HTTPS with the
   same demo-CA certificate as port 8200. Metrics are switched off on 8200
   (`disallow_metrics`), so they are not reachable through Traefik. Not 8202:
@@ -71,7 +71,7 @@ metrics travel encrypted, and which alerts.
   certificate). A PodMonitor can only read Secrets in its own namespace, so
   the CA comes from a small cert-manager Certificate `monitoring/prometheus-client`
   whose Secret contains `ca.crt`; the CA is never copied into Git.
-- **External Secrets:** controller metrics over HTTPS (`metrics.listen.secure`)
+- External Secrets: controller metrics over HTTPS (`metrics.listen.secure`)
   with a demo-CA certificate from `infrastructure/configs/`, mounted at
   `/etc/tls`. `certFile`/`keyFile` must be file names (`tls.crt`): the chart
   default (`/etc/tls/tls.crt`) is joined with `certDir` by controller-runtime,
@@ -80,7 +80,7 @@ metrics travel encrypted, and which alerts.
   (the pod needs a Secret that only the next layer creates). PodMonitor with
   `honorLabels: true`, so alerts name the ExternalSecret's namespace, not the
   controller's.
-- **CloudNativePG: plain HTTP on 9187 + NetworkPolicy (known gap, R30).**
+- CloudNativePG: plain HTTP on 9187 + NetworkPolicy (known gap, R30).
   CloudNativePG can serve metrics over TLS (`spec.monitoring.tls.enabled`),
   but only with PostgreSQL's own server certificate, signed by the operator's
   CA in Secret `databases/pg-openbao-ca`. That Secret also holds `ca.key`; a
@@ -91,10 +91,10 @@ metrics travel encrypted, and which alerts.
   certificate from cert-manager/demo CA (`spec.certificates.serverTLSSecret`,
   `serverCASecret`), then enable metrics TLS (switchover first); the same
   certificate would also allow OpenBao `sslmode=verify-full` (R15).
-- **Flux metrics: not collected.** Flux 2.x exposes the ready state of
+- Flux metrics: not collected. Flux 2.x exposes the ready state of
   Kustomizations/HelmReleases only through a kube-state-metrics custom
   resource configuration; `scripts/test-gate.sh` already checks Flux.
-- **Alerts** (`apps/monitoring/prometheusrule.yaml`, every metric name checked
+- Alerts (`apps/monitoring/prometheusrule.yaml`, every metric name checked
   in the real exporter output or the pinned version's docs, logic unit-tested
   with `promtool test rules`):
 
