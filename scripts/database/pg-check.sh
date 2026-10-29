@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 # pg-check.sh - checks that the PostgreSQL cluster pg-openbao is healthy and replicates.
+#
+# In plain words:
+#   PostgreSQL runs as 3 copies: one primary, which accepts writes, and two
+#   replicas, which copy every change from it and can take over. This script
+#   checks that this really works now, not only that the pods run.
+#
+#   It shows the CloudNativePG status, checks that 3 instances are ready, that
+#   the primary is the only copy not in recovery mode, and that both replicas
+#   receive the changes (streaming). Then it proves it with data: it writes
+#   one row on the primary into a test table in database postgres (not
+#   OpenBao's database), waits until both replicas have it, and checks that a
+#   write on a replica is refused. The test table is dropped at the end, also
+#   if the script fails.
+#
 # Run it: bash scripts/database/pg-check.sh (any time; after a failover or a restart)
 # Changes the cluster: yes: creates one test table in database postgres (not
 #   OpenBao's database openbao), writes one row and drops the table at the end.

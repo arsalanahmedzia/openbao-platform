@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 # storage-check.sh - checks that the backup storage (SeaweedFS S3) works.
+#
+# In plain words:
+#   The PostgreSQL backups go to SeaweedFS, which speaks S3 (a common way to
+#   store files over HTTP). If the storage does not work, there are no
+#   backups. This script checks it directly, the same way the backups use it.
+#
+#   It shows the SeaweedFS pod and its volume, checks that the job which
+#   created the bucket pg-backups finished, and then starts a temporary pod in
+#   namespace databases with the backup keys. That pod uploads a small file,
+#   downloads it again, compares both copies and deletes the file. It also
+#   counts the base backup and WAL files stored for pg-openbao. The temporary
+#   pod is deleted at the end, also if the script fails. The keys stay in the
+#   Secret and are never printed.
+#
 # Run it: bash scripts/database/storage-check.sh (any time; after storage or backup changes)
 # Changes the cluster: yes: starts one temporary pod in namespace databases,
 #   writes and deletes one test file in the bucket, then deletes the pod.

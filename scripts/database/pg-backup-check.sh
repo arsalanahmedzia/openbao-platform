@@ -1,5 +1,18 @@
 #!/usr/bin/env bash
 # pg-backup-check.sh - shows the backup schedule and the last backup, then takes a manual base backup.
+#
+# In plain words:
+#   PostgreSQL makes a full copy of its data (a base backup) every day at
+#   12:00 UTC and sends it to the S3 storage. This script shows whether that
+#   works: when the schedule last ran and will run next, how old the last good
+#   backup is, and the list of all backups. A backup that was missed while the
+#   Codespace was stopped runs late by itself (risk R06).
+#
+#   Then it takes one backup by hand and waits until it is completed, to prove
+#   the whole path works right now. That backup is the only thing it changes.
+#   Two NetworkPolicy tests run this script to prove that PostgreSQL can still
+#   reach the storage.
+#
 # Run it: bash scripts/database/pg-backup-check.sh (after a backup change; risk R06; netpol-test-storage.sh and netpol-test-databases.sh run it)
 # Changes the cluster: yes: takes one base backup of pg-openbao (a Backup object
 #   outside Git; a record of an action, not configuration). Prints no secrets.
