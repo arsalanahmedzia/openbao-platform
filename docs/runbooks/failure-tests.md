@@ -1,7 +1,7 @@
 # Runbook: failure tests
 
 Planned failures, run by hand on 2026-10-27, one at a time, with
-`bash scripts/test-gate.sh` before the first test and after every test.
+`bash scripts/checks/test-gate.sh` before the first test and after every test.
 Evidence: `docs/evidence/07-f<N>-*.txt`.
 
 | Test | What we broke | Result | Recovery time |
@@ -49,7 +49,7 @@ Different from the expectation:
 
 How to recover by hand: start the node (`docker start <node>`, or
 `bash scripts/resume.sh`), wait for `Ready`, then `bash scripts/openbao-unseal.sh`
-and `bash scripts/test-gate.sh`.
+and `bash scripts/checks/test-gate.sh`.
 
 What we would change in production:
 - Most of the outage is the time Kubernetes needs to declare a node dead

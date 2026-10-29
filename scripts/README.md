@@ -34,15 +34,15 @@ Check everything (read-only; includes monitoring: targets up, alert rules
 loaded, nothing firing; details in `docs/runbooks/monitoring.md`):
 
 ```bash
-bash scripts/test-gate.sh
-bash scripts/monitoring-check.sh
+bash scripts/checks/test-gate.sh
+bash scripts/checks/monitoring-check.sh
 ```
 
 ## Monitoring
 
 | Script | What it does | Changes the cluster? |
 | --- | --- | --- |
-| [`monitoring-check.sh`](monitoring-check.sh) | Health check of monitoring through port-forwards: every scrape target up/down, the 8 platform alert rules loaded and healthy, pending/firing alerts in Prometheus and Alertmanager. A firing alert is a FAIL. `--wait-firing <Alert> [minutes]` waits until that alert fires (for failure tests). | No |
+| [`monitoring-check.sh`](checks/monitoring-check.sh) | Health check of monitoring through port-forwards: every scrape target up/down, the 8 platform alert rules loaded and healthy, pending/firing alerts in Prometheus and Alertmanager. A firing alert is a FAIL. `--wait-firing <Alert> [minutes]` waits until that alert fires (for failure tests). | No |
 | [`monitoring-deploy-check.sh`](monitoring/monitoring-deploy-check.sh) | M1: reconciles the layer `apps-monitoring`, waits for Prometheus, Alertmanager, operator and kube-state-metrics to be Ready, checks the volume, shows memory requests/limits. | Flux reconcile only |
 | [`monitoring-openbao-metrics.sh`](monitoring/monitoring-openbao-metrics.sh) | M2: rolls out the OpenBao metrics listener (restarts and unseals the pods one by one via `openbao-tls-rollout.sh`), reads the metrics over HTTPS verified with the demo CA, checks plain HTTP and Traefik give no metrics, shows Prometheus' scrape config. | Yes: OpenBao pod restarts |
 | [`monitoring-cnpg-metrics.sh`](monitoring/monitoring-cnpg-metrics.sh) | M2: applies the PostgreSQL PodMonitor, reads the primary's metrics (port 9187), shows the metrics the alerts use (backup timestamps, replication). | Flux reconcile only |

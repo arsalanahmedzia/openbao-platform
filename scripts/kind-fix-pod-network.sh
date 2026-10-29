@@ -110,4 +110,4 @@ echo "==> 4. Check"
 LEFT=$(wrong_ip_pods)
 [[ -z "$LEFT" ]] && echo "all pods have IPs from their node's range" || { echo "still wrong:"; echo "$LEFT"; }
 echo
-echo "Next: bash scripts/openbao-unseal.sh, then bash scripts/test-gate.sh"
+echo "Next: bash scripts/openbao-unseal.sh, then bash scripts/checks/test-gate.sh"

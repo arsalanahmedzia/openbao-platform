@@ -93,7 +93,7 @@ Metrics transport
   certificate would also allow OpenBao `sslmode=verify-full` (R15).
 - Flux metrics: not collected. Flux 2.x exposes the ready state of
   Kustomizations/HelmReleases only through a kube-state-metrics custom
-  resource configuration; `scripts/test-gate.sh` already checks Flux.
+  resource configuration; `scripts/checks/test-gate.sh` already checks Flux.
 - Alerts (`apps/monitoring/prometheusrule.yaml`, every metric name checked
   in the real exporter output or the pinned version's docs, logic unit-tested
   with `promtool test rules`):
@@ -109,7 +109,7 @@ Metrics transport
   | NodeNotReady | node Ready condition not true | 2m |
 
   No Alertmanager receiver: alerts are visible in Prometheus and Alertmanager
-  and with `scripts/monitoring-check.sh`, nothing is sent.
+  and with `scripts/checks/monitoring-check.sh`, nothing is sent.
 
 ## Trade-offs
 

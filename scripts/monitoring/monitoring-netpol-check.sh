@@ -85,5 +85,5 @@ for ns in openbao databases external-secrets; do
 done
 
 echo
-(( FAILS == 0 )) && echo "$(ts) RESULT  M3 passed (now run bash scripts/test-gate.sh)" \
+(( FAILS == 0 )) && echo "$(ts) RESULT  M3 passed (now run bash scripts/checks/test-gate.sh)" \
   || { echo "$(ts) RESULT  M3: $FAILS check(s) failed"; exit 1; }

@@ -55,4 +55,4 @@ echo "==> 4. Memory requests / limits per container"
 kubectl -n "$NS" get pods -o custom-columns='POD:.metadata.name,CONTAINER:.spec.containers[*].name,MEM_REQ:.spec.containers[*].resources.requests.memory,MEM_LIMIT:.spec.containers[*].resources.limits.memory'
 
 echo
-(( FAILS == 0 )) && echo "$(ts) RESULT  M1 passed (now run bash scripts/test-gate.sh)" || { echo "$(ts) RESULT  M1: $FAILS check(s) failed"; exit 1; }
+(( FAILS == 0 )) && echo "$(ts) RESULT  M1 passed (now run bash scripts/checks/test-gate.sh)" || { echo "$(ts) RESULT  M1: $FAILS check(s) failed"; exit 1; }

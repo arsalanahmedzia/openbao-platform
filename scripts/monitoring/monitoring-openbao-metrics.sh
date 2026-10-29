@@ -142,5 +142,5 @@ else
 fi
 
 echo
-(( FAILS == 0 )) && echo "$(ts) RESULT  M2 OpenBao passed (now run bash scripts/test-gate.sh)" \
+(( FAILS == 0 )) && echo "$(ts) RESULT  M2 OpenBao passed (now run bash scripts/checks/test-gate.sh)" \
   || { echo "$(ts) RESULT  M2 OpenBao: $FAILS check(s) failed"; exit 1; }

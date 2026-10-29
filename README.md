@@ -49,7 +49,7 @@ bash scripts/bootstrap.sh            # once: kind cluster, SOPS key, Flux; Flux 
 bash scripts/openbao/openbao-init.sh         # once: creates OpenBao's 5 key shares and root token, stores them safely
 bash scripts/openbao-unseal.sh       # after every restart: unlocks (unseals) every OpenBao pod with 3 shares
 bash scripts/openbao/openbao-configure.sh    # once: secret storage, login for ESO, policies
-bash scripts/test-gate.sh            # read-only check of everything; ends with GATE PASSED
+bash scripts/checks/test-gate.sh            # read-only check of everything; ends with GATE PASSED
 ```
 
 All other commands and the full order: [`scripts/README.md`](scripts/README.md).

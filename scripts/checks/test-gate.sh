@@ -2,9 +2,9 @@
 # Test gate for the hardening stage: run after every change. Read-only: writes
 # no files, uses no OpenBao token, prints no secrets (only the demo values).
 # Checks Flux, OpenBao, PostgreSQL, External Secrets and monitoring
-# (scripts/monitoring-check.sh) and ends with
+# (scripts/checks/monitoring-check.sh) and ends with
 # "GATE PASSED" or a list of failures.
-#   bash scripts/test-gate.sh
+#   bash scripts/checks/test-gate.sh
 set -uo pipefail
 
 FAILS=()

@@ -51,7 +51,7 @@ phase() { kubectl -n "$NS" get cluster "$1" -o jsonpath='{.status.phase}' 2>/dev
 
 echo "==> 1. Start state"
 echo "live cluster: $(phase "$LIVE"), ready $(kubectl -n "$NS" get cluster "$LIVE" -o jsonpath='{.status.readyInstances}')"
-[[ "$(phase "$LIVE")" == *healthy* ]] || { echo "live cluster not healthy: run scripts/test-gate.sh first"; exit 1; }
+[[ "$(phase "$LIVE")" == *healthy* ]] || { echo "live cluster not healthy: run scripts/checks/test-gate.sh first"; exit 1; }
 kubectl -n "$NS" get cluster "$RESTORE" >/dev/null 2>&1 && { echo "$RESTORE already exists: delete it first"; exit 1; }
 echo "backups (SCHEDULED-BY empty = by hand or from Git):"
 kubectl -n "$NS" get backup --sort-by=.metadata.creationTimestamp \

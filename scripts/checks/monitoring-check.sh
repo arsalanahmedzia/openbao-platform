@@ -13,8 +13,8 @@
 #                curl http://127.0.0.1:19093/api/v2/alerts (what Alertmanager received)
 # A firing alert is a FAIL (something in the platform is broken).
 #
-#   bash scripts/monitoring-check.sh
-#   bash scripts/monitoring-check.sh --wait-firing OpenBaoSealed [minutes]
+#   bash scripts/checks/monitoring-check.sh
+#   bash scripts/checks/monitoring-check.sh --wait-firing OpenBaoSealed [minutes]
 #     waits until that alert fires (default up to 10 min), for failure tests:
 #     then a firing alert of that name is a PASS.
 set -uo pipefail

@@ -14,7 +14,7 @@
 #   externalsecret_/pushsecret_/clustersecretstore_status_condition
 #                                           ESO v2.14.0 docs + seen
 # No Alertmanager receiver is configured: alerts are visible in Prometheus and
-# Alertmanager (scripts/monitoring-check.sh), nothing is sent anywhere.
+# Alertmanager (scripts/checks/monitoring-check.sh), nothing is sent anywhere.
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:

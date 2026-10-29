@@ -70,7 +70,7 @@ trap cleanup EXIT
 
 echo "==> 1. Start state"
 echo "PushSecret push-demo: $(push_ready); value in OpenBao (as ESO login): $(pushed); Flux $KS suspended: $(suspended)"
-[[ "$(push_ready)" == True* && "$(pushed)" == pushed-from-kubernetes ]] || { echo "start state not as expected: run scripts/test-gate.sh first"; exit 1; }
+[[ "$(push_ready)" == True* && "$(pushed)" == pushed-from-kubernetes ]] || { echo "start state not as expected: run scripts/checks/test-gate.sh first"; exit 1; }
 
 read -r -p "This pauses Flux for $KS and deletes the PushSecret push-demo. Continue? [y/N] " answer
 [[ "$answer" == y || "$answer" == Y ]] || { echo "aborted, nothing changed"; exit 1; }

@@ -8,7 +8,7 @@
 #   - deploy keys of the repository (public keys: title, read-only, created)
 #   - branch protection on main
 # Calls only the GitHub API; does not touch the cluster.
-#   bash scripts/github-access-check.sh
+#   bash scripts/checks/github-access-check.sh
 set -euo pipefail
 
 REPO="${GITHUB_REPOSITORY:-$(gh repo view --json nameWithOwner -q .nameWithOwner)}"
