@@ -1,8 +1,29 @@
 #!/usr/bin/env bash
-# Run at the start of every work session, after the Codespace was stopped and started:
-#   bash scripts/after-restart/resume.sh
-# It restarts the kind node containers, re-adds the firewall rule that is lost on
-# restart (see docs/environment.md), checks DNS in the nodes and waits for Ready.
+# resume.sh - brings the kind cluster back after the Codespace was stopped and started.
+# Run it: bash scripts/after-restart/resume.sh (at the start of every work session after a Codespace restart)
+# Changes the cluster: yes: starts the node containers, re-adds a firewall rule,
+#   may fix DNS in the nodes, and runs the pod-network fix (which asks first).
+#
+# What it does:
+#   1. Starts the kind node containers and writes the kubeconfig.
+#        docker start <node containers> ; kind export kubeconfig --name openbao-platform
+#   2. Re-adds the firewall rule for the kind bridge that a restart removes
+#      (see docs/environment.md).
+#        sudo iptables-legacy -I FORWARD -i|-o br-<id> -j ACCEPT
+#   3. Sets the host's DNS server in a node that cannot resolve names.
+#        docker exec <node> getent hosts ghcr.io
+#   4. Waits until all nodes are Ready.
+#        kubectl wait --for=condition=Ready nodes --all --timeout=300s
+#   5. After 30 s, checks the pod network: node IPs can change on a restart
+#      (risk R27).
+#        bash "$(dirname "$0")/kind-fix-pod-network.sh"
+#
+# What you should see: "ok" for the firewall rule and DNS, the nodes Ready,
+#   "none: pod network is consistent" (or the fix), then "Cluster is back." and
+#   the reminder to unseal OpenBao.
+# If it fails: "No kind containers found" means the cluster does not exist;
+#   create it with scripts/setup/bootstrap.sh.
+# Needs: docker, kind, kubectl, jq, sudo (for iptables-legacy).
 set -euo pipefail
 
 CLUSTER=openbao-platform

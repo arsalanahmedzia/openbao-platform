@@ -1,31 +1,36 @@
 #!/usr/bin/env bash
-# Repairs the kind pod network after Docker gave the node containers different
-# IP addresses on a restart (seen 2026-10-28: every pod got an IP from another
-# node's range, DNS timed out, OpenBao crashed because it could not resolve
-# pg-openbao-rw).
+# kind-fix-pod-network.sh - repairs the kind pod network after the node containers got new IP addresses.
+# Run it: bash scripts/after-restart/kind-fix-pod-network.sh (resume.sh runs it; also by hand when DNS or pods fail after a restart)
+# Changes the cluster: yes: may restart kindnet and recreate pods, asks first
+#   before it recreates any pod. OpenBao pods come back sealed.
 #
 # What it does:
-#   1. For each node, compares the pod range kindnet hands out
-#      (/etc/cni/net.d/10-kindnet.conflist) with the node's podCIDR.
+#   1. For each node, compares the pod range kindnet hands out with the node's
+#      podCIDR. If any differ, restarts kindnet so it reads the current node IPs.
 #        docker exec <node> grep subnet /etc/cni/net.d/10-kindnet.conflist
-#        kubectl get nodes -o custom-columns=...PODCIDR:.spec.podCIDR
-#      If any differ: restarts kindnet so it reads the current node IPs.
+#        kubectl get node <node> -o jsonpath='{.spec.podCIDR}'
 #        kubectl -n kube-system rollout restart daemonset kindnet
-#   2. Lists pods whose IP is outside their node's podCIDR. None: done.
-#   3. Asks y/N, then recreates them in a safe order (a new pod gets a new IP):
-#      a. CoreDNS (names must resolve first)
-#      b. all other affected pods except databases and openbao
-#      c. all affected PostgreSQL pods TOGETHER (data stays on the volumes).
-#         Not one at a time: the CloudNativePG operator does not recreate a
-#         deleted instance while it cannot reach the others (wrong IPs), which
-#         deadlocked the first version of this script. A primary with a wrong
-#         IP can hang in Terminating while it tries to archive WAL to S3; the
-#         script then prints the force-delete command (it does not run it).
-#      d. the OpenBao pods (they come back SEALED)
-#        kubectl -n <ns> delete pod <pod>
-#   4. Reminds you to unseal and run the test gate.
-# Prints no secrets.
-#   bash scripts/after-restart/kind-fix-pod-network.sh
+#   2. Lists running pods whose IP is outside their node's podCIDR. None: done.
+#   3. Asks y/N, then recreates them in this order (a new pod gets a new IP):
+#      a. CoreDNS, so names resolve first.
+#           kubectl -n kube-system delete pod -l k8s-app=kube-dns
+#      b. All other affected pods except databases, openbao and kube-system.
+#      c. All affected PostgreSQL pods together, then waits up to 10 min for 3
+#         ready instances. One at a time deadlocks: the CloudNativePG operator does
+#         not recreate a deleted instance while it cannot reach the others. After
+#         4 min it prints the force-delete command for a pod stuck in Terminating
+#         (it does not run it).
+#      d. The OpenBao pods.
+#           kubectl -n openbao delete pod -l app.kubernetes.io/name=openbao,component=server --wait=false
+#   4. Checks again for pods with a wrong IP.
+#
+# What you should see: one line per node with both ranges, then "none: pod
+#   network is consistent", or after the fix "PostgreSQL healthy with 3
+#   instances" and "all pods have IPs from their node's range".
+# If it fails: a PostgreSQL pod stuck in Terminating: run the printed
+#   --grace-period=0 --force command. Afterwards: scripts/after-restart/openbao-unseal.sh
+#   and scripts/checks/test-gate.sh.
+# Needs: kind, docker, kubectl, jq. Prints no secrets.
 set -euo pipefail
 
 CLUSTER=openbao-platform

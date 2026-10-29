@@ -1,11 +1,27 @@
 #!/usr/bin/env bash
-# Step 4 of the OpenBao stage, and after every pod or Codespace restart:
-# unseals every sealed OpenBao pod with 3 of the 5 key shares.
-# Keys come from the Codespaces secret OPENBAO_UNSEAL_KEYS (JSON list) or, if
-# that is not set yet, from ~/openbao-init.json. They are passed to the pod
-# through stdin (`bao write sys/unseal key=-`), never printed and never on a
-# command line.
-#   bash scripts/after-restart/openbao-unseal.sh
+# openbao-unseal.sh - unseals every sealed OpenBao pod with 3 of the 5 key shares.
+# Run it: bash scripts/after-restart/openbao-unseal.sh (after every OpenBao pod or Codespace restart; safe to repeat)
+# Changes the cluster: yes: unseals sealed pods. Unsealed pods are skipped.
+#
+# What it does:
+#   1. Reads the key shares from the Codespaces secret OPENBAO_UNSEAL_KEYS (JSON
+#      list) or, if that is not set, from ~/openbao-init.json.
+#   2. For each pod, waits up to 3 minutes for an answer from bao status (right
+#      after a restart the pod or PostgreSQL may still be starting).
+#        kubectl -n openbao exec <pod> -- bao status -format=json
+#   3. Gives each sealed pod one share at a time through stdin, never on the
+#      command line or the screen, until it is unsealed.
+#        printf '%s' <share> | kubectl -n openbao exec -i <pod> -- bao write sys/unseal key=-
+#   4. Waits until all pods are Ready (readiness = unsealed) and shows their status.
+#        kubectl -n openbao wait pod -l app.kubernetes.io/name=openbao,component=server --for=condition=Ready --timeout=120s
+#
+# What you should see: "keys from: ...", then "<pod>: unsealed" or "already
+#   unsealed" per pod, and per pod "Sealed false" with "HA Mode active" for one
+#   pod and "standby" for the others.
+# If it fails: "not initialised" means run scripts/openbao/openbao-init.sh
+#   first; "no answer from bao status after 3 minutes" shows the last error
+#   (pod starting, or PostgreSQL not ready).
+# Needs: kubectl, jq, OPENBAO_UNSEAL_KEYS or ~/openbao-init.json.
 set -euo pipefail
 
 NS=openbao
