@@ -11,7 +11,7 @@ problem after a Codespace restart, and the alerts. Words are explained in the
 | [`scripts/after-restart/resume.sh`](../scripts/after-restart/resume.sh) | After a Codespace restart: starts the nodes, fixes the network, checks the pod network |
 | [`scripts/after-restart/openbao-unseal.sh`](../scripts/after-restart/openbao-unseal.sh) | After every OpenBao pod restart (pods start sealed) |
 | [`scripts/checks/test-gate.sh`](../scripts/checks/test-gate.sh) | Is everything OK? Read-only check of Flux, OpenBao, PostgreSQL, External Secrets and monitoring |
-| [`scripts/checks/monitoring-check.sh`](../scripts/checks/monitoring-check.sh) | Read-only: all scrape targets up, alert rules loaded, which alerts are pending or firing |
+| [`scripts/monitoring/monitoring-check.sh`](../scripts/monitoring/monitoring-check.sh) | Read-only: all scrape targets up, alert rules loaded, which alerts are pending or firing |
 | [`scripts/external-secrets/eso-debug.sh`](../scripts/external-secrets/eso-debug.sh) | Why is an ExternalSecret or PushSecret not Ready? |
 | `scripts/failure-tests/failure-f1-worker.sh` … `scripts/failure-tests/failure-f6-restore.sh` | One failure test each; asks before it breaks anything and puts everything back at the end |
 
@@ -69,7 +69,7 @@ fired after 2 min 22 s and reached Alertmanager
 
 No receiver is configured, so nothing is sent: someone has to look at the
 alerts in the UIs (port-forward, see the [monitoring runbook](runbooks/monitoring.md))
-or with `scripts/checks/monitoring-check.sh` (risk R31). The OpenBao audit log goes
+or with `scripts/monitoring/monitoring-check.sh` (risk R31). The OpenBao audit log goes
 to the pod log.
 
 ## Common failures
@@ -77,7 +77,7 @@ to the pod log.
 - `test-gate.sh` fails on "3 OpenBao pods Ready": the pods are sealed after a
   restart. Fix: `bash scripts/after-restart/openbao-unseal.sh`.
 - `test-gate.sh` fails on the monitoring check: an alert is firing or a
-  target is down. `bash scripts/checks/monitoring-check.sh` shows which; the
+  target is down. `bash scripts/monitoring/monitoring-check.sh` shows which; the
   [monitoring runbook](runbooks/monitoring.md) says what to do.
 - An ExternalSecret is not Ready: `bash scripts/external-secrets/eso-debug.sh` shows the
   reason (often OpenBao sealed or unreachable).

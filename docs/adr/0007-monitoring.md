@@ -109,7 +109,7 @@ Metrics transport
   | NodeNotReady | node Ready condition not true | 2m |
 
   No Alertmanager receiver: alerts are visible in Prometheus and Alertmanager
-  and with `scripts/checks/monitoring-check.sh`, nothing is sent.
+  and with `scripts/monitoring/monitoring-check.sh`, nothing is sent.
 
 ## Trade-offs
 

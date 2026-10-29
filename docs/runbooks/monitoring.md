@@ -37,7 +37,7 @@ configured: alerts are only visible, nothing is sent.
 ## 2. Check everything
 
 ```bash
-bash scripts/checks/monitoring-check.sh
+bash scripts/monitoring/monitoring-check.sh
 ```
 
 Read-only. Expected: `PASS all 13 targets up`, 8 × `PASS rule ... health ok`,
@@ -135,7 +135,7 @@ Done on 2026-10-28 (M6): the sealed test with a longer sealed time.
 
 ```bash
 # terminal 1 (watches, read-only)
-bash scripts/checks/monitoring-check.sh --wait-firing OpenBaoSealed 8
+bash scripts/monitoring/monitoring-check.sh --wait-firing OpenBaoSealed 8
 # terminal 2 (breaks and repairs; asks y/N)
 F3_WATCH_ROUNDS=16 F3_OUT=docs/evidence/08-m6-f3-sealed.txt bash scripts/failure-tests/failure-f3-sealed.sh
 ```
@@ -147,10 +147,10 @@ one alert per pod, received by Alertmanager; gone after the unseal.
 
 - One Prometheus and one Alertmanager replica; all monitoring pods ran on one
   node. If that node fails, monitoring stops (R31).
-- No receiver: nobody is notified. Look with `scripts/checks/monitoring-check.sh`.
+- No receiver: nobody is notified. Look with `scripts/monitoring/monitoring-check.sh`.
 - Retention 2 days (max 1 GB on a 2 Gi volume).
 - PostgreSQL metrics are plain HTTP (R30). Flux is not monitored here
   (`scripts/checks/test-gate.sh` checks it).
 - A new or changed alert rule shows "not loaded" right after a change: the
-  rules need up to 1-2 minutes to reach Prometheus; `scripts/checks/monitoring-check.sh`
+  rules need up to 1-2 minutes to reach Prometheus; `scripts/monitoring/monitoring-check.sh`
   waits for them.

@@ -36,7 +36,7 @@ loaded, nothing firing; details in `docs/runbooks/monitoring.md`):
 
 ```bash
 bash scripts/checks/test-gate.sh
-bash scripts/checks/monitoring-check.sh
+bash scripts/monitoring/monitoring-check.sh
 ```
 
 ## Folders
@@ -65,7 +65,6 @@ bash scripts/checks/monitoring-check.sh
 | Script | What it does | Changes |
 | --- | --- | --- |
 | [`test-gate.sh`](checks/test-gate.sh) | Checks Flux, OpenBao, PostgreSQL, External Secrets and monitoring; ends with `GATE PASSED` | nothing (asks Flux to fetch Git) |
-| [`monitoring-check.sh`](checks/monitoring-check.sh) | Health check of monitoring through port-forwards: every scrape target up/down, the 8 platform alert rules loaded and healthy, pending/firing alerts in Prometheus and Alertmanager. A firing alert is a FAIL. `--wait-firing <Alert> [minutes]` waits until that alert fires (for failure tests). | nothing |
 | [`github-access-check.sh`](checks/github-access-check.sh) | Shows token types, scopes, deploy keys and branch protection through the GitHub API | nothing |
 
 ### openbao/
@@ -101,7 +100,15 @@ bash scripts/checks/monitoring-check.sh
 | [`pg-check.sh`](database/pg-check.sh) | Checks 3 ready instances, the roles, streaming to both replicas, and that a row written on the primary reaches every replica | a test table in database `postgres`, dropped again |
 | [`storage-check.sh`](database/storage-check.sh) | Checks SeaweedFS, the bucket job and an S3 round trip from namespace `databases`; counts the backup files | a temporary pod and test file, deleted again |
 
-### monitoring/ (setup checks for the monitoring stage)
+### monitoring/
+
+Daily, read-only (`test-gate.sh` also runs it):
+
+| Script | What it does | Changes |
+| --- | --- | --- |
+| [`monitoring-check.sh`](monitoring/monitoring-check.sh) | Health check of monitoring through port-forwards: every scrape target up/down, the 8 platform alert rules loaded and healthy, pending/firing alerts in Prometheus and Alertmanager. A firing alert is a FAIL. `--wait-firing <Alert> [minutes]` waits until that alert fires (for failure tests). | nothing |
+
+Run these again only when you change that part of monitoring (they were written for the stages M1 to M3):
 
 | Script | What it does | Changes |
 | --- | --- | --- |
@@ -148,10 +155,10 @@ in `docs/evidence/` are recorded outputs and keep the old paths. Each old path
 | --- | --- |
 | `setup/` | install-tools, bootstrap, kind-config.yaml, pin-versions, s3-secrets, openbao-db-secret, sops-demo |
 | `after-restart/` | resume, kind-fix-pod-network, openbao-unseal |
-| `checks/` | test-gate, monitoring-check, github-access-check |
+| `checks/` | test-gate, github-access-check |
 | `openbao/` | openbao-deploy-check, openbao-init, openbao-configure, openbao-policy-update, openbao-tls-rollout, openbao-audit-check, openbao-evidence, openbao-generate-root, openbao-revoke-root |
 | `external-secrets/` | eso-store-check, eso-pull-check, eso-refresh-test, eso-push-check, eso-evidence, eso-debug |
 | `database/` | pg-backup-check (new on 2026-10-29: pg-check, storage-check) |
-| `monitoring/` | monitoring-deploy-check, monitoring-openbao-metrics, monitoring-cnpg-metrics, monitoring-eso-metrics, monitoring-netpol-check |
+| `monitoring/` | monitoring-check, monitoring-deploy-check, monitoring-openbao-metrics, monitoring-cnpg-metrics, monitoring-eso-metrics, monitoring-netpol-check |
 | `hardening/` | netpol-enforcement-test, netpol-test-storage, netpol-test-databases, netpol-test-openbao, netpol-test-external-secrets, netpol-test-eso-demo |
 | `failure-tests/` | failure-f1-worker … failure-f6-restore, openbao-failover-test |

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # monitoring-check.sh - read-only health check of monitoring: targets, alert rules, alerts.
-# Run it: bash scripts/checks/monitoring-check.sh (any time; test-gate.sh runs it)
-#         bash scripts/checks/monitoring-check.sh --wait-firing OpenBaoSealed [minutes]
+# Run it: bash scripts/monitoring/monitoring-check.sh (any time; test-gate.sh runs it)
+#         bash scripts/monitoring/monitoring-check.sh --wait-firing OpenBaoSealed [minutes]
 #         (for failure tests: waits until that alert fires, default up to 10 min;
 #         a firing alert of that name is then a PASS)
 # Changes the cluster: no. It opens two port-forwards and closes them at the end.
