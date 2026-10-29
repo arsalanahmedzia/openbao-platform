@@ -3,7 +3,7 @@
 # shows it, shows the age of the last successful base backup, then takes a
 # manual base backup (same command as docs/runbooks/postgres-backup-restore.md)
 # and waits until it is completed. Prints no secrets.
-#   bash scripts/pg-backup-check.sh
+#   bash scripts/database/pg-backup-check.sh
 set -euo pipefail
 
 NS=databases

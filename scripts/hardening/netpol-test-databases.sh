@@ -53,7 +53,7 @@ echo "--- kubectl cnpg status (API server -> instance manager :8000) and replica
 kubectl cnpg status pg-openbao -n databases |
   sed -n -e '/^Status:/p' -e '/^Ready instances:/p' -e '/Streaming Replication status/,/^$/p' -e '/Instances status/,/^$/p'
 echo "--- base backup (operator -> instance manager :8000, plugin -> S3)"
-bash scripts/pg-backup-check.sh | sed -n '/Manual base backup/,$p'
+bash scripts/database/pg-backup-check.sh | sed -n '/Manual base backup/,$p'
 echo "--- OpenBao (uses PostgreSQL)"
 kubectl -n openbao get pods -L openbao-active,openbao-sealed
 

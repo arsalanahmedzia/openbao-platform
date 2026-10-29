@@ -40,7 +40,7 @@ kubectl -n storage get pods -l app.kubernetes.io/name=seaweedfs
 
 echo
 echo "==> Real path: base backup through the Barman plugin"
-bash scripts/pg-backup-check.sh | sed -n '/Manual base backup/,$p'
+bash scripts/database/pg-backup-check.sh | sed -n '/Manual base backup/,$p'
 
 echo
 (( FAILS == 0 )) && echo "RESULT: storage policies work as intended" || { echo "RESULT: $FAILS check(s) failed"; exit 1; }
