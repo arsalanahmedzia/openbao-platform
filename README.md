@@ -150,14 +150,14 @@ All other commands and the full order: [`scripts/README.md`](scripts/README.md).
 
 ## What was tested
 
-| Test | What was broken | Result |
-| --- | --- | --- |
-| F1 | A worker node with the active OpenBao pod and the PostgreSQL primary | OpenBao answered again through a standby after 76 s; the restarted pod came back sealed. |
-| F2 | The PostgreSQL primary pod | A replica took over after 187 s; OpenBao writes failed for only about 4-6 s. |
-| F3 | All 3 OpenBao pods restarted, so they were sealed | The Kubernetes Secret kept its value, and ESO recovered by itself 16 s after the unseal. |
-| F4 | The PushSecret, deleted while Flux was paused | The value was deleted in OpenBao; Flux recreated the PushSecret and the value was back 2 s after Flux resumed. |
-| F5 | The ESO controller pod | A new pod logged in with new tokens and synced after 6 s; the Secret was untouched. |
-| F6 | Point-in-time restore into a new cluster | The restore was exact to the target time; the cluster was healthy after 71 s. |
+| Test | What was broken | Result | Evidence |
+| --- | --- | --- | --- |
+| F1 | A worker node with the active OpenBao pod and the PostgreSQL primary | OpenBao answered again through a standby after 76 s; the restarted pod came back sealed. | [07-f1-worker-node.txt](docs/evidence/07-f1-worker-node.txt) |
+| F2 | The PostgreSQL primary pod | A replica took over after 187 s; OpenBao writes failed for only about 4-6 s. | [07-f2-postgres.txt](docs/evidence/07-f2-postgres.txt) |
+| F3 | All 3 OpenBao pods restarted, so they were sealed | The Kubernetes Secret kept its value, and ESO recovered by itself 16 s after the unseal. | [07-f3-sealed.txt](docs/evidence/07-f3-sealed.txt) |
+| F4 | The PushSecret, deleted while Flux was paused | The value was deleted in OpenBao; Flux recreated the PushSecret and the value was back 2 s after Flux resumed. | [07-f4-pushsecret.txt](docs/evidence/07-f4-pushsecret.txt) |
+| F5 | The ESO controller pod | A new pod logged in with new tokens and synced after 6 s; the Secret was untouched. | [07-f5-eso-restart.txt](docs/evidence/07-f5-eso-restart.txt) |
+| F6 | Point-in-time restore into a new cluster | The restore was exact to the target time; the cluster was healthy after 71 s. | [07-f6-restore.txt](docs/evidence/07-f6-restore.txt) |
 
 Details, timelines and evidence: [`docs/runbooks/failure-tests.md`](docs/runbooks/failure-tests.md).
 
