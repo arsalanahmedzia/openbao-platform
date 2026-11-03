@@ -13,5 +13,8 @@ Time spent per task, recorded as the work happened.
 | 2026-10-27 to 2026-10-28 | Failure tests | F1 worker node, F2 PostgreSQL primary, F3 sealed OpenBao, F4 PushSecret delete, F5 ESO restart, F6 point-in-time restore; pod-network repair after a Codespace restart; failure-test runbook and scripts | |
 | 2026-10-28 | Docs | README sections, risk assessment update | |
 | 2026-10-28 | Monitoring | kube-prometheus-stack layer; metrics from OpenBao (TLS listener 9101), PostgreSQL, ESO (TLS); NetworkPolicies for Prometheus; 8 alert rules (promtool-tested); check script; alert proven with an F3 re-run; runbook, ADR 0007, risk update | |
+| 2026-10-29 | Scripts | Scripts sorted into folders, one header format with a plain explanation, new PostgreSQL, S3 and Traefik checks, test gate shows why the monitoring check failed | |
+| 2026-10-29 | Docs | README overview, request/response tables, mermaid diagram, production readiness | |
+| 2026-11-03 | Docs | ADR 0006 (security hardening), README, operations, architecture and scripts README shortened | |
 
 **Total:** _TODO_
