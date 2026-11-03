@@ -4,9 +4,19 @@ A Kubernetes platform that stores and hands out secrets safely. It is built
 from this Git repository, has a highly available database, backups and
 monitoring.
 
+**How this README is organised**
+1. [Overview](#overview): what the platform does and why.
+2. [How the components talk to each other](#how-the-components-talk-to-each-other): who sends what to whom.
+3. [Try it](#try-it): the commands to build and check it.
+4. [What was tested](#what-was-tested): what happened when things were broken on purpose.
+5. [Production readiness](#production-readiness): what is demo-only and what a real setup needs.
+6. [Further](#further): links to the other documents.
+
+Words are explained in the [glossary](docs/glossary.md). Design decisions are in [`docs/adr/`](docs/adr/), step-by-step guides in [`docs/runbooks/`](docs/runbooks/), the recorded output of every test in [`docs/evidence/`](docs/evidence/).
+
 ## Overview
 
-Applications need secrets such as database passwords and API keys. If those sit in config files, in Git or in environment variables, anyone who can read those files can read the secrets, and changing one means editing every place that uses it. This platform keeps them in one place, OpenBao, where each client gets only the secrets its policy allows and access can be logged. Applications on Kubernetes receive them through External Secrets Operator as ordinary Kubernetes Secrets, so they need no OpenBao code. Because the secrets are the most sensitive data in the system, OpenBao and its database run as several copies with daily backups.
+Technical words are explained in the [glossary](docs/glossary.md). Applications need secrets such as database passwords and API keys. If those sit in config files, in Git or in environment variables, anyone who can read those files can read the secrets, and changing one means editing every place that uses it. This platform keeps them in one place, OpenBao, where each client gets only the secrets its policy allows and access can be logged. Applications on Kubernetes receive them through External Secrets Operator as ordinary Kubernetes Secrets, so they need no OpenBao code. Because the secrets are the most sensitive data in the system, OpenBao and its database run as several copies with daily backups.
 
 It is made of these components:
 
@@ -135,9 +145,9 @@ bash scripts/verify/test-gate.sh               # read-only check of everything; 
 
 All other commands and the full order: [`scripts/README.md`](scripts/README.md).
 
-## What we tested
+## What was tested
 
-| Test | What we broke | Result |
+| Test | What was broken | Result |
 | --- | --- | --- |
 | F1 | A worker node with the active OpenBao pod and the PostgreSQL primary | OpenBao answered again through a standby after 76 s; the restarted pod came back sealed. |
 | F2 | The PostgreSQL primary pod | A replica took over after 187 s; OpenBao writes failed for only about 4-6 s. |
