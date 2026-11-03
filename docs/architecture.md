@@ -302,6 +302,7 @@ All decisions are in [`adr/`](adr/):
 - [ADR 0003](adr/0003-cloudnativepg-ha.md): HA PostgreSQL with CloudNativePG, backups through the Barman Cloud plugin.
 - [ADR 0004](adr/0004-openbao-ha-postgresql.md): OpenBao HA on PostgreSQL, manual Shamir unseal, TLS at Traefik.
 - [ADR 0005](adr/0005-external-secrets-openbao.md): External Secrets with one ClusterSecretStore, TLS on the OpenBao listener, Kubernetes auth, push/pull policies.
+- [ADR 0006](adr/0006-security-hardening.md): security hardening: backup time, audit log, root-token scripts, default-deny NetworkPolicies; prune protection decided against.
 - [ADR 0007](adr/0007-monitoring.md): monitoring with kube-prometheus-stack, metrics over verified TLS (OpenBao, ESO; PostgreSQL plain HTTP as a known gap), alert rules.
 
 ## Other diagrams

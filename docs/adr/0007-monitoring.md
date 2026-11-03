@@ -2,8 +2,6 @@
 
 - Status: accepted
 - Date: 2026-10-28
-- Number: 0006 is taken by the security-hardening decisions (referenced in the
-  NetworkPolicy files; the document itself is not written yet).
 
 ## Problem
 
