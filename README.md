@@ -165,17 +165,17 @@ Details, timelines and evidence: [`docs/runbooks/failure-tests.md`](docs/runbook
 
 | Topic | Demo | Production |
 | --- | --- | --- |
-| Access | Kubernetes auth with least-privilege policies (done) | Same |
-| TLS | Self-signed demo CA through cert-manager | Company CA or ACME |
-| Secrets in Git | SOPS + age (done); the age key is a Codespaces secret | age key in a KMS or an external secret manager |
-| Root token | Used for init and configuration; still valid, revoke with `scripts/openbao/openbao-revoke-root.sh` | Break-glass only, generated when needed and revoked again |
-| NetworkPolicies | Default-deny ingress in `storage`, `databases`, `openbao`, `external-secrets`, `eso-demo` (done); the metrics ports are open only to the Prometheus pod. No egress policies. No policies in the other namespaces | Ingress and egress policies in every namespace |
-| Audit | OpenBao audit device to stdout (the pod log) | Audit log shipped to a log system |
-| Monitoring and alerting | Prometheus and Alertmanager (1 replica each), 8 alerts (seal status, ESO sync and store, PostgreSQL health, backup age, nodes); no receiver, alerts are only visible; 2 days of metrics; PostgreSQL metrics unencrypted (R30, R31) (done) | 2 replicas, a receiver (mail/on-call), longer retention, dashboards; also certificate-expiry alerts |
-| Unseal | Shamir: 5 key shares, threshold 3, manual `scripts/after-restart/openbao-unseal.sh` after every pod restart | Auto-unseal with a cloud KMS or an HSM |
-| Unseal keys | All shares in one Codespaces secret (and `~/openbao-init.json`) | Shares split between different people, never in one place |
-| Backup storage | SeaweedFS inside the same cluster: losing the Codespace loses the data and its backups | S3 outside the cluster, in another region or account |
-| Cluster | One kind cluster in one Codespace (4 node containers on one VM); high availability covers only failures of pods and node containers | Several nodes in several zones |
+| Access | Kubernetes auth with least-privilege policies. | Same. |
+| TLS | Self-signed demo CA through cert-manager. | Company CA or ACME. |
+| Secrets in Git | SOPS + age, with the age key stored as a Codespaces secret. | age key in a KMS or an external secret manager. |
+| Root token | Still valid after init and configuration; revoke it with `scripts/openbao/openbao-revoke-root.sh`. | Break-glass only: generated when needed and revoked again. |
+| NetworkPolicies | Default-deny ingress in `storage`, `databases`, `openbao`, `external-secrets` and `eso-demo`, with the metrics ports open only to Prometheus; no egress rules and no rules in other namespaces. | Ingress and egress rules in every namespace. |
+| Audit | OpenBao audit device to stdout, so the audit log lives only as long as the pod log. | Audit log shipped to a log system. |
+| Monitoring and alerting | One Prometheus and one Alertmanager with 8 alert rules but no receiver, so alerts are only visible and nobody is notified ([limits](docs/runbooks/monitoring.md#limits)). | 2 replicas, a receiver (mail or on-call), longer retention, dashboards and certificate-expiry alerts. |
+| Unseal | 3 of 5 Shamir key shares entered with `scripts/after-restart/openbao-unseal.sh` after every pod restart. | Auto-unseal with a cloud KMS or an HSM. |
+| Unseal keys | All shares in one Codespaces secret and in `~/openbao-init.json`. | Shares split between different people, never in one place. |
+| Backup storage | SeaweedFS inside the same cluster, so losing the Codespace loses the data and its backups. | S3 outside the cluster, in another region or account. |
+| Cluster | One kind cluster in one Codespace (4 node containers on one VM), so high availability covers only failures of pods and node containers. | Several nodes in several zones. |
 
 All risks with their scores: [`docs/risk-assessment.md`](docs/risk-assessment.md).
 
