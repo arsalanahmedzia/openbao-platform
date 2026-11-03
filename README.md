@@ -133,15 +133,18 @@ Words: [glossary](docs/glossary.md). Build order, certificates, network rules: [
 
 ## Try it
 
-Runs in a GitHub Codespace (4 cores, 16 GB) with a 4-node kind cluster, see [`docs/environment.md`](docs/environment.md).
+Needs a GitHub Codespace (4 cores, 16 GB) and three Codespaces secrets: `SOPS_AGE_KEY` (the age private key, lets Flux decrypt the SOPS files), `FLUX_GITHUB_TOKEN` (the token for `flux bootstrap`) and `GITHUB_USER` (the GitHub user name). Details: [`docs/environment.md`](docs/environment.md).
 
-```bash
-bash scripts/setup/bootstrap.sh                # once: kind cluster, SOPS key, Flux; Flux then builds the rest from Git
-bash scripts/openbao/openbao-init.sh           # once: creates OpenBao's 5 key shares and root token, stores them safely
-bash scripts/after-restart/openbao-unseal.sh   # after every restart: unlocks (unseals) every OpenBao pod with 3 shares
-bash scripts/openbao/openbao-configure.sh      # once: secret storage, login for ESO, policies
-bash scripts/verify/test-gate.sh               # read-only check of everything; ends with GATE PASSED
-```
+1. `bash scripts/setup/bootstrap.sh`: once. Creates the 4-node kind cluster, stores the SOPS key and installs Flux; Flux then builds the rest from Git.
+   Good result: `Bootstrap done. Watch progress with:` and two `flux` commands. Wait until `flux get kustomizations` shows `apps-openbao` Ready before the next step.
+2. `bash scripts/openbao/openbao-init.sh`: once. Creates OpenBao's 5 key shares and root token, writes them to `~/openbao-init.json` (outside the repository, readable only by its owner) and stores them as the Codespaces secrets `OPENBAO_UNSEAL_KEYS` and `OPENBAO_ROOT_TOKEN`.
+   Good result: `initialised, keys saved to /home/vscode/openbao-init.json` and `Next: bash scripts/after-restart/openbao-unseal.sh`.
+3. `bash scripts/after-restart/openbao-unseal.sh`: after every restart. Unlocks (unseals) every OpenBao pod with 3 shares, because a restarted pod starts sealed.
+   Good result: `openbao-0: unsealed` (or `already unsealed`) for each pod, then `Sealed false` for all 3 pods, `HA Mode active` for one and `HA Mode standby` for the other two.
+4. `bash scripts/openbao/openbao-configure.sh`: once. Sets up the secret storage, the login for ESO and the policies.
+   Good result: `login ok; policies of this token:` `["default","eso-read","eso-write"]`, and at the end `Configuration done.`
+5. `bash scripts/verify/test-gate.sh`: read-only check of everything.
+   Good result: one `PASS` line per check and `GATE PASSED` at the end.
 
 All other commands and the full order: [`scripts/README.md`](scripts/README.md).
 
