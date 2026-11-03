@@ -70,9 +70,9 @@ flowchart LR
   class flux,prom,ksm,am ops
 ```
 
-## How the components talk to each other?
+## How the components talk to each other
 
-**1. How a client reads a secret.** A client proves who it is and gets a short-lived token. It shows that token with every later request, so the login credential is sent only once.
+**1. How a client reads a secret.** The client logs in once and sends the short-lived token with every later request.
 
 | From | To | Request | Response |
 | --- | --- | --- | --- |
@@ -80,7 +80,7 @@ flowchart LR
 | curl (or a script) | Traefik | Read: `GET /v1/secret/data/demo/hello` with the token in the `X-Vault-Token` header | The secret `demo/hello` as JSON |
 | Traefik | OpenBao (HTTPS, port 8200) | Forwards the request to the active pod, after checking its certificate against the demo CA | The answer, passed back to the client |
 
-**2. How secrets get into Kubernetes.** Applications do not talk to OpenBao themselves; External Secrets Operator (ESO) does it for them. ESO proves its identity with a token from the Kubernetes API, and OpenBao checks that token with the same API before it trusts ESO. After that, ESO copies secrets in both directions.
+**2. How secrets get into Kubernetes.** Applications do not talk to OpenBao themselves; ESO does it for them, in both directions.
 
 | From | To | Request | Response |
 | --- | --- | --- | --- |
@@ -92,7 +92,7 @@ flowchart LR
 | ESO | Kubernetes API | Push: reads the Secret `eso-demo/push-demo` | The Secret value |
 | ESO | OpenBao | Push: writes `secret/pushed/push-demo` | A confirmation |
 
-**3. How the data is stored and backed up.** OpenBao encrypts its data and stores it in PostgreSQL, so the database never sees a readable secret. PostgreSQL sends a full backup and its change log to S3 storage, which allows a restore to a chosen point in time.
+**3. How the data is stored and backed up.** The database never sees a readable secret, and the backups allow a restore to a chosen point in time.
 
 | From | To | Request | Response |
 | --- | --- | --- | --- |
@@ -102,14 +102,14 @@ flowchart LR
 | PostgreSQL (through the Barman Cloud plugin) | SeaweedFS (S3) | A full backup, every day at 12:00 UTC | Stored |
 | PostgreSQL (through the Barman Cloud plugin) | SeaweedFS (S3) | The WAL files (PostgreSQL's log of every change), continuously | Stored |
 
-**4. How OpenBao is unlocked and gets its certificates.** OpenBao starts locked. It needs 3 of its 5 key shares, so by design no single holder can unlock it; in this demo all shares are in one place (see [Production readiness](#production-readiness)). The TLS certificates for OpenBao, Traefik, ESO and Prometheus come from one demo CA. PostgreSQL uses a certificate from CloudNativePG's own CA.
+**4. How OpenBao is unlocked and gets its certificates.** No single holder of a key share can unlock OpenBao, but in this demo all shares are in one place (see [Production readiness](#production-readiness)). PostgreSQL's certificate comes from CloudNativePG's own CA, not from the demo CA.
 
 | From | To | Request | Response |
 | --- | --- | --- | --- |
 | You (via `scripts/after-restart/openbao-unseal.sh`, with `kubectl exec`) | Each OpenBao pod | One key share at a time, until 3 are entered | The pod is unsealed and ready |
 | cert-manager | Kubernetes API | Creates the TLS certificates, signed by the demo CA, as Secrets | The Secrets; the pods mount them, Traefik and the Prometheus Operator read them |
 
-**5. How the platform stays correct and is watched.** Flux fetches Git every minute and applies every new commit; every 10 minutes it also corrects any difference in the cluster, so Git stays the single source of truth. Prometheus reads the numbers of each component, and Alertmanager shows an alert when a number stays wrong for too long.
+**5. How the platform stays correct and is watched.** Flux applies every new commit within a minute and corrects any other difference every 10 minutes.
 
 | From | To | Request | Response |
 | --- | --- | --- | --- |
@@ -126,16 +126,16 @@ Words: [glossary](docs/glossary.md). Build order, certificates, network rules: [
 Runs in a GitHub Codespace (4 cores, 16 GB) with a 4-node kind cluster, see [`docs/environment.md`](docs/environment.md).
 
 ```bash
-bash scripts/setup/bootstrap.sh            # once: kind cluster, SOPS key, Flux; Flux then builds the rest from Git
-bash scripts/openbao/openbao-init.sh         # once: creates OpenBao's 5 key shares and root token, stores them safely
-bash scripts/after-restart/openbao-unseal.sh       # after every restart: unlocks (unseals) every OpenBao pod with 3 shares
-bash scripts/openbao/openbao-configure.sh    # once: secret storage, login for ESO, policies
-bash scripts/verify/test-gate.sh            # read-only check of everything; ends with GATE PASSED
+bash scripts/setup/bootstrap.sh                # once: kind cluster, SOPS key, Flux; Flux then builds the rest from Git
+bash scripts/openbao/openbao-init.sh           # once: creates OpenBao's 5 key shares and root token, stores them safely
+bash scripts/after-restart/openbao-unseal.sh   # after every restart: unlocks (unseals) every OpenBao pod with 3 shares
+bash scripts/openbao/openbao-configure.sh      # once: secret storage, login for ESO, policies
+bash scripts/verify/test-gate.sh               # read-only check of everything; ends with GATE PASSED
 ```
 
 All other commands and the full order: [`scripts/README.md`](scripts/README.md).
 
-## What we tested?
+## What we tested
 
 | Test | What we broke | Result |
 | --- | --- | --- |
@@ -158,20 +158,11 @@ Details, timelines and evidence: [`docs/runbooks/failure-tests.md`](docs/runbook
 | Root token | Used for init and configuration; still valid, revoke with `scripts/openbao/openbao-revoke-root.sh` | Break-glass only, generated when needed and revoked again |
 | NetworkPolicies | Default-deny ingress in `storage`, `databases`, `openbao`, `external-secrets`, `eso-demo` (done); the metrics ports are open only to the Prometheus pod. No egress policies. No policies in the other namespaces | Ingress and egress policies in every namespace |
 | Audit | OpenBao audit device to stdout (the pod log) | Audit log shipped to a log system |
-| Monitoring and alerting | Prometheus and Alertmanager (1 replica each), 8 alerts (seal status, ESO sync and store, PostgreSQL health, backup age, nodes); no receiver, alerts are only visible (done) | 2 replicas, a receiver (mail/on-call), longer retention, dashboards; also certificate-expiry alerts |
+| Monitoring and alerting | Prometheus and Alertmanager (1 replica each), 8 alerts (seal status, ESO sync and store, PostgreSQL health, backup age, nodes); no receiver, alerts are only visible; 2 days of metrics; PostgreSQL metrics unencrypted (R30, R31) (done) | 2 replicas, a receiver (mail/on-call), longer retention, dashboards; also certificate-expiry alerts |
 | Unseal | Shamir: 5 key shares, threshold 3, manual `scripts/after-restart/openbao-unseal.sh` after every pod restart | Auto-unseal with a cloud KMS or an HSM |
 | Unseal keys | All shares in one Codespaces secret (and `~/openbao-init.json`) | Shares split between different people, never in one place |
-| Backup storage | SeaweedFS inside the same cluster | S3 outside the cluster, in another region or account |
-| Cluster | One kind cluster in one Codespace (4 node containers on one VM) | Several nodes in several zones |
-
-## Known Limits
-
-- Unseal is manual: every OpenBao pod restart needs `scripts/after-restart/openbao-unseal.sh`.
-- Backups are in the same cluster, so losing the Codespace loses the data and its backups.
-- Everything runs in one Codespace, so the high availability only covers failures of pods and node containers.
-- Monitoring is minimal: one Prometheus, one Alertmanager, no receiver, 2 days of metrics, PostgreSQL metrics unencrypted (R30, R31).
-- The OpenBao root token is still valid; revoke it with `scripts/openbao/openbao-revoke-root.sh`.
-- The Flux and GitHub tokens, Codespaces secrets and deploy key must be revoked after the review ([`docs/environment.md`](docs/environment.md)).
+| Backup storage | SeaweedFS inside the same cluster: losing the Codespace loses the data and its backups | S3 outside the cluster, in another region or account |
+| Cluster | One kind cluster in one Codespace (4 node containers on one VM); high availability covers only failures of pods and node containers | Several nodes in several zones |
 
 All risks with their scores: [`docs/risk-assessment.md`](docs/risk-assessment.md).
 
