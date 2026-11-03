@@ -82,7 +82,7 @@ flowchart LR
 
 ## How the components talk to each other
 
-**1. How a client reads a secret.** The client logs in once and sends the short-lived token with every later request.
+**1. How a client reads a secret.** The client logs in once and sends the short-lived token with every later request. `scripts/openbao/openbao-traefik-check.sh` tests this path from outside the cluster ([evidence](docs/evidence/09-traefik-check.txt)).
 
 | From | To | Request | Response |
 | --- | --- | --- | --- |

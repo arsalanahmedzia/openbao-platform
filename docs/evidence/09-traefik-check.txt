@@ -1,0 +1,24 @@
+# Read a secret from outside the cluster through Traefik, with and without a login, captured 2026-11-03 (times UTC)
+# Command: bash scripts/openbao/openbao-traefik-check.sh
+# No token is printed: the login shows only its policies and lifetime; the value read is the demo value.
+
+==> 1. Demo CA (public certificate, no secret)
+19:44:33 PASS  demo CA from Secret openbao/openbao-tls
+
+==> 2. Health through Traefik (public, no token)
+19:44:33 PASS  GET https://openbao.demo.local/v1/sys/health -> HTTP 200 (active and unsealed)
+
+==> 3. Read the secret WITHOUT a token: must be refused
+19:44:33 PASS  GET .../secret/data/demo/hello without a token -> HTTP 403 (refused)
+
+==> 4. Log in through Traefik as the ESO service account
+19:44:33 PASS  login ok; policies: ["default","eso-read","eso-write"], valid 900 s
+
+==> 5. Read the secret WITH the token, through Traefik
+19:44:33 PASS  secret/demo/hello through Traefik: hello-from-openbao
+
+==> 6. Revoke the token, then try it again: must be refused
+19:44:33 PASS  token revoked -> HTTP 204
+19:44:33 PASS  read with the revoked token -> HTTP 403 (refused)
+
+19:44:33 RESULT  Traefik check passed
