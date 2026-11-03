@@ -1,5 +1,7 @@
 # Runbook: failure tests
 
+Use this when repeating a failure test or checking what happened when a part of the platform was broken on purpose.
+
 Planned failures, run by hand on 2026-10-27, one at a time, with
 `bash scripts/verify/test-gate.sh` before the first test and after every test.
 Evidence: `docs/evidence/07-f<N>-*.txt`.

@@ -1,5 +1,7 @@
 # Runbook: PostgreSQL backup and point-in-time restore
 
+Use this when checking that backups run, taking a backup by hand, or restoring PostgreSQL to a point in time.
+
 Cluster `databases/pg-openbao` (CloudNativePG) archives WAL continuously and
 takes a daily base backup through the Barman Cloud plugin into
 `s3://pg-backups/pg-openbao/` (ObjectStore `databases/pg-backups`, SeaweedFS).

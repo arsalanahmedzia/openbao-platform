@@ -1,5 +1,7 @@
 # Runbook: monitoring and alerts
 
+Use this when an alert fires, a metrics target is down, or the Prometheus or Alertmanager UI is needed.
+
 Prometheus collects numbers (metrics) from OpenBao, PostgreSQL and External
 Secrets every 30 s and checks 8 alert rules. When a rule is true for long
 enough, the alert fires and Alertmanager shows it.

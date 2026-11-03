@@ -1,5 +1,7 @@
 # Runbook: External Secrets with OpenBao
 
+Use this when a Secret from OpenBao is missing or out of date, a PushSecret does not reach OpenBao, or a new app secret is needed.
+
 External Secrets Operator (ESO) copies secrets between OpenBao and
 Kubernetes, in both directions. An ExternalSecret copies a value from OpenBao
 into a Kubernetes Secret (pull); a PushSecret copies a Kubernetes Secret into

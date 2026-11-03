@@ -1,5 +1,7 @@
 # Runbook: OpenBao init, unseal and recovery
 
+Use this when OpenBao starts for the first time or after a restart, a pod fails, its config changes, or the keys or the root token are needed.
+
 OpenBao runs as StatefulSet `openbao/openbao` (3 pods, one active, two
 standby) with all data in PostgreSQL `databases/pg-openbao`. Design:
 [ADR 0004](../adr/0004-openbao-ha-postgresql.md). Tested on 2026-10-26,
