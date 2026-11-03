@@ -4,7 +4,7 @@ Use this when repeating a failure test or checking what happened when a part of 
 
 Planned failures, run by hand on 2026-10-27, one at a time, with
 `bash scripts/verify/test-gate.sh` before the first test and after every test.
-Evidence: `docs/evidence/07-f<N>-*.txt`.
+Evidence: one file per test, linked under each test below.
 
 | Test | What we broke | Result | Recovery time |
 | --- | --- | --- | --- |
@@ -16,6 +16,8 @@ Evidence: `docs/evidence/07-f<N>-*.txt`.
 | F6 | Point-in-time restore into a new cluster | Restored exactly to the target time: row A present, row B absent; cleaned up | Restore cluster healthy after 71 s |
 
 ## F1. A worker node dies
+
+Evidence: [`07-f1-worker-node.txt`](../evidence/07-f1-worker-node.txt)
 
 What we broke: `docker stop openbao-platform-worker2`. That node ran the
 active OpenBao pod, the PostgreSQL primary, the only ESO controller replica
@@ -65,6 +67,8 @@ What we would change in production:
 
 ## F2. The PostgreSQL primary dies
 
+Evidence: [`07-f2-postgres.txt`](../evidence/07-f2-postgres.txt)
+
 What we broke: `bash scripts/failure-tests/failure-f2-postgres.sh` deleted the primary
 pod `pg-openbao-1`. A background probe wrote to OpenBao every 2 s as the ESO
 login (`secret/pushed/f2-probe`), because a write must reach PostgreSQL.
@@ -103,6 +107,8 @@ the cost of write latency.
 
 ## F3. OpenBao is sealed while ESO runs
 
+Evidence: [`07-f3-sealed.txt`](../evidence/07-f3-sealed.txt)
+
 What we broke: `bash scripts/failure-tests/failure-f3-sealed.sh` deleted all three
 OpenBao pods. They came back sealed after 20 s; the script unsealed them after
 153 s (keys via stdin).
@@ -135,6 +141,8 @@ OpenBao outage.
 
 ## F4. The PushSecret is deleted
 
+Evidence: [`07-f4-pushsecret.txt`](../evidence/07-f4-pushsecret.txt)
+
 What we broke: `bash scripts/failure-tests/failure-f4-pushsecret.sh` suspended the Flux
 kustomization `apps-external-secrets` (so Flux could not recreate the object
 during the test) and deleted the PushSecret `push-demo`.
@@ -161,6 +169,8 @@ OpenBao for good.
 
 ## F5. ESO restarts
 
+Evidence: [`07-f5-eso-restart.txt`](../evidence/07-f5-eso-restart.txt)
+
 What we broke: `bash scripts/failure-tests/failure-f5-eso-restart.sh` deleted the ESO
 controller pod; the Deployment started a new one.
 
@@ -182,6 +192,8 @@ ExternalSecrets, use a longer refresh interval or ESO's client caching to cut
 logins to OpenBao (check the ESO docs for the option before enabling it).
 
 ## F6. Restore from backup (point-in-time recovery)
+
+Evidence: [`07-f6-restore.txt`](../evidence/07-f6-restore.txt)
 
 What we did: `bash scripts/failure-tests/failure-f6-restore.sh` wrote row A into the
 live cluster (database `postgres`), noted a target time, wrote row B, forced
