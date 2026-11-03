@@ -38,9 +38,10 @@ between two layers means the second layer waits until the first is healthy.
    [`apps.yaml`](../clusters/demo/apps.yaml)).
 4. `infra-controllers` installs the tools (cert-manager, Traefik,
    CloudNativePG, External Secrets Operator). Every later layer uses their
-   object types.
+   object types. Evidence: [`01-helmrelease.txt`](evidence/01-helmrelease.txt),
+   [`01-pods.txt`](evidence/01-pods.txt).
 5. `infra-configs` creates the demo CA. Later layers need certificates signed
-   by it.
+   by it. Evidence: [`01-clusterissuers.txt`](evidence/01-clusterissuers.txt).
 6. `infra-storage` starts SeaweedFS, where PostgreSQL keeps its backups.
 7. `apps-database` starts PostgreSQL, where OpenBao stores its data.
 8. `apps-openbao` starts OpenBao, which ESO logs in to.
