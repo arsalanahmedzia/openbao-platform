@@ -7,18 +7,18 @@ Words in this file are explained in the [glossary](glossary.md).
 
 ```mermaid
 flowchart TB
-  git[(GitHub repo<br/>the wanted state)]
-  flux[Flux<br/>runs inside the cluster]
-  l1[flux-system<br/>Flux itself]
-  l2[infra-controllers<br/>the tools]
-  l3[infra-configs<br/>demo CA and settings]
-  l4[infra-storage<br/>SeaweedFS S3]
-  l5[apps-database<br/>PostgreSQL]
-  l6[apps-openbao<br/>OpenBao]
-  l7[apps-external-secrets<br/>secret sync]
-  l8[apps-monitoring<br/>Prometheus and alerts]
-  flux -->|"fetches the repo every minute"| git
-  flux -->|"builds the layers one after the other,<br/>each waits until the one before is healthy"| l1
+  git[(GitHub repo)]
+  flux[Flux]
+  l1[flux-system]
+  l2[infra-controllers]
+  l3[infra-configs]
+  l4[infra-storage]
+  l5[apps-database]
+  l6[apps-openbao]
+  l7[apps-external-secrets]
+  l8[apps-monitoring]
+  flux -->|"fetches every minute"| git
+  flux -->|"builds in order"| l1
   l1 --> l2 --> l3 --> l4 --> l5 --> l6 --> l7
   l3 --> l8
 ```
@@ -92,12 +92,12 @@ encryption tool, with one key pair.
 ```mermaid
 flowchart LR
   you([You])
-  git[(GitHub repo<br/>*.sops.yaml files,<br/>values encrypted)]
-  key[Codespaces secret<br/>SOPS_AGE_KEY<br/>the age private key]
-  boot[scripts/setup/bootstrap.sh<br/>runs once]
-  agesec[Secret sops-age<br/>in namespace flux-system]
+  git[(GitHub repo<br/>*.sops.yaml)]
+  key[Codespaces secret<br/>SOPS_AGE_KEY]
+  boot[bootstrap.sh]
+  agesec[Secret sops-age]
   flux[Flux]
-  out[Kubernetes Secrets<br/>with the real values]
+  out[Kubernetes Secrets]
 
   you -->|"encrypts with sops and pushes"| git
   boot -->|"reads"| key
@@ -146,14 +146,14 @@ connection to OpenBao would be unencrypted, and no client could check that it
 talks to the real OpenBao.
 
 ```mermaid
-flowchart TB
-  self[ClusterIssuer selfsigned-bootstrap<br/>signs only the CA]
-  ca[demo-root-ca<br/>the demo CA]
-  iss[ClusterIssuer demo-ca<br/>signs with the demo CA]
-  c1[openbao-tls<br/>Traefik shows it for<br/>openbao.demo.local]
-  c2[openbao-server-tls<br/>OpenBao ports 8200 and 9101]
-  c3[external-secrets-metrics-tls<br/>ESO metrics port 8080]
-  c4[prometheus-client-tls<br/>gives Prometheus the CA]
+flowchart LR
+  self[selfsigned-bootstrap]
+  ca[demo-root-ca]
+  iss[demo-ca]
+  c1[openbao-tls<br/>Traefik, openbao.demo.local]
+  c2[openbao-server-tls<br/>OpenBao 8200, 9101]
+  c3[external-secrets-metrics-tls<br/>ESO metrics 8080]
+  c4[prometheus-client-tls<br/>CA for Prometheus]
 
   self -->|"signs"| ca
   ca -->|"is used by"| iss
@@ -206,7 +206,7 @@ flowchart LR
   traefik[Traefik]
   prom[Prometheus]
   cnpgop[CloudNativePG operator]
-  apisrv[Kubernetes API server<br/>on the node network]
+  apisrv[API server]
   subgraph openbao[namespace openbao]
     bao[OpenBao pods]
   end
@@ -224,7 +224,7 @@ flowchart LR
 
   traefik -->|"8200"| bao
   esoctl -->|"8200"| bao
-  bao -->|"8200, 8201 between the pods"| bao
+  bao -->|"8200, 8201"| bao
   bao -->|"5432"| pg
   pg -->|"5432 replication, 8000"| pg
   cnpgop -->|"8000"| pg
