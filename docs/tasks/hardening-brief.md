@@ -13,7 +13,7 @@ this cluster is built; the rest stays documented as a production gap.
   which output means it worked. Then wait for me.
 - Everything in the cluster comes from Git through Flux. No lasting `kubectl apply` by hand.
 - No secret values in chat, evidence, commits or logs. Pin versions. Small commits, plain
-  messages, no `Co-Authored-By` or generated-by lines.
+  messages.
 - If you must choose between options, ask me and recommend one.
 - **Test gate after every item:** I run `scripts/eso-evidence.sh`, the OpenBao check scripts and
   the PostgreSQL status check. If something that worked before breaks, we revert that commit

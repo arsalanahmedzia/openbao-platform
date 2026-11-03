@@ -24,7 +24,7 @@ Connect the cluster to OpenBao with the External Secrets Operator (ESO, already 
 - Before each step: say in one or two plain sentences what it does and why. After each step: say which output means it worked. Then wait for me.
 - No secret values in chat, evidence, commits or logs. The demo value `hello-from-openbao` is not secret and may be shown. Never print tokens.
 - Everything in the cluster comes from Git through Flux. No lasting `kubectl apply` by hand.
-- Pin versions. Commit small, one concern per commit, plain messages, no `Co-Authored-By` or generated-by lines.
+- Pin versions. Commit small, one concern per commit, plain messages.
 - If you must choose between options, ask me with a question and say which one you recommend.
 
 ## Decisions to ask me about (use AskUserQuestion, recommend one)

@@ -108,7 +108,6 @@ it is safe and I do it.
 
 Plain English, no analogies:
 - a table: test, what we broke, result, recovery time
-- five sentences I must be able to explain in the interview, each with its reason
 - every place where you were unsure or did not verify something
 - every result that was different from the expectation
 - what is left for cleanup (root token, GitHub tokens, deploy keys, age key)
