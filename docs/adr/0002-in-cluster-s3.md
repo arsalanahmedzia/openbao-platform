@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Date: 2026-10-25
+- Evidence: [`02-storage-pods.txt`](../evidence/02-storage-pods.txt), [`02-bucket-job.txt`](../evidence/02-bucket-job.txt), [`02-s3-roundtrip.txt`](../evidence/02-s3-roundtrip.txt)
 
 ## Problem
 
