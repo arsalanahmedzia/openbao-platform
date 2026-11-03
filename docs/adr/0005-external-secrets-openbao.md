@@ -93,7 +93,7 @@ and no long-lived static token may be used.
   `eso-read`'s `secret/data/*` and every push failed with 403 on the
   existence check. `read` was added to the `pushed/` rules.
 
-Measured on 2026-10-26 (evidence `docs/evidence/05-*.txt`): store `Valid`;
+Measured on 2026-10-26 (evidence: [`05-external-secrets.txt`](../evidence/05-external-secrets.txt), [`05-policy.txt`](../evidence/05-policy.txt)): store `Valid`;
 pulled value correct; changes reached Kubernetes in 8 to 32 s; pushed value
 readable as the ESO login; ESO login denied writes to `secret/demo/` and
 `secret/other/`; all Flux layers `True` after a clean reconcile.

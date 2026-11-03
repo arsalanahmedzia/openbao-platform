@@ -5,7 +5,7 @@ Use this when OpenBao starts for the first time or after a restart, a pod fails,
 OpenBao runs as StatefulSet `openbao/openbao` (3 pods, one active, two
 standby) with all data in PostgreSQL `databases/pg-openbao`. Design:
 [ADR 0004](../adr/0004-openbao-ha-postgresql.md). Tested on 2026-10-26,
-evidence in `docs/evidence/04-*.txt`.
+evidence: [`04-deploy.txt`](../evidence/04-deploy.txt), [`04-unseal.txt`](../evidence/04-unseal.txt), [`04-configure.txt`](../evidence/04-configure.txt), [`04-status.txt`](../evidence/04-status.txt), [`04-pods.txt`](../evidence/04-pods.txt), [`04-postgres.txt`](../evidence/04-postgres.txt), [`04-https.txt`](../evidence/04-https.txt), [`04-failover.txt`](../evidence/04-failover.txt).
 
 Every OpenBao pod starts sealed: it runs but cannot read its own data until 3 of
 the 5 key shares are entered. This runbook covers the first start, the unseal

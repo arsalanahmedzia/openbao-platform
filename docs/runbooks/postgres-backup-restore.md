@@ -6,7 +6,7 @@ Cluster `databases/pg-openbao` (CloudNativePG) archives WAL continuously and
 takes a daily base backup through the Barman Cloud plugin into
 `s3://pg-backups/pg-openbao/` (ObjectStore `databases/pg-backups`, SeaweedFS).
 Design: [ADR 0003](../adr/0003-cloudnativepg-ha.md), [ADR 0002](../adr/0002-in-cluster-s3.md).
-Tested on 2026-10-25, evidence in `docs/evidence/03-*.txt`.
+Tested on 2026-10-25, evidence: [`03-cluster.txt`](../evidence/03-cluster.txt), [`03-replication.txt`](../evidence/03-replication.txt), [`03-failover.txt`](../evidence/03-failover.txt), [`03-backup.txt`](../evidence/03-backup.txt), [`03-restore.txt`](../evidence/03-restore.txt).
 Words are explained in the [glossary](../glossary.md).
 
 If the data in PostgreSQL is lost, every secret in OpenBao is lost with it.

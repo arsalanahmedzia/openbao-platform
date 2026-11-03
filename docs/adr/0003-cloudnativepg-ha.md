@@ -49,7 +49,7 @@ cluster with 3 worker nodes in a 16 GB Codespace.
 - Restores go into a new cluster from `docs/runbooks/restore-example.yaml`,
   applied by hand (not in a Flux path), without WAL archiving.
 
-Measured on 2026-10-25 (evidence `docs/evidence/03-*.txt`): primary pod
+Measured on 2026-10-25 (evidence: [`03-failover.txt`](../evidence/03-failover.txt), [`03-restore.txt`](../evidence/03-restore.txt)): primary pod
 deleted -> replica promoted after 7 s, cluster 3/3 healthy after 18 s;
 point-in-time restore of a small database in about 70 s, exact to the target
 time (row before the target present, row after it absent).

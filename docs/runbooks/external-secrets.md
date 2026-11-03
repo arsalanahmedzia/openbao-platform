@@ -12,7 +12,7 @@ ESO runs in namespace `external-secrets` and uses the ClusterSecretStore
 `openbao` (Flux layer
 `apps-external-secrets`, folder `apps/external-secrets/`). Design:
 [ADR 0005](../adr/0005-external-secrets-openbao.md). Tested on 2026-10-26,
-evidence in `docs/evidence/05-*.txt`.
+evidence: [`05-openbao-tls.txt`](../evidence/05-openbao-tls.txt), [`05-policy.txt`](../evidence/05-policy.txt), [`05-external-secrets.txt`](../evidence/05-external-secrets.txt).
 Words are explained in the [glossary](../glossary.md).
 
 ## How one sync works

@@ -99,7 +99,7 @@ be in Git.
   uses OpenBao's own service account to review tokens; the chart binds it to
   `system:auth-delegator`.
 
-Measured on 2026-10-26 (evidence `docs/evidence/04-*.txt`): active pod deleted
+Measured on 2026-10-26 (evidence: [`04-failover.txt`](../evidence/04-failover.txt), [`04-postgres.txt`](../evidence/04-postgres.txt)): active pod deleted
 -> a standby became active after about 7 s, the test secret was readable
 before and after; the recreated pod started sealed and joined as standby after
 unseal. A base backup of `pg-openbao` completed with OpenBao writing to it.
