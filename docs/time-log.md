@@ -2,12 +2,14 @@
 
 Time spent per task, estimated from the commit times: commits less than an hour
 apart count as one work session, plus 30 minutes before the first commit of each
-session, rounded to half hours. Time without commits (reading, waiting for the
-cluster) is not counted, so the real time is higher.
+session, rounded to half hours. Planning, reading the task and the official docs,
+and understanding each component left no commits; that time is an estimate in its
+own row.
 
 | Date | Phase | Task | Hours |
 | --- | --- | --- | --- |
-| 2026-10-22 | Setup | Repository skeleton, AWS/EC2 environment, tool installation | 3.5 |
+| 2026-10-22 to 2026-11-03 | Planning | Reading the task, planning the layers and the order, reading the official docs, understanding each component before building it | 6 |
+| 2026-10-22 | Setup | Repository skeleton, Codespace environment, tool installation | 3.5 |
 | 2026-10-25 | Storage | In-cluster S3 (SeaweedFS), encrypted S3 credentials, bucket Job, ADRs 0001/0002 | 1 |
 | 2026-10-25 | Database | HA PostgreSQL (CloudNativePG), S3 backups, replication/failover/PITR tests, runbook, ADR 0003 | 1 |
 | 2026-10-26 | OpenBao | OpenBao HA on PostgreSQL (Flux layer, SOPS DB password), init/unseal/configure scripts, HTTPS ingress, failover test, runbook, ADR 0004 | 1.5 |
@@ -20,4 +22,4 @@ cluster) is not counted, so the real time is higher.
 | 2026-10-29 | Docs | README overview, request/response tables, mermaid diagram, production readiness | 2.5 |
 | 2026-11-03 | Docs | ADR 0006 (security hardening), README, operations, architecture and scripts README shortened | 1 |
 
-**Total:** about 23 hours
+**Total:** about 29 hours
