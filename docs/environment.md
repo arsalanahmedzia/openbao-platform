@@ -99,12 +99,6 @@ over HTTPS without exposing anything publicly.
 - A spending limit is set so usage beyond the quota is capped.
 - The Codespace is stopped when not in use (idle timeout) and deleted after the review.
 
-## Fallback: AWS EC2
-
-If the Codespace runs out of quota or resources, the same scripts run on an EC2
-t3.xlarge (Ubuntu 24.04). Terminal access then goes through **AWS Systems Manager
-Session Manager** in the browser: no SSH port opened, no key pair on a local machine.
-
 ## Known Codespaces quirk: kind nodes without network
 
 On the Codespace VM the legacy iptables `FORWARD` policy is `DROP` and only knows the
