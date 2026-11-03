@@ -82,14 +82,6 @@ NetworkPolicies sit next to the things they protect: `networkpolicy.yaml` in `in
 `apps/database/`, `apps/openbao/` and `apps/external-secrets/`, and
 `external-secrets-networkpolicy.yaml` in `infrastructure/controllers/`.
 
-## Not shown in the README diagram
-
-The [README diagram](../README.md#overview) leaves out the kubelet (the
-Kubernetes agent on each node). It puts Secrets into the pods as files; pods
-do not call the Kubernetes API for their certificates.
-
-Everything runs inside one kind cluster.
-
 ## Secrets in Git (SOPS and age)
 
 OpenBao cannot hand out the secrets it needs to start, such as its own
