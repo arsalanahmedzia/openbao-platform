@@ -42,26 +42,10 @@ restarts kindnet and recreates the affected pods (it asks first).
 
 ## Monitoring and alerting
 
-Prometheus (namespace `monitoring`, layer `apps-monitoring`) collects numbers
-from the platform every 30 s and checks 8 alert rules. It scrapes (reads the
-numbers of) OpenBao (HTTPS, port 9101), the 3 PostgreSQL instances (port 9187)
-and the External Secrets controller (HTTPS, port 8080), plus
-kube-state-metrics for pod and node state. The failure tests showed problems
-nobody would notice, for example a sealed OpenBao (F3) or a lost node (F1);
-the alerts name them.
-
-Design: [ADR 0007](adr/0007-monitoring.md). What to do for each alert:
-[`runbooks/monitoring.md`](runbooks/monitoring.md).
-
-| Alert | Fires when |
-| --- | --- |
-| OpenBaoSealed | an OpenBao pod is sealed or not ready for 2 min |
-| ExternalSecretNotReady / PushSecretNotReady | a sync has failed for 5 min |
-| ClusterSecretStoreNotReady | the store is not Valid for 5 min |
-| ExternalSecretsControllerDown | the ESO controller cannot be scraped for 5 min |
-| PostgresNotHealthy | fewer than 3 PostgreSQL instances up, or no primary, for 5 min |
-| BackupFailedOrTooOld | no successful backup for 26 h, or the last backup failed |
-| NodeNotReady | a node is not Ready for 2 min |
+Prometheus reads the numbers of OpenBao, PostgreSQL, ESO and kube-state-metrics
+every 30 s and checks 8 alert rules. What each alert means and what to do:
+[`runbooks/monitoring.md`](runbooks/monitoring.md). Design:
+[ADR 0007](adr/0007-monitoring.md).
 
 On 2026-10-28, with OpenBao sealed (re-run of failure test F3), OpenBaoSealed
 fired after 2 min 22 s and reached Alertmanager
