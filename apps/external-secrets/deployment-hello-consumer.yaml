@@ -6,9 +6,9 @@
 #   kubelet updates a mounted Secret file after the Secret changes (with a
 #   delay of about 1 to 2 minutes); an environment variable keeps the old
 #   value until the pod restarts. No subPath: a subPath mount is never updated.
-# - The pod logs the value, only when it changes. Acceptable only because
-#   hello-from-openbao is a demo value, not a secret; a real app must never
-#   log a secret.
+# - The pod never logs the value. When the value changes, it logs one line
+#   with the time and the first 12 characters of the value's SHA-256 hash,
+#   so the log proves each change without showing the secret.
 # - No incoming traffic: the pod only reads a file, so the default-deny
 #   policy in networkpolicy.yaml stays as it is, with no allow rule.
 # - Hardened: runs as user 65534 (nobody), read-only root filesystem, all
@@ -43,19 +43,20 @@ spec:
       containers:
         - name: consumer
           image: busybox:1.37.0
-          # Reads the file every 5 s and prints one line when the value
-          # changes. "trap" lets the pod stop at once on SIGTERM instead of
-          # waiting 30 s. Kubernetes leaves $(cat ...) and $(date ...) as they
-          # are, because they are not names of environment variables.
+          # Every 5 s: hash the file and print one line when the hash changes
+          # (the value itself is never printed). "trap" lets the pod stop at
+          # once on SIGTERM instead of waiting 30 s. Kubernetes leaves
+          # $(sha256sum ...) and $(date ...) as they are, because they are not
+          # names of environment variables.
           command: ["sh", "-c"]
           args:
             - |
               trap 'exit 0' TERM
               last=""
               while true; do
-                now=$(cat /etc/hello/message)
+                now=$(sha256sum /etc/hello/message | cut -c1-12)
                 if [ "$now" != "$last" ]; then
-                  echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) message: $now"
+                  echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) value changed, sha256 $now"
                   last=$now
                 fi
                 sleep 5
