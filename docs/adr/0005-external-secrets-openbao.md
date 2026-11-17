@@ -87,6 +87,14 @@ and no long-lived static token may be used.
   lags behind the Secret (up to about 2 minutes by the Kubernetes docs;
   measured 31 to 47 s on 2026-11-17, evidence
   [`05b-workload-consumes-secret.txt`](../evidence/05b-workload-consumes-secret.txt)).
+  The pod logs the value, one line with the time per change, so the log
+  shows that the running program saw each change, not only the file on
+  disk. Options were no log (only `cat` from outside), a log line without
+  the value, a hash of the value, or the value itself; the value was chosen
+  because a reviewer can read the whole sequence without comparing hashes.
+  Acceptable only because `hello-from-openbao` is a demo value: a real app
+  must never log a secret (logs are read more widely and kept longer than
+  Secrets) and should log at most a hash of it.
 - **Policies** (files in `openbao/policies/`):
   - `eso-read`: read/list `secret/data/*` and `secret/metadata/*`.
   - `eso-write`: create, read, update, delete on `secret/data/pushed/*` and
