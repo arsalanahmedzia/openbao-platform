@@ -21,5 +21,6 @@ own row.
 | 2026-10-29 | Scripts | Scripts sorted into folders, one header format with a plain explanation, new PostgreSQL, S3 and Traefik checks, test gate shows why the monitoring check failed | 2 |
 | 2026-10-29 | Docs | README overview, request/response tables, mermaid diagram, production readiness | 2.5 |
 | 2026-11-03 | Docs | ADR 0006 (security hardening), README, operations, architecture and scripts README shortened | 1 |
+| 2026-11-17 | External Secrets | Example workload hello-consumer (Secret mounted as a file, hardened pod), check script eso-consume-check.sh, evidence, docs | 1 |
 
-**Total:** about 32 hours
+**Total:** about 33 hours
