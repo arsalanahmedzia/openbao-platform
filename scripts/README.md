@@ -47,7 +47,7 @@ bash scripts/monitoring/monitoring-check.sh
 | [`after-restart/`](after-restart/) | Bring the cluster back, repair the pod network, unseal OpenBao | yes |
 | [`verify/`](verify/) | `test-gate.sh` (the whole platform) and `github-access.sh` | no |
 | [`openbao/`](openbao/) | Deploy check, init, configure, policies, rollout, audit, evidence, root token, Traefik check | yes |
-| [`external-secrets/`](external-secrets/) | Store, pull, refresh, push, evidence, debug | mostly reconcile and read |
+| [`external-secrets/`](external-secrets/) | Store, pull, refresh, push, the workload that reads the Secret, evidence, debug | mostly reconcile and read |
 | [`database/`](database/) | PostgreSQL health and replication, S3 storage, backups | test data, removed again |
 | [`monitoring/`](monitoring/) | `monitoring-check.sh` (daily, read-only) and the stage checks M1 to M3 | the stage checks do |
 | [`hardening/`](hardening/) | One NetworkPolicy test per namespace | temporary test pods |
