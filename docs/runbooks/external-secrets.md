@@ -134,6 +134,8 @@ bash scripts/external-secrets/eso-push-check.sh       # pushed value read back a
 bash scripts/external-secrets/eso-evidence.sh         # everything incl. least privilege -> docs/evidence/05-external-secrets.txt
 ```
 
+Check the example workload with `kubectl -n eso-demo logs deploy/hello-consumer` (one line per value change); its mounted file follows the Secret up to about 2 minutes later (measured 31 to 47 s), full check: `bash scripts/external-secrets/eso-consume-check.sh`.
+
 ## 4. After a Codespace restart
 
 OpenBao comes back sealed, so the store and the layer `apps-external-secrets`
