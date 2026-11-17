@@ -78,6 +78,15 @@ and no long-lived static token may be used.
   source of truth, changes are written again), `deletionPolicy: Delete`
   (OpenBao mirrors Git). ESO only overwrites or deletes values marked
   `managed-by: external-secrets` in their metadata.
+- **Example workload** `hello-consumer`
+  ([`deployment-hello-consumer.yaml`](../../apps/external-secrets/deployment-hello-consumer.yaml))
+  reads the Secret as a **mounted file, not an environment variable**: the
+  kubelet updates a mounted Secret file after the Secret changes, while an
+  environment variable keeps the old value until the pod restarts. No
+  `subPath`, because a subPath mount is never updated. Trade-off: the file
+  lags behind the Secret (up to about 2 minutes by the Kubernetes docs;
+  measured 31 to 47 s on 2026-11-17, evidence
+  [`05b-workload-consumes-secret.txt`](../evidence/05b-workload-consumes-secret.txt)).
 - **Policies** (files in `openbao/policies/`):
   - `eso-read`: read/list `secret/data/*` and `secret/metadata/*`.
   - `eso-write`: create, read, update, delete on `secret/data/pushed/*` and
