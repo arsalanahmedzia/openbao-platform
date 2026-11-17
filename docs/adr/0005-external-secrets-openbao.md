@@ -85,7 +85,7 @@ and no long-lived static token may be used.
   environment variable keeps the old value until the pod restarts. No
   `subPath`, because a subPath mount is never updated. Trade-off: the file
   lags behind the Secret (up to about 2 minutes by the Kubernetes docs;
-  measured 31 to 47 s on 2026-11-17, evidence
+  measured 62 and 66 s on 2026-11-17, evidence
   [`05b-workload-consumes-secret.txt`](../evidence/05b-workload-consumes-secret.txt)).
   The pod logs one line with the time per change, so the log shows that the
   running program saw each change, not only the file on disk. Options were
