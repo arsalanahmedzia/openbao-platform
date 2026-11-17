@@ -44,12 +44,14 @@
 #      (prints when the Secret had it and when the file had it).
 #   6. Only then writes hello-from-openbao back (fresh login) and waits again.
 #   7. Prints the pod log and checks it by counting: exactly 2 new lines since
-#      step 3, and the last 3 lines are original, changed, restored.
+#      step 3, and the hashes in the last 3 lines match original, changed,
+#      restored. The pod logs only a hash, never the value.
+#        printf '%s' <value> | sha256sum | cut -c1-12
 #
 # What you should see: PASS lines for the Deployment, the user id 65534, the
 #   start value, "file in the pod: hello-changed-..." and "file in the pod:
 #   hello-from-openbao" with the seconds each took, the pod log with three
-#   "message:" lines at the end, then "RESULT  workload check passed".
+#   "sha256" lines at the end, then "RESULT  workload check passed".
 # If it fails: "file did not change after 300 s" prints what the Secret has
 #   and what the file has. Secret still old: ESO did not sync, see
 #   scripts/external-secrets/eso-debug.sh externalsecret hello. Secret new
@@ -75,6 +77,8 @@ fail() { echo "$(ts) FAIL  $*"; FAILS=$((FAILS + 1)); }
 info() { echo "$(ts) INFO  $*"; }
 
 secret_value() { kubectl -n "$NS" get secret hello-from-openbao -o jsonpath='{.data.message}' | base64 -d; }
+# short_hash <value>: the same 12 characters the pod logs (sha256 of the file content)
+short_hash()   { printf '%s' "$1" | sha256sum | cut -c1-12; }
 file_value()   { kubectl -n "$NS" exec "$POD" -- cat "$FILE"; }
 
 # revoke_token: revoke the current demo-writer token, if there is one
@@ -163,7 +167,7 @@ echo "Kubernetes Secret: $S"
 echo "file in the pod:   $F"
 [[ $S == "$ORIGINAL" && $F == "$ORIGINAL" ]] && pass "both are $ORIGINAL" \
   || { fail "start value is not $ORIGINAL; run bash scripts/external-secrets/eso-refresh-test.sh first"; exit 1; }
-LOG_BEFORE=$(kubectl -n "$NS" logs "$POD" | grep -c ' message: ' || true)
+LOG_BEFORE=$(kubectl -n "$NS" logs "$POD" | grep -c ' sha256 ' || true)
 echo "pod log lines so far: $LOG_BEFORE"
 
 NEW="hello-changed-$(date -u +%H%M%S)"
@@ -185,18 +189,21 @@ pass "written; token revoked"
 wait_file "$ORIGINAL"
 
 echo
-echo "==> 7. Pod log (one line per change)"
+echo "==> 7. Pod log (one line per change, hash only, never the value)"
+H_ORIG=$(short_hash "$ORIGINAL"); H_NEW=$(short_hash "$NEW")
+echo "expected hashes: $ORIGINAL -> $H_ORIG, $NEW -> $H_NEW"
 LOG=$(kubectl -n "$NS" logs "$POD")
 echo "$LOG"
-mapfile -t LINES < <(grep ' message: ' <<<"$LOG")
+mapfile -t LINES < <(grep ' sha256 ' <<<"$LOG")
 N=${#LINES[@]}
 NEW_LINES=$(( N - LOG_BEFORE ))
 (( NEW_LINES == 2 )) && pass "2 new log lines since step 3" || fail "$NEW_LINES new log lines since step 3 (expected 2)"
-if (( N >= 3 )) && [[ ${LINES[N-3]} == *" message: $ORIGINAL" && ${LINES[N-2]} == *" message: $NEW" && ${LINES[N-1]} == *" message: $ORIGINAL" ]]; then
-  pass "last 3 log lines: $ORIGINAL, $NEW, $ORIGINAL"
+if (( N >= 3 )) && [[ ${LINES[N-3]} == *" sha256 $H_ORIG" && ${LINES[N-2]} == *" sha256 $H_NEW" && ${LINES[N-1]} == *" sha256 $H_ORIG" ]]; then
+  pass "last 3 log lines have the hashes of $ORIGINAL, $NEW, $ORIGINAL"
 else
-  fail "last 3 log lines are not $ORIGINAL, $NEW, $ORIGINAL"
+  fail "last 3 log lines do not have the hashes of $ORIGINAL, $NEW, $ORIGINAL"
 fi
+grep -qF -e "$ORIGINAL" -e "$NEW" <<<"$LOG" && fail "the pod log contains a value" || pass "the pod log contains no value"
 
 echo
 (( FAILS == 0 )) && echo "$(ts) RESULT  workload check passed" \
