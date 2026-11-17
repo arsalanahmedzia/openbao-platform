@@ -1,0 +1,89 @@
+# Example workload that uses the synced Secret: OpenBao secret/demo/hello ->
+# ExternalSecret hello (ESO) -> Secret hello-from-openbao -> file
+# /etc/hello/message in this pod. Proven by scripts/external-secrets/eso-consume-check.sh.
+#
+# - The Secret is mounted as a file, not as an environment variable: the
+#   kubelet updates a mounted Secret file after the Secret changes (with a
+#   delay of about 1 to 2 minutes); an environment variable keeps the old
+#   value until the pod restarts. No subPath: a subPath mount is never updated.
+# - The pod logs the value, only when it changes. Acceptable only because
+#   hello-from-openbao is a demo value, not a secret; a real app must never
+#   log a secret.
+# - No incoming traffic: the pod only reads a file, so the default-deny
+#   policy in networkpolicy.yaml stays as it is, with no allow rule.
+# - Hardened: runs as user 65534 (nobody), read-only root filesystem, all
+#   Linux capabilities dropped, no privilege escalation, seccomp
+#   RuntimeDefault, no service account token mounted.
+# Field names checked with kubectl explain on Kubernetes v1.37.0.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-consumer
+  namespace: eso-demo
+  labels:
+    app.kubernetes.io/name: hello-consumer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hello-consumer
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: hello-consumer
+    spec:
+      # The pod never calls the Kubernetes API, so it gets no token.
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: consumer
+          image: busybox:1.37.0
+          # Reads the file every 5 s and prints one line when the value
+          # changes. "trap" lets the pod stop at once on SIGTERM instead of
+          # waiting 30 s. Kubernetes leaves $(cat ...) and $(date ...) as they
+          # are, because they are not names of environment variables.
+          command: ["sh", "-c"]
+          args:
+            - |
+              trap 'exit 0' TERM
+              last=""
+              while true; do
+                now=$(cat /etc/hello/message)
+                if [ "$now" != "$last" ]; then
+                  echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) message: $now"
+                  last=$now
+                fi
+                sleep 5
+              done
+          # Ready only while the mounted file exists and is not empty.
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "test -s /etc/hello/message"]
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 5m
+              memory: 8Mi
+            limits:
+              memory: 16Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: hello
+              mountPath: /etc/hello
+              readOnly: true
+      volumes:
+        - name: hello
+          secret:
+            secretName: hello-from-openbao
+            # Read-only for everyone in the pod; the file stays owned by root.
+            # No fsGroup: it would add rw-rw---- to these bits.
+            defaultMode: 0444

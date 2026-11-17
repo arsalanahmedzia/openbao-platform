@@ -5,6 +5,7 @@ resources:
   - demo-writer-sa.yaml
   - clustersecretstore.yaml
   - externalsecret-hello.yaml
+  - deployment-hello-consumer.yaml
   - push-demo-source.yaml
   - pushsecret.yaml
   - networkpolicy.yaml
