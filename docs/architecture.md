@@ -244,8 +244,9 @@ accepts; the label is the allowed port.
 What the ports are for:
 
 - `default-deny-ingress` in each of the five namespaces blocks everything
-  coming in, so a new pod starts closed. Namespace `eso-demo` has no pods, so
-  it has no allow rules.
+  coming in, so a new pod starts closed. In namespace `eso-demo` the only pod,
+  `hello-consumer`, reads the synced Secret as a file and accepts no
+  connections, so it has no allow rules.
 - 8201 is OpenBao's cluster port, where standbys forward requests to the
   active pod.
 - 8000 is CloudNativePG's instance manager (status and control of each

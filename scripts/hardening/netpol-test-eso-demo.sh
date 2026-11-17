@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # netpol-test-eso-demo.sh - applies and proves the default-deny policy of namespace eso-demo (hardening B2e).
 #
-# Namespace eso-demo has no pods, only Secrets and ESO objects, so it gets a
+# Namespace eso-demo has one pod, hello-consumer, which reads the synced
+# Secret as a file and accepts no connections. So the namespace gets a
 # default-deny rule and no allow rule: any pod added there later starts
 # closed. To prove the rule, this script starts a temporary web server pod
 # in eso-demo.
