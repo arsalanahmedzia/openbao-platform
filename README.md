@@ -90,7 +90,7 @@ flowchart LR
 | curl (or a script) | Traefik | Read: `GET /v1/secret/data/demo/hello` with the token in the `X-Vault-Token` header | The secret `demo/hello` as JSON |
 | Traefik | OpenBao (HTTPS, port 8200) | Forwards the request to the active pod, after checking its certificate against the demo CA | The answer, passed back to the client |
 
-**2. How secrets get into Kubernetes.** Applications do not talk to OpenBao themselves; ESO does it for them, in both directions.
+**2. How secrets get into Kubernetes.** Applications do not talk to OpenBao themselves; ESO does it for them, in both directions. The example pod `hello-consumer` reads the pulled Secret as a file ([evidence](docs/evidence/05b-workload-consumes-secret.txt)).
 
 | From | To | Request | Response |
 | --- | --- | --- | --- |
@@ -99,6 +99,7 @@ flowchart LR
 | OpenBao | Kubernetes API | Is this token valid, and whose is it? | Yes, it belongs to `external-secrets/external-secrets` |
 | ESO | OpenBao | Pull: reads `secret/demo/hello` | The secret value |
 | ESO | Kubernetes API | Pull: creates or updates the Secret `eso-demo/hello-from-openbao` | A confirmation |
+| kubelet | Kubernetes API | Reads the Secret `eso-demo/hello-from-openbao` for the pod `hello-consumer` (workload consumes the synced secret, [`deployment-hello-consumer.yaml`](apps/external-secrets/deployment-hello-consumer.yaml)) | The value, written as the file `/etc/hello/message` in the pod and updated after each change |
 | ESO | Kubernetes API | Push: reads the Secret `eso-demo/push-demo` | The Secret value |
 | ESO | OpenBao | Push: writes `secret/pushed/push-demo` | A confirmation |
 
